@@ -40,5 +40,4 @@ void drivetrain_control() {
         chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
         pros::delay(10);
     }
-
 }
