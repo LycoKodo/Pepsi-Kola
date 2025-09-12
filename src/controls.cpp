@@ -37,3 +37,27 @@ void drivetrain_control() {
         pros::delay(10);
     }
 }
+
+void score_goal() {
+    while(true) {
+
+    }
+}
+
+void intake() {
+    while(true) {
+
+    }
+}
+
+void endgame_ctl() {
+    while(true) {
+
+    }
+}
+
+void tongue_aligner_toggle() {
+    while(true) {
+
+    }
+}
