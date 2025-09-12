@@ -18,10 +18,10 @@
 
 // CLAWBOT CONFIGS
 
-pros::MotorGroup leftMotors({-19, -10, -1}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
-pros::MotorGroup rightMotors({7, 8, 9}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
+pros::MotorGroup leftMotors({-3, -12, 1}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
+pros::MotorGroup rightMotors({8, 10, -11}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
 
-// PID settings
+// TODO - Change params for this
 lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
                               &rightMotors, // right motor group
                               12.9, // 11.6 inch track width
@@ -48,17 +48,9 @@ pros::adi::DigitalOut mogo_mech (1);
 // Sensors (Miscellaneous)
 // ---------------------------------------
 
-// pros::Imu imu(19);
-// pros::Optical colorSort (18);
-
 // ---------------------------------------
 // Macro (Wall Stake Mech)
 // ---------------------------------------
-
-pros::MotorGroup lady({-6}); // TODO - Placeholder
-lemlib::PID ladypid(10, 0.4, 50, 0, false);
-pros::Rotation lady_rotation (12);
-lemlib::SmartMotor ladySmart(&lady, &lady_rotation, ladypid);
 
 // ---------------------------------------
 // Odometry
