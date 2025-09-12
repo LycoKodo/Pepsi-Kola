@@ -21,12 +21,18 @@ extern lemlib::Drivetrain drivetrain;
 // Subsystem Configuration
 // ---------------------------------------
 extern pros::Controller master;
-extern pros::Motor roller;
-extern pros::Motor hook;
+
+extern pros::Motor top_intake;
+extern pros::Motor front_intake;
+extern pros::Motor middle_intake;
+extern pros::Motor back_intake;
+
 extern pros::MotorGroup intake;
-extern pros::adi::DigitalOut mogo_mech;
-extern pros::adi::DigitalOut doinker;
+
+extern pros::adi::DigitalOut tongue;
+extern pros::adi::DigitalOut aligner;
 extern pros::adi::DigitalOut endgame;
+extern pros::adi::DigitalOut redirect;
 
 // ---------------------------------------
 // Sensors (Miscellaneous)

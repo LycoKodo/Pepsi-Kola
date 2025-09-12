@@ -36,11 +36,15 @@ lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-pros::Motor roller(-20, pros::MotorGearset::green);
-pros::Motor hook(-5, pros::MotorGearset::blue);
+pros::Motor top_intake(6, pros::MotorGearset::blue);
+pros::Motor front_intake(9, pros::MotorGearset::blue);
+pros::Motor middle_intake(4, pros::MotorGearset::blue);
+pros::Motor back_intake(2, pros::MotorGearset::blue);
 
-pros::MotorGroup intake({-20, -5}, pros::MotorGearset::green); // front 1, back 6
-pros::adi::DigitalOut mogo_mech (1);
+pros::adi::DigitalOut tongue (1);
+pros::adi::DigitalOut aligner (2);
+pros::adi::DigitalOut endgame (7);
+pros::adi::DigitalOut redirect (8);
 // pros::adi::DigitalOut doinker (7);
 // pros::adi::DigitalOut endgame (1);
 
