@@ -9,7 +9,6 @@
 #include <sys/wait.h>
 
 #include "robot-config.hpp"
-#include "colorsort.hpp"
 
 char alliance = 'N';
 bool allianceConfirmed = false;
