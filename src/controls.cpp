@@ -10,9 +10,6 @@
 
 #include "robot-config.hpp"
 
-char alliance = 'N';
-bool allianceConfirmed = false;
-
 void drivetrain_control() {
     bool toggle = true;
     bool latch = false;
