@@ -522,7 +522,7 @@ int motorUpdate() {
     // @LycoKodo wdyt? 
 
     try {
-        double current = intake.get_temperature();
+        double current = 999;//intake.get_temperature();
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Intake: ERROR (PROS)\n");
         } else {
@@ -536,7 +536,7 @@ int motorUpdate() {
 
     // Note: IMO this is not rlly needed as in a tournament in a rush you will NOT prioritise cooling lady brown motor
     try {
-        double current = lady.get_temperature();
+        double current = 999; //lady.get_temperature();
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "WallMech: ERROR (PROS)");
         } else {
@@ -586,7 +586,7 @@ int customUpdate() {
     snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
     lv_textarea_add_text(other_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f\n", ladySmart.getRotation());
+    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f\n", 9.9);
     lv_textarea_add_text(other_textarea, buffer);
 
     snprintf(buffer, sizeof(buffer), "Drive P: %.2f I: %.2f D: %.2f\n", linearController.kP, linearController.kI, linearController.kD);
