@@ -5,18 +5,18 @@
 
 // Autonomous routines declarations
 int auton1ring();
-int blue1();
-int blue2();
-int blue3();
-int blue4();
-int blue5();
-int blue6();
-int red1();
-int red2();
-int red3();
-int red4();
-int red5();
-int red6();
+int AI1();
+int AI2();
+int AI3();
+int AI4();
+int AI5();
+int AI6();
+int qual1();
+int qual2();
+int qual3();
+int qual4();
+int qual5();
+int qual6();
 int skills1();
 int skills2();
 int skills3();

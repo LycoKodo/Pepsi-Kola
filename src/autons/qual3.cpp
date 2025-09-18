@@ -9,16 +9,19 @@
 
 
 // ------------------------- //
-// Blue 1 Autonomous Routine //
+// Qual 3  Autonomous Routine //
 // ------------------------- //
 
-// e.g. normal blue left
+// e.g. goal rush
 
-int blue1() {
+int qual3() {
     
-    
+    chassis.setPose(0, 0, 0);
+    chassis.moveToPose(0, 0, 0, 10000, {}, true);
+    pros::delay(5000);
+    chassis.turnToHeading(-359, 100000);
 
-    return 0; // success, 1 for fail
+    return 0;
 }
 
 

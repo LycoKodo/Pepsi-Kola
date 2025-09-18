@@ -9,12 +9,12 @@
 
 
 // ------------------------- //
-// Blue 6 Autonomous Routine //
+// Qual 5  Autonomous Routine //
 // ------------------------- //
 
-// e.g. blue right awp
+// e.g. red left awp
 
-int blue6() {
+int qual5() {
     
     return 0;
 }

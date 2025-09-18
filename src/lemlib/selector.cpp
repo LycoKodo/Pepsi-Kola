@@ -36,21 +36,21 @@ namespace lemlib::selector {
 
 enum AutonState {
     NONE = 0,
-    RED = 1,
-    BLUE = -1,
+    QUAL = 1,
+    AI = -1,
     SKILLS = 101
 };
 
 AutonState autonState = NONE;
 int auton = 999;
-int blueLength;
-int redLength;
+int AILength;
+int qualLength;
 int skillsLength;
 
 bool autonStarted = false;
 
-uint16_t currentRedButton = UINT16_MAX; // button IDs for buttons selected rn
-uint16_t currentBlueButton = UINT16_MAX;
+uint16_t currentQualButton = UINT16_MAX; // button IDs for buttons selected rn
+uint16_t currentAIButton = UINT16_MAX;
 uint16_t currentSKillsButton = UINT16_MAX;
 
 void tabWatcher(void* param);
@@ -58,12 +58,12 @@ void tabWatcher(void* param);
 pros::rtos::Task* tabWatcher_task = nullptr;
 
 const int MAX_AUTONS = 100;
-const char* redBtnmMap[MAX_AUTONS];
-const char* blueBtnmMap[MAX_AUTONS];
+const char* qualBtnmMap[MAX_AUTONS];
+const char* AIBtnmMap[MAX_AUTONS];
 const char* skillsBtnmMap[MAX_AUTONS];
 
-const char* redBtnmDesc[MAX_AUTONS];
-const char* blueBtnmDesc[MAX_AUTONS];   
+const char* qualBtnmDesc[MAX_AUTONS];
+const char* AIBtnmDesc[MAX_AUTONS];   
 const char* skillsBtnmDesc[MAX_AUTONS];
 
 int motorUpdate();
@@ -74,13 +74,13 @@ int textUpdate();
 lv_obj_t* tabview = lv_tabview_create(lv_scr_act(), LV_DIR_TOP, 50);
 // Creating LVGL buttons & tab object
 
-lv_obj_t* redBtnm;
-lv_obj_t* blueBtnm;
+lv_obj_t* qualBtnm;
+lv_obj_t* AIBtnm;
 lv_obj_t* skillsBtnm;
 
 lv_obj_t* devTab = lv_tabview_add_tab(tabview, "Developer");
-lv_obj_t* redTab = lv_tabview_add_tab(tabview, "Red");
-lv_obj_t* blueTab = lv_tabview_add_tab(tabview, "Blue");
+lv_obj_t* qualTab = lv_tabview_add_tab(tabview, "Qual");
+lv_obj_t* AITab = lv_tabview_add_tab(tabview, "AI");
 lv_obj_t* skillsTab = lv_tabview_add_tab(tabview, "Skills");
 lv_obj_t* bocchiTab = lv_tabview_add_tab(tabview, " ");
 
@@ -89,8 +89,8 @@ lv_obj_t *motor_temps_textarea = lv_textarea_create(devTab);
 lv_obj_t *odom_textarea = lv_textarea_create(devTab);
 lv_obj_t *other_textarea = lv_textarea_create(devTab);
 
-lv_obj_t *red_textarea = lv_textarea_create(redTab);
-lv_obj_t *blue_textarea = lv_textarea_create(blueTab);
+lv_obj_t *qual_textarea = lv_textarea_create(qualTab);
+lv_obj_t *AI_textarea = lv_textarea_create(AITab);
 lv_obj_t *skills_textarea = lv_textarea_create(skillsTab);
 
 
@@ -114,7 +114,7 @@ void deselect_all_buttons(lv_obj_t* btnm) {
     }
 }
 
-void redBtnmAction(lv_event_t* e) {
+void qualBtnmAction(lv_event_t* e) {
     try {
         lv_obj_t* btnm = lv_event_get_target(e); // know our button matrix
         uint16_t btn_id = lv_btnmatrix_get_selected_btn(btnm); // get button id
@@ -122,31 +122,31 @@ void redBtnmAction(lv_event_t* e) {
 
         if (txt == nullptr) throw std::runtime_error("No active button text found!");
 
-        printf("Red button: %s selected\n", txt);
+        printf("Qual button: %s selected\n", txt);
         printf("Button ID: %i\n", btn_id);
 
-        deselect_all_buttons(blueBtnm);
+        deselect_all_buttons(AIBtnm);
         deselect_all_buttons(skillsBtnm);
 
-        currentRedButton = btn_id;
-        currentBlueButton = UINT16_MAX;
+        currentQualButton = btn_id;
+        currentAIButton = UINT16_MAX;
         currentSKillsButton = UINT16_MAX;
 
-        for (int i = 0; i < redLength; i++) {
-            if (strcmp(txt, redBtnmMap[i]) == 0) {
+        for (int i = 0; i < qualLength; i++) {
+            if (strcmp(txt, qualBtnmMap[i]) == 0) {
                 // HOLY SHT THIS IS BAD BUT IT WORKS
                 if (i > 3) auton = i;
                 else auton = i + 1; // determining what program/routine is ran
-                autonState = RED;
+                autonState = QUAL;
                 break;
             }
         }
     } catch (const std::exception& ex) {
-        log_error("redBtnmAction", ex.what());
+        log_error("qualBtnmAction", ex.what());
     }
 }
 
-void blueBtnmAction(lv_event_t* e) {
+void AIBtnmAction(lv_event_t* e) {
     try {
         lv_obj_t* btnm = lv_event_get_target(e);
         uint16_t btn_id = lv_btnmatrix_get_selected_btn(btnm);
@@ -154,25 +154,25 @@ void blueBtnmAction(lv_event_t* e) {
 
         if (txt == nullptr) throw std::runtime_error("No active button text found!");
 
-        printf("Blue button: %s selected\n", txt);
+        printf("AI button: %s selected\n", txt);
         printf("Button ID: %i\n", btn_id);
 
-        deselect_all_buttons(redBtnm);
+        deselect_all_buttons(qualBtnm);
         deselect_all_buttons(skillsBtnm);
 
-        currentBlueButton = btn_id;
-        currentRedButton = UINT16_MAX;
+        currentAIButton = btn_id;
+        currentQualButton = UINT16_MAX;
         currentSKillsButton = UINT16_MAX;
-        for (int i = 0; i < blueLength; i++) {
-            if (strcmp(txt, blueBtnmMap[i]) == 0) {
+        for (int i = 0; i < AILength; i++) {
+            if (strcmp(txt, AIBtnmMap[i]) == 0) {
                 if (i > 3) auton = -(i);
                 else auton = -(i + 1);
-                autonState = BLUE;
+                autonState = AI;
                 break;
             }
         }
     } catch (const std::exception& ex) {
-        log_error("blueBtnmAction", ex.what());
+        log_error("AIBtnmAction", ex.what());
     }
 }
 
@@ -187,11 +187,11 @@ void skillsBtnmAction(lv_event_t* e) {
         printf("Skills button: %s selected\n", txt);
         printf("Button ID: %i\n", btn_id);
 
-        deselect_all_buttons(redBtnm);
-        deselect_all_buttons(blueBtnm);
+        deselect_all_buttons(qualBtnm);
+        deselect_all_buttons(AIBtnm);
 
-        currentBlueButton = UINT16_MAX;
-        currentRedButton = UINT16_MAX;
+        currentAIButton = UINT16_MAX;
+        currentQualButton = UINT16_MAX;
         currentSKillsButton = btn_id;
         
         for (int i = 0; i < skillsLength; i++) {
@@ -218,12 +218,12 @@ void tabWatcher(void* param) {
                     activeTab = currentTab;
                 }
                 // Handle actions for the active tab
-                if (activeTab == 1 && currentRedButton < UINT16_MAX) {
-                    deselect_all_buttons(redBtnm);
-                    lv_btnmatrix_set_btn_ctrl(redBtnm, currentRedButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 2 && currentBlueButton < UINT16_MAX) {
-                    deselect_all_buttons(blueBtnm);
-                    lv_btnmatrix_set_btn_ctrl(blueBtnm, currentBlueButton, LV_BTNMATRIX_CTRL_CHECKED);
+                if (activeTab == 1 && currentQualButton < UINT16_MAX) {
+                    deselect_all_buttons(qualBtnm);
+                    lv_btnmatrix_set_btn_ctrl(qualBtnm, currentQualButton, LV_BTNMATRIX_CTRL_CHECKED);
+                } else if (activeTab == 2 && currentAIButton < UINT16_MAX) {
+                    deselect_all_buttons(AIBtnm);
+                    lv_btnmatrix_set_btn_ctrl(AIBtnm, currentAIButton, LV_BTNMATRIX_CTRL_CHECKED);
                 } else if (activeTab == 3 && currentSKillsButton < UINT16_MAX) {
                     deselect_all_buttons(skillsBtnm);
                     lv_btnmatrix_set_btn_ctrl(skillsBtnm, currentSKillsButton, LV_BTNMATRIX_CTRL_CHECKED);
@@ -255,23 +255,23 @@ void tabWatcher(void* param) {
 }
 
 
-void init(int default_auton, const char** redAutons, const char** blueAutons, const char** skillsAutons,
-            const char** redDesc, const char** blueDesc, const char** skillsDesc) {    
+void init(int default_auton, const char** qualAutons, const char** AIAutons, const char** skillsAutons,
+            const char** qualDesc, const char** AIDesc, const char** skillsDesc) {    
     try {
         // For button names
         int i = 0;
-        while (blueAutons[i] != nullptr && i < MAX_AUTONS) {
-            blueBtnmMap[i] = blueAutons[i];
+        while (AIAutons[i] != nullptr && i < MAX_AUTONS) {
+            AIBtnmMap[i] = AIAutons[i];
             i++;
         }
-        blueLength = i;
+        AILength = i;
         i = 0;
         
-        while (redAutons[i] != nullptr && i < MAX_AUTONS) {
-            redBtnmMap[i] = redAutons[i];
+        while (qualAutons[i] != nullptr && i < MAX_AUTONS) {
+            qualBtnmMap[i] = qualAutons[i];
             i++;
         }
-        redLength = i;
+        qualLength = i;
         i = 0;
 
         while (skillsAutons[i] != nullptr && i < MAX_AUTONS) {
@@ -282,13 +282,13 @@ void init(int default_auton, const char** redAutons, const char** blueAutons, co
 
         // For button descriptions
         i = 0;
-        while (redDesc[i] != nullptr && i < MAX_AUTONS) {
-            redBtnmDesc[i] = redDesc[i];
+        while (qualDesc[i] != nullptr && i < MAX_AUTONS) {
+            qualBtnmDesc[i] = qualDesc[i];
             i++;
         }
         i = 0;
-        while (blueDesc[i] != nullptr && i < MAX_AUTONS) {
-            blueBtnmDesc[i] = blueDesc[i];
+        while (AIDesc[i] != nullptr && i < MAX_AUTONS) {
+            AIBtnmDesc[i] = AIDesc[i];
             i++;
         }
         i = 0;
@@ -298,7 +298,7 @@ void init(int default_auton, const char** redAutons, const char** blueAutons, co
         }
 
         auton = default_auton;
-        autonState = (auton > 0) ? RED : ((auton < 0) ? BLUE : NONE);
+        autonState = (auton > 0) ? QUAL : ((auton < 0) ? AI : NONE);
 
         // Declaring color theme
         lv_theme_t* th = lv_theme_default_init(
@@ -310,35 +310,35 @@ void init(int default_auton, const char** redAutons, const char** blueAutons, co
         );
         lv_disp_set_theme(NULL, th);
 
-        redBtnm = lv_btnmatrix_create(redTab);
-        lv_btnmatrix_set_map(redBtnm, redBtnmMap);
-        lv_obj_set_size(redBtnm, 290,180);
-        lv_obj_align(redBtnm, LV_ALIGN_LEFT_MID, -15, 0);
-        lv_btnmatrix_set_btn_ctrl_all(redBtnm, LV_BTNMATRIX_CTRL_CHECKABLE);
-        lv_obj_add_event_cb(redBtnm, redBtnmAction, LV_EVENT_VALUE_CHANGED, NULL);
+        qualBtnm = lv_btnmatrix_create(qualTab);
+        lv_btnmatrix_set_map(qualBtnm, qualBtnmMap);
+        lv_obj_set_size(qualBtnm, 290,180);
+        lv_obj_align(qualBtnm, LV_ALIGN_LEFT_MID, -15, 0);
+        lv_btnmatrix_set_btn_ctrl_all(qualBtnm, LV_BTNMATRIX_CTRL_CHECKABLE);
+        lv_obj_add_event_cb(qualBtnm, qualBtnmAction, LV_EVENT_VALUE_CHANGED, NULL);
 
-        lv_obj_set_size(red_textarea, 180, 180);
-        lv_obj_align(red_textarea, LV_ALIGN_LEFT_MID, 280, 0);
-        
-        lv_textarea_add_text(red_textarea, "Greetings Adventure. Here lies the great RED alliance autonomous routines");
-        lv_textarea_set_cursor_click_pos(red_textarea, false);
-        lv_textarea_set_password_mode(red_textarea, false);
-        lv_obj_add_state(red_textarea, LV_STATE_DISABLED);
+        lv_obj_set_size(qual_textarea, 180, 180);
+        lv_obj_align(qual_textarea, LV_ALIGN_LEFT_MID, 280, 0);
 
-        blueBtnm = lv_btnmatrix_create(blueTab);
-        lv_btnmatrix_set_map(blueBtnm, blueBtnmMap);
-        lv_obj_set_size(blueBtnm, 290, 180);
-        lv_obj_align(blueBtnm, LV_ALIGN_LEFT_MID, -15, 0);
-        lv_btnmatrix_set_btn_ctrl_all(blueBtnm, LV_BTNMATRIX_CTRL_CHECKABLE);
-        lv_obj_add_event_cb(blueBtnm, blueBtnmAction, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_textarea_add_text(qual_textarea, "Greetings Adventure. Here lies the great QUAL alliance autonomous routines");
+        lv_textarea_set_cursor_click_pos(qual_textarea, false);
+        lv_textarea_set_password_mode(qual_textarea, false);
+        lv_obj_add_state(qual_textarea, LV_STATE_DISABLED);
 
-        lv_obj_set_size(blue_textarea, 180, 180);
-        lv_obj_align(blue_textarea, LV_ALIGN_LEFT_MID, 280, 0);
-        
-        lv_textarea_add_text(blue_textarea, "Greetings Adventure. Here lies the great BLUE alliance autonomous routines");
-        lv_textarea_set_cursor_click_pos(blue_textarea, false);
-        lv_textarea_set_password_mode(blue_textarea, false);
-        lv_obj_add_state(blue_textarea, LV_STATE_DISABLED);
+        AIBtnm = lv_btnmatrix_create(AITab);
+        lv_btnmatrix_set_map(AIBtnm, AIBtnmMap);
+        lv_obj_set_size(AIBtnm, 290, 180);
+        lv_obj_align(AIBtnm, LV_ALIGN_LEFT_MID, -15, 0);
+        lv_btnmatrix_set_btn_ctrl_all(AIBtnm, LV_BTNMATRIX_CTRL_CHECKABLE);
+        lv_obj_add_event_cb(AIBtnm, AIBtnmAction, LV_EVENT_VALUE_CHANGED, NULL);
+
+        lv_obj_set_size(AI_textarea, 180, 180);
+        lv_obj_align(AI_textarea, LV_ALIGN_LEFT_MID, 280, 0);
+
+        lv_textarea_add_text(AI_textarea, "Greetings Adventure. Here lies the great AI alliance autonomous routines");
+        lv_textarea_set_cursor_click_pos(AI_textarea, false);
+        lv_textarea_set_password_mode(AI_textarea, false);
+        lv_obj_add_state(AI_textarea, LV_STATE_DISABLED);
 
         skillsBtnm = lv_btnmatrix_create(skillsTab);
         lv_btnmatrix_set_map(skillsBtnm, skillsBtnmMap);
@@ -605,16 +605,16 @@ int textUpdate() {
         odomUpdate();
         customUpdate();
     } else if (activeTab == 1) {
-        // Update text for Red tab
-        lv_textarea_set_text(red_textarea, ""); // Clear the text area
-        if (currentRedButton < redLength) {
-            lv_textarea_add_text(red_textarea, redBtnmDesc[currentRedButton]);
+        // Update text for Qual tab
+        lv_textarea_set_text(qual_textarea, ""); // Clear the text area
+        if (currentQualButton < qualLength) {
+            lv_textarea_add_text(qual_textarea, qualBtnmDesc[currentQualButton]);
         }
     } else if (activeTab == 2) {
-        // Update text for Blue tab
-        lv_textarea_set_text(blue_textarea, ""); // Clear the text area
-        if (currentBlueButton < blueLength) {
-            lv_textarea_add_text(blue_textarea, blueBtnmDesc[currentBlueButton]);
+        // Update text for AI tab
+        lv_textarea_set_text(AI_textarea, ""); // Clear the text area
+        if (currentAIButton < AILength) {
+            lv_textarea_add_text(AI_textarea, AIBtnmDesc[currentAIButton]);
         }
     } else if (activeTab == 3) {
         // Update text for Skills tab

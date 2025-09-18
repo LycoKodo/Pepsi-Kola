@@ -9,17 +9,17 @@
 
 
 // ------------------------- //
-// Blue 2 Autonomous Routine //
+// Qual 2  Autonomous Routine //
 // ------------------------- //
 
-// e.g. normal blue right
+// e.g. red left
 
-int blue2() {
+int qual2() {
     
     chassis.setPose(0, 0, 0);
-    chassis.moveToPose(0, 24, 90, 10000, {}, true);
+    chassis.moveToPose(0, -24, 0, 10000, {}, true);
     pros::delay(5000);
-    chassis.turnToHeading(0, 100000);
+    chassis.turnToHeading(-90, 100000);
 
     return 0;
 }

@@ -9,15 +9,13 @@
 
 
 // ------------------------- //
-// Red 1  Autonomous Routine //
+// Qual 4  Autonomous Routine //
 // ------------------------- //
 
-// e.g. red right
+// e.g. normal rush
 
-int red1() {
+int qual4() {
     
-    chassis.setPose(0, 0, 0);
-
     return 0;
 }
 

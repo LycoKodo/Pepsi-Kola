@@ -9,18 +9,13 @@
 
 
 // ------------------------- //
-// Red 3  Autonomous Routine //
+// AI 6 Autonomous Routine //
 // ------------------------- //
 
-// e.g. goal rush
+// e.g. blue right awp
 
-int red3() {
+int AI6() {
     
-    chassis.setPose(0, 0, 0);
-    chassis.moveToPose(0, 0, 0, 10000, {}, true);
-    pros::delay(5000);
-    chassis.turnToHeading(-359, 100000);
-
     return 0;
 }
 

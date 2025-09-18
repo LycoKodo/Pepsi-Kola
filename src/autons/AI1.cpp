@@ -9,14 +9,16 @@
 
 
 // ------------------------- //
-// Red 5  Autonomous Routine //
+// AI 1 Autonomous Routine //
 // ------------------------- //
 
-// e.g. red left awp
+// e.g. normal blue left
 
-int red5() {
+int AI1() {
     
-    return 0;
+    
+
+    return 0; // success, 1 for fail
 }
 
 

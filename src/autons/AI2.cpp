@@ -9,13 +9,18 @@
 
 
 // ------------------------- //
-// Red 6  Autonomous Routine //
+// AI 2 Autonomous Routine //
 // ------------------------- //
 
-// e.g. red right awp
+// e.g. normal blue right
 
-int red6() {
+int AI2() {
     
+    chassis.setPose(0, 0, 0);
+    chassis.moveToPose(0, 24, 90, 10000, {}, true);
+    pros::delay(5000);
+    chassis.turnToHeading(0, 100000);
+
     return 0;
 }
 

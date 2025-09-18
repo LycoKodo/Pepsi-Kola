@@ -9,17 +9,17 @@
 
 
 // ------------------------- //
-// Red 2  Autonomous Routine //
+// AI 3 Autonomous Routine //
 // ------------------------- //
 
-// e.g. red left
+// e.g. goal rush
 
-int red2() {
+int AI3() {
     
     chassis.setPose(0, 0, 0);
-    chassis.moveToPose(0, -24, 0, 10000, {}, true);
+    chassis.moveToPose(0, 0, 0, 10000, {}, true);
     pros::delay(5000);
-    chassis.turnToHeading(-90, 100000);
+    chassis.turnToHeading(359, 100000);
 
     return 0;
 }

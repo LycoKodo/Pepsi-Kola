@@ -110,22 +110,22 @@ void initialize() {
     // -----------------------
 
 
-    static const char* redBtnmMap[] = {
-        "R-Auton1", "R-Auton2", "R-Auton3", "\n",
-        "R-Auton4", "R-Auton5", "R-Auton6", nullptr
+    static const char* qualBtnmMap[] = {
+        "Q-Auton1", "Q-Auton2", "Q-Auton3", "\n",
+        "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
     };
-    static const char* redBtnmDesc[] = {
-        "R-Auton1", "R-Auton2", "R-Auton3",
-        "R-Auton4", "R-Auton5", "R-Auton6", nullptr
+    static const char* qualBtnmDesc[] = {
+        "Q-Auton1", "Q-Auton2", "Q-Auton3",
+        "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
     };
 
-    static const char* blueBtnmMap[] = {
-        "B-Auton1", "B-Auton2", "B-Auton3", "\n",
-        "B-Auton4", "B-Auton5", "B-Auton6", nullptr
+    static const char* AIBtnmMap[] = {
+        "AI-Auton1", "AI-Auton2", "AI-Auton3", "\n",
+        "AI-Auton4", "AI-Auton5", "AI-Auton6", nullptr
     };
-    static const char* blueBtnmDesc[] = {
-        "R-Auton1", "R-Auton2", "R-Auton3",
-        "R-Auton4", "R-Auton5", "R-Auton6", nullptr
+    static const char* AIBtnmDesc[] = {
+        "AI-Auton1", "AI-Auton2", "AI-Auton3",
+        "AI-Auton4", "AI-Auton5", "AI-Auton6", nullptr
     };
 
     static const char* skillsBtnmMap[] = {
@@ -137,7 +137,7 @@ void initialize() {
         "Skills 2", "Skills 3", "Skills 4", nullptr
     };
 
-    lemlib::selector::init(999, redBtnmMap, blueBtnmMap, skillsBtnmMap, redBtnmDesc, blueBtnmDesc, skillsBtnmDesc); // declaring default auton
+    lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
 
     // TODO - temporary 
     pros::Task watcher(autonwatcher);
@@ -160,23 +160,23 @@ void autonomous() {
     
     if (auton >= 1 && auton <= 100) {
         switch (auton) {
-            case 1: red1(); break;
-            case 2: red2(); break;
-            case 3: red3(); break;
-            case 4: red4(); break;
-            case 5: red5(); break;
-            case 6: red6(); break;
+            case 1: qual1(); break;
+            case 2: qual2(); break;
+            case 3: qual3(); break;
+            case 4: qual4(); break;
+            case 5: qual5(); break;
+            case 6: qual6(); break;
             // add more red cases as needed up to 100
         }
     }
     else if (auton >= -100 && auton <= -1) {
         switch (auton) {
-            case -1: blue1(); break;
-            case -2: blue2(); break;
-            case -3: blue3(); break;
-            case -4: blue4(); break;
-            case -5: blue5(); break;
-            case -6: blue6(); break;
+            case -1: AI1(); break;
+            case -2: AI2(); break;
+            case -3: AI3(); break;
+            case -4: AI4(); break;
+            case -5: AI5(); break;
+            case -6: AI6(); break;
             // add more blue cases as needed up to -100
         }
     }
