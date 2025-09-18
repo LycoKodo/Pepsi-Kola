@@ -37,3 +37,99 @@ void drivetrain_control() {
         pros::delay(10);
     }
 }
+
+void score_goal() {
+    while (true) {
+        if (master.get_digital(DIGITAL_R2)) {
+            front_intake.move(127);
+            middle_intake.move(127);
+            top_intake.move(127);
+            back_intake.move(127);
+        } else {
+            front_intake.brake();
+            middle_intake.brake();
+            top_intake.brake();
+            back_intake.brake();
+        }
+        if (master.get_digital(DIGITAL_L2)) {
+            front_intake.move(127);
+            middle_intake.move(127);
+            top_intake.move(-127);
+            back_intake.move(127);
+        } else {
+            front_intake.brake();
+            middle_intake.brake();
+            top_intake.brake();
+            back_intake.brake();
+        }
+    }
+}
+
+void intake() {
+    while(true) {
+        if (master.get_digital(DIGITAL_R1)) {
+            front_intake.move(127);
+            middle_intake.move(-127);
+            top_intake.move(-127);
+            back_intake.move(127);
+        } else {
+            front_intake.brake();
+            middle_intake.brake();
+            top_intake.brake();
+            back_intake.brake();
+        }
+        if (master.get_digital(DIGITAL_L1)) {
+            front_intake.move(-127);
+            middle_intake.move(127);
+            top_intake.move(127);
+            back_intake.move(-127);
+        } else {
+            front_intake.brake();
+            middle_intake.brake();
+            top_intake.brake();
+            back_intake.brake();
+        }
+    }
+}
+
+void endgame_ctl() {
+    bool toggle = true;
+    bool latch = false;
+
+    while (true) {
+        bool b_button = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+
+        if (b_button && !latch) {
+            endgame.set_value(1);
+            toggle = !toggle;             // Flip the toggle state
+            latch = true;                 // Engage latch to prevent repeated toggles
+            
+        } else if (!b_button) {
+            endgame.set_value(0);
+            latch = false;                // Reset latch when button is released
+        }
+        pros::delay(10);
+    }
+}
+
+void tongue_aligner_toggle() {
+    bool toggle = true;
+    bool latch = false;
+
+    while (true) {
+        bool b_button = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+
+        if (b_button && !latch) {
+            tongue.set_value(1);
+            aligner.set_value(0);
+            toggle = !toggle;             // Flip the toggle state
+            latch = true;                 // Engage latch to prevent repeated toggles
+            
+        } else if (!b_button) {
+            tongue.set_value(0);
+            aligner.set_value(1);
+            latch = false;                // Reset latch when button is released
+        }
+        pros::delay(10);
+    }
+}
