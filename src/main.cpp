@@ -67,12 +67,12 @@
 LV_IMG_DECLARE(image); //TKSRC Logo
 
 // TODO - Temporary
-void autonwatcher() {
-    while (true) {
-        printf("Selected Auton: %i\n", lemlib::selector::auton);
-        pros::delay(10);
-    }
-}
+// void autonwatcher() {
+//     while (true) {
+//         printf("Selected Auton: %i\n", lemlib::selector::auton);
+//         pros::delay(10);
+//     }
+// }
 
 
 void initialize() {
@@ -142,7 +142,7 @@ void initialize() {
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
 
     // TODO - temporary 
-    pros::Task watcher(autonwatcher);
+    // pros::Task watcher(autonwatcher);
 
 }
 
@@ -201,6 +201,7 @@ void autonomous() {
 
 }
 
+// TODO - Problem Lies in Controls
 void opcontrol() {
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
     // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
@@ -210,5 +211,5 @@ void opcontrol() {
         colorsort.sorted_intake_loop();
     }); // use a lambda
     pros::Task endgameTask(endgame_ctl);
-    pros::Task tongueAlignerTask(tongue_aligner_toggle);
+    // pros::Task tongueAlignerTask(tongue_aligner_toggle);
 }

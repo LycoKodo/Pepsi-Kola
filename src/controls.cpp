@@ -57,6 +57,7 @@ void score_goal() {
             top_intake.brake();
             back_intake.brake();
         }
+        pros::delay(10);
     }
 }
 
@@ -79,6 +80,7 @@ void intake_loop() {
             top_intake.brake();
             back_intake.brake();
         }
+        pros::delay(10);
     }
 }
 
@@ -107,7 +109,8 @@ void tongue_aligner_toggle() {
     bool latch = false;
 
     while (true) {
-        bool b_button = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+        // TODO - potential PROS bug? dual reference to a controller button does not produce warning. 
+        bool b_button = master.get_digital(pros::E_CONTROLLER_DIGITAL_UP);
 
         if (b_button && !latch) {
             tongue.set_value(1);

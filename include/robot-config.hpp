@@ -41,7 +41,8 @@ extern pros::adi::DigitalOut intake_redirect;
 // ---------------------------------------
 extern pros::Imu imu;
 extern pros::Optical color_sort_optical;
-extern ColorSort colorsort;
+extern pros::Optical preload_optical;
+extern macros::ColorSort colorsort;
 
 // ---------------------------------------
 // Macro (Wall Stake Mech)

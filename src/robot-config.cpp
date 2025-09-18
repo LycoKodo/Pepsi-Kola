@@ -56,8 +56,10 @@ pros::adi::DigitalOut intake_redirect (8);
 // Sensors (Miscellaneous)
 // ---------------------------------------
 
-pros::Optical color_sort_optical(3); // TODO - Change port
-ColorSort colorsort = ColorSort();
+pros::Optical color_sort_optical(7); // TODO - Change port
+pros::Optical preload_optical(19);
+
+macros::ColorSort colorsort = macros::ColorSort();
 
 // ---------------------------------------
 // Odometry

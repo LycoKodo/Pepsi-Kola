@@ -24,12 +24,12 @@ enum AutonState {
     SKILLS = 101
 };
 
+extern bool autonStarted;
+
 // Global variables for selector logic
 extern AutonState autonState;
 extern int auton;
 extern int autonCount;
-
-extern bool autonStarted;
 
 extern uint16_t currentRedButton;
 extern uint16_t currentBlueButton;

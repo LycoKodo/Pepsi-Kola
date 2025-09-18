@@ -14,27 +14,30 @@
 #include <chrono>
 
 // Color sorting + intake control class
-class ColorSort {
-public:
-    // Constructor
-    ColorSort();
+namespace macros{
+    class ColorSort {
+        public:
+            // Constructor
+            ColorSort();
 
-    // Initialise with optional alliance ('R', 'B', or 'N' = auto-detect)
-    void initialise(char alliance = 'N');
+            // Initialise with optional alliance ('R', 'B', or 'N' = auto-detect)
+            void initialise(char alliance = 'N');
 
-    // Run intake for a set time with color-sorting
-    void Intake_SortedMove(int voltage, float msDelay, int penaltyFactor = 1, bool async = false);
+            // Run intake for a set time with color-sorting
+            void Intake_SortedMove(int voltage, float msDelay, int penaltyFactor = 1, bool async = false);
 
-    // Continuous loop that runs color-sorted intake control (blocking)
-    void sorted_intake_loop();
+            // Continuous loop that runs color-sorted intake control (blocking)
+            void sorted_intake_loop();
 
-    // Public alliance indicator
-    char alliance;
+            // Public alliance indicator
+            char alliance;
 
-private:
-    // Alliance detection via optical sensor
-    char identify_alliance();
+        private:
+            // Alliance detection via optical sensor
+            char identify_alliance();
 
-    // Ring inspection based on hue + alliance
-    bool ringInspect();
-};
+            // Ring inspection based on hue + alliance
+            bool ringInspect();
+    };
+
+}

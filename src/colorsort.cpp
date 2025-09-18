@@ -10,12 +10,17 @@
 
 #include "controls.hpp"
 #include "robot-config.hpp"
+#include "colorsort.hpp"
 #include "lemlib/selector.hpp" // For auton selector
 
-ColorSort::ColorSort() : alliance('N') {}
+namespace macros {
+
+ColorSort::ColorSort() {}
 
 void ColorSort::initialise(char alliance) {
     // CPP DEFAULT PARAM SYNTAX GUIDDE: https://en.cppreference.com/w/cpp/language/default_arguments
+    preload_optical.set_led_pwm(100);
+    color_sort_optical.set_led_pwm(100);
     if (alliance != 'N') {
         this->alliance = alliance;
     } else {
@@ -23,11 +28,16 @@ void ColorSort::initialise(char alliance) {
     }
 }
 
+// RED CLRSRT -> 10 
+// RED PRELOAD -> 13
+
+// BLUE CLRSRT -> 213
+// BLUE PRELOAD -> 208
 char ColorSort::identify_alliance() {
     // TODO - IMPLEMENT TUNING
-    const float blue_lim_low = 150, blue_lim_high = 250;
-    const float red_lim_low = 0, red_lim_high = 50;
-    double hue = color_sort_optical.get_hue();
+    const float blue_lim_low = 185, blue_lim_high = 240;
+    const float red_lim_low = 0, red_lim_high = 30;
+    double hue = preload_optical.get_hue();
 
     if (red_lim_low < hue && hue < red_lim_high) {
         return 'R';
@@ -39,8 +49,8 @@ char ColorSort::identify_alliance() {
 
 bool ColorSort::ringInspect() {
     // TODO - Tune these values
-    const float blue_lim_low = 150, blue_lim_high = 250;
-    const float red_lim_low = 0, red_lim_high = 50;
+    const float blue_lim_low = 185, blue_lim_high = 240;
+    const float red_lim_low = 0, red_lim_high = 30;
     double hue = color_sort_optical.get_hue();
 
     // TODO - figure out alliancing (color_sort_identifier, + monitoring on dev page)
@@ -109,3 +119,4 @@ void ColorSort::sorted_intake_loop() {
     }
 }
 
+}
