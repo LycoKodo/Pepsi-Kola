@@ -19,8 +19,9 @@ namespace lemlib::selector {
 // Enumeration to define the autonomous state
 enum AutonState {
     NONE = 0,
-    RED = 1,
-    BLUE = -1
+    QUAL = 1,
+    AI = -1,
+    SKILLS = 101
 };
 
 // Global variables for selector logic
@@ -28,7 +29,7 @@ extern AutonState autonState;
 extern int auton;
 extern int autonCount;
 
-extern int autonStarted;
+extern bool autonStarted;
 
 extern uint16_t currentRedButton;
 extern uint16_t currentBlueButton;

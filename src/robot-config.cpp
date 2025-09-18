@@ -11,6 +11,7 @@
 #include "pros/rtos.hpp"
 #include <sys/wait.h>
 
+#include "colorsort.hpp"
 // ---------------------------------------
 // Drivetrain & Chassis
 // ---------------------------------------
@@ -41,10 +42,13 @@ pros::Motor front_intake(9, pros::MotorGearset::blue);
 pros::Motor middle_intake(4, pros::MotorGearset::blue);
 pros::Motor back_intake(2, pros::MotorGearset::blue);
 
+pros::MotorGroup intake({6, 9, 4, 2}, pros::MotorGearset::blue);
+
 pros::adi::DigitalOut tongue (1);
 pros::adi::DigitalOut aligner (2);
 pros::adi::DigitalOut endgame (7);
-pros::adi::DigitalOut redirect (8);
+pros::adi::DigitalOut intake_redirect (8);
+
 // pros::adi::DigitalOut doinker (7);
 // pros::adi::DigitalOut endgame (1);
 
@@ -52,9 +56,8 @@ pros::adi::DigitalOut redirect (8);
 // Sensors (Miscellaneous)
 // ---------------------------------------
 
-// ---------------------------------------
-// Macro (Wall Stake Mech)
-// ---------------------------------------
+pros::Optical color_sort_optical(3); // TODO - Change port
+ColorSort colorsort = ColorSort();
 
 // ---------------------------------------
 // Odometry

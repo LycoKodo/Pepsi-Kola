@@ -12,7 +12,7 @@
 #include "robot-config.hpp"
 #include "controls.hpp"
 #include "autons.hpp"
-
+#include "colorsort.hpp"
 
 // THIS CODE IS POWERED BY A PROJECT MANAGER AND TWO DORITO FANS POWERED BY 
 
@@ -90,11 +90,13 @@ void initialize() {
 
     chassis.calibrate(); // calibrate sensors
 
-    // // -----------------------
-    // // Initialise Sensors
-    // // -----------------------
+    // -----------------------
+    // Initialise Sensors
+    // -----------------------
     // colorSort.set_led_pwm(100);
     // lady_rotation.set_position(0);
+
+    colorsort.initialise(); // auto-detect alliance
 
     // // -----------------------
     // // Initialise Subsystems
@@ -204,7 +206,9 @@ void opcontrol() {
     // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
     pros::Task driveTask(drivetrain_control);
     pros::Task scoreTask(score_goal);
-    pros::Task intakeTask(intake);
+    pros::Task intakeTask([] {
+        colorsort.sorted_intake_loop();
+    }); // use a lambda
     pros::Task endgameTask(endgame_ctl);
     pros::Task tongueAlignerTask(tongue_aligner_toggle);
 }

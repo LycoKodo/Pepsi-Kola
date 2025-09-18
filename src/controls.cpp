@@ -45,13 +45,8 @@ void score_goal() {
             middle_intake.move(127);
             top_intake.move(127);
             back_intake.move(127);
-        } else {
-            front_intake.brake();
-            middle_intake.brake();
-            top_intake.brake();
-            back_intake.brake();
         }
-        if (master.get_digital(DIGITAL_L2)) {
+        else if (master.get_digital(DIGITAL_L2)) {
             front_intake.move(127);
             middle_intake.move(127);
             top_intake.move(-127);
@@ -65,20 +60,15 @@ void score_goal() {
     }
 }
 
-void intake() {
+void intake_loop() {
     while(true) {
         if (master.get_digital(DIGITAL_R1)) {
             front_intake.move(127);
             middle_intake.move(-127);
             top_intake.move(-127);
             back_intake.move(127);
-        } else {
-            front_intake.brake();
-            middle_intake.brake();
-            top_intake.brake();
-            back_intake.brake();
         }
-        if (master.get_digital(DIGITAL_L1)) {
+        else if (master.get_digital(DIGITAL_L1)) {
             front_intake.move(-127);
             middle_intake.move(127);
             top_intake.move(127);

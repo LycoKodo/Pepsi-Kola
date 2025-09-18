@@ -15,9 +15,6 @@
 // e.g. normal blue left
 
 int AI1() {
-    
-    
-
     return 0; // success, 1 for fail
 }
 

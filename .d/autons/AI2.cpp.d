@@ -141,9 +141,10 @@ bin/autons/AI2.cpp.o: src/autons/AI2.cpp include/main.h include/api.h \
  include/lemlib/logger/baseSink.hpp include/fmt/args.h \
  include/lemlib/logger/message.hpp include/lemlib/logger/infoSink.hpp \
  include/lemlib/logger/telemetrySink.hpp include/lemlib/smartMotor.hpp \
- include/controls.hpp include/lemlib/selector.hpp include/api.h \
- include/liblvgl/core/lv_event.h \
- include/liblvgl/extra/widgets/tabview/lv_tabview.h
+ include/colorsort.hpp include/controls.hpp include/lemlib/selector.hpp \
+ include/api.h include/liblvgl/core/lv_event.h \
+ include/liblvgl/extra/widgets/tabview/lv_tabview.h include/controls.hpp \
+ include/lemlib/selector.hpp
 include/main.h:
 include/api.h:
 include/pros/adi.h:
@@ -384,8 +385,11 @@ include/lemlib/logger/message.hpp:
 include/lemlib/logger/infoSink.hpp:
 include/lemlib/logger/telemetrySink.hpp:
 include/lemlib/smartMotor.hpp:
+include/colorsort.hpp:
 include/controls.hpp:
 include/lemlib/selector.hpp:
 include/api.h:
 include/liblvgl/core/lv_event.h:
 include/liblvgl/extra/widgets/tabview/lv_tabview.h:
+include/controls.hpp:
+include/lemlib/selector.hpp:

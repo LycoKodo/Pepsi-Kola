@@ -16,7 +16,7 @@
  */
 void drivetrain_control();
 void score_goal();
-void intake(); 
+void intake_loop(); 
 void endgame_ctl();
 void tongue_aligner_toggle();
 

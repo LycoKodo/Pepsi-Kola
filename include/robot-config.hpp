@@ -10,6 +10,8 @@
 #include "pros/rtos.h"
 #include "pros/rtos.hpp"
 
+#include "colorsort.hpp"
+
 // ---------------------------------------
 // Drivetrain & Chassis
 // ---------------------------------------
@@ -32,13 +34,14 @@ extern pros::MotorGroup intake;
 extern pros::adi::DigitalOut tongue;
 extern pros::adi::DigitalOut aligner;
 extern pros::adi::DigitalOut endgame;
-extern pros::adi::DigitalOut redirect;
+extern pros::adi::DigitalOut intake_redirect;
 
 // ---------------------------------------
 // Sensors (Miscellaneous)
 // ---------------------------------------
 extern pros::Imu imu;
-extern pros::Optical colorSort;
+extern pros::Optical color_sort_optical;
+extern ColorSort colorsort;
 
 // ---------------------------------------
 // Macro (Wall Stake Mech)

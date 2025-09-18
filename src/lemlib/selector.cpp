@@ -34,13 +34,6 @@ namespace lemlib::selector {
     // 2. Allow methods to start/stop/modify selector
     // 3. (I can work on this if u wnat) add comment section below each button
 
-enum AutonState {
-    NONE = 0,
-    QUAL = 1,
-    AI = -1,
-    SKILLS = 101
-};
-
 AutonState autonState = NONE;
 int auton = 999;
 int AILength;
@@ -57,7 +50,6 @@ void tabWatcher(void* param);
 
 pros::rtos::Task* tabWatcher_task = nullptr;
 
-const int MAX_AUTONS = 100;
 const char* qualBtnmMap[MAX_AUTONS];
 const char* AIBtnmMap[MAX_AUTONS];
 const char* skillsBtnmMap[MAX_AUTONS];

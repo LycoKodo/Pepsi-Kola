@@ -141,7 +141,10 @@ bin/robot-config.cpp.o: src/robot-config.cpp \
  include/pros/motors.hpp include/pros/optical.hpp include/pros/optical.h \
  include/pros/rotation.hpp include/pros/rtos.hpp include/pros/screen.hpp \
  include/pros/screen.h include/pros/vision.hpp include/pros/vision.h \
- include/lemlib/api.hpp
+ include/lemlib/api.hpp include/colorsort.hpp include/main.h \
+ include/controls.hpp include/lemlib/selector.hpp include/api.h \
+ include/liblvgl/core/lv_event.h \
+ include/liblvgl/extra/widgets/tabview/lv_tabview.h
 include/lemlib/chassis/trackingWheel.hpp:
 include/pros/motors.hpp:
 include/pros/abstract_motor.hpp:
@@ -380,3 +383,10 @@ include/pros/screen.h:
 include/pros/vision.hpp:
 include/pros/vision.h:
 include/lemlib/api.hpp:
+include/colorsort.hpp:
+include/main.h:
+include/controls.hpp:
+include/lemlib/selector.hpp:
+include/api.h:
+include/liblvgl/core/lv_event.h:
+include/liblvgl/extra/widgets/tabview/lv_tabview.h:
