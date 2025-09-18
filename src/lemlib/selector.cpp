@@ -15,6 +15,7 @@
 #include "pros/rtos.hpp"
 
 #include "robot-config.hpp"
+#include "lemlib/selector.hpp"
 
 LV_IMG_DECLARE(dorito); //TKSRC Logo
 
@@ -23,7 +24,7 @@ LV_IMG_DECLARE(dorito); //TKSRC Logo
  * [√] - TODO - Make different btnmtrx for different tabs, rn its just standard, and make it in main
  * [√] - TODO - LOW PRIORITY - (in main.cpp) put in all cases of auton (RED AND BLUE 1-6) for caseswitch
  * [√] - TODO - LOW PRIORITY - (in main.cpp) add a case for the "Skills" tab
- * [] - TODO - Lock to dev tab once an auton is selected
+ * [√] - TODO - Lock to dev tab once an auton is selected
  * [] - TODO - (colorsort): refractor a colorsort file with all colorsort routines in auton, driver and normal alg iykwis
  */
 
@@ -129,7 +130,7 @@ void qualBtnmAction(lv_event_t* e) {
                 // HOLY SHT THIS IS BAD BUT IT WORKS
                 if (i > 3) auton = i;
                 else auton = i + 1; // determining what program/routine is ran
-                autonState = QUAL;
+                autonState = lemlib::selector::AutonState::QUAL;
                 break;
             }
         }
@@ -155,11 +156,12 @@ void AIBtnmAction(lv_event_t* e) {
         currentAIButton = btn_id;
         currentQualButton = UINT16_MAX;
         currentSKillsButton = UINT16_MAX;
+
         for (int i = 0; i < AILength; i++) {
             if (strcmp(txt, AIBtnmMap[i]) == 0) {
                 if (i > 3) auton = -(i);
                 else auton = -(i + 1);
-                autonState = AI;
+                autonState = lemlib::selector::AutonState::AI;
                 break;
             }
         }
@@ -190,7 +192,7 @@ void skillsBtnmAction(lv_event_t* e) {
             if (strcmp(txt, skillsBtnmMap[i]) == 0) {
                 if (i > 3) auton = (i + 100); 
                 else auton = (i + 101);
-                autonState = SKILLS;
+                autonState = lemlib::selector::AutonState::SKILLS;
                 break;
             }   
         }
@@ -228,7 +230,7 @@ void tabWatcher(void* param) {
                     master.rumble(".");
                 }
                 textUpdate();
-                printf("Current Auton %i", auton);
+                // printf("Current Auton %i", auton);
                 pros::delay(10);
             }
 
@@ -237,9 +239,11 @@ void tabWatcher(void* param) {
                 lv_tabview_set_act(tabview, 0, LV_ANIM_OFF);
                 motorUpdate();
                 odomUpdate();
-                printf("Current Auton %i", auton);
+                // printf("Current Auton %i", auton);
                 pros::delay(10);
             }
+
+            printf("Tabwatcher refreshed. \n");
         }
     } catch (const std::exception& ex) {
         log_error("tabWatcher", ex.what());
@@ -258,7 +262,7 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         }
         AILength = i;
         i = 0;
-        
+
         while (qualAutons[i] != nullptr && i < MAX_AUTONS) {
             qualBtnmMap[i] = qualAutons[i];
             i++;
@@ -290,7 +294,7 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         }
 
         auton = default_auton;
-        autonState = (auton > 0) ? QUAL : ((auton < 0) ? AI : NONE);
+        autonState = (auton > 0) ? lemlib::selector::AutonState::QUAL : ((auton < 0) ? lemlib::selector::AutonState::AI : NONE);
 
         // Declaring color theme
         lv_theme_t* th = lv_theme_default_init(
@@ -401,8 +405,9 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         // Set the image scale to 90% (zoom factor is in 256ths, so 90% = 0.9 * 256 = 230)
         lv_img_set_zoom(img, 200);
 
-
         tabWatcher_task = new pros::Task(tabWatcher, nullptr, "tabWatcher");
+
+        printf("Selector initialised!\n");
 
     } catch (const std::exception& ex) {
         log_error("init", ex.what());
@@ -432,7 +437,7 @@ int motorUpdate() {
     char buffer[64]; // Buffer to hold formatted strings
 
     try {
-        double current = leftTemps.at(0);
+        double current = 0; //leftTemps.at(0); // TODO - TEMPORARY
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Left 1: ERROR (PROS)\n");
         } else {
@@ -445,7 +450,7 @@ int motorUpdate() {
     }
 
     try {
-        double current = leftTemps.at(1);
+        double current = 0; //leftTemps.at(1); // TODO - TEMPORARY
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Left 2: ERROR (PROS)\n");
         } else {
@@ -458,7 +463,7 @@ int motorUpdate() {
     }
     
     try {
-        double current = leftTemps.at(2);
+        double current = 0; //leftTemps.at(2); // TODO - TEMPORARY
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Left 3: ERROR (PROS)\n");
         } else {
@@ -471,7 +476,7 @@ int motorUpdate() {
     }
 
     try {
-        double current = rightTemps.at(0);
+        double current = 0; // rightTemps.at(0); // TODO - TEMPORARY
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Right 1: ERROR (PROS)\n");
         } else {
@@ -484,7 +489,7 @@ int motorUpdate() {
     }
 
     try {
-        double current = rightTemps.at(1);
+        double current = 0; //rightTemps.at(1); // TODO - TEMPORARY
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Right 2: ERROR (PROS)\n");
         } else {
@@ -497,7 +502,7 @@ int motorUpdate() {
     }
 
     try {
-        double current = rightTemps.at(2);
+        double current = 0; //rightTemps.at(2); // TODO - TEMPORARY
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Right 3: ERROR (PROS)\n---------------------------- \n");
         } else {
@@ -548,14 +553,14 @@ int odomUpdate() {
 
     lv_textarea_set_text(odom_textarea, ""); // Clear
 
-    snprintf(buffer, sizeof(buffer), "X: %f\n", chassis.getPose().x);
+    snprintf(buffer, sizeof(buffer), "X: %f\n", 0.1); //chassis.getPose().x
     lv_textarea_add_text(odom_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Y: %f\n", chassis.getPose().y);
+    snprintf(buffer, sizeof(buffer), "Y: %f\n", 0.1); //chassis.getPose().y
     lv_textarea_add_text(odom_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Theta: %f", chassis.getPose().theta);
-    lv_textarea_add_text(odom_textarea, buffer);
+    snprintf(buffer, sizeof(buffer), "Theta: %f", 0.1); //chassis.getPose().theta
+    lv_textarea_add_text(odom_textarea, buffer); 
 
     return 0;
 }
@@ -568,13 +573,14 @@ int customUpdate() {
     // Logic to Update Alliance
 
     char alliance = 'N';
-    if (auton >= 1 && auton <= 100){
-        alliance = 'R';
-    } else if (auton >= -100 && auton <= -1) {
-        alliance = 'B';
-    } else if (auton >= 101 && auton <= 201) {
-        alliance = 'S'; // @note: alliance for skills is RED
-    }
+    // if (auton >= 1 && auton <= 100){
+    //     alliance = 'R';
+    // } else if (auton >= -100 && auton <= -1) {
+    //     alliance = 'B';
+    // } else if (auton >= 101 && auton <= 201) {
+    //     alliance = 'S'; // @note: alliance for skills is RED
+    // }
+
     snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
     lv_textarea_add_text(other_textarea, buffer);
 

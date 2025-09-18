@@ -57,6 +57,7 @@ void score_goal() {
             top_intake.brake();
             back_intake.brake();
         }
+        pros::delay(10);
     }
 }
 
@@ -79,6 +80,7 @@ void intake_loop() {
             top_intake.brake();
             back_intake.brake();
         }
+        pros::delay(10);
     }
 }
 
