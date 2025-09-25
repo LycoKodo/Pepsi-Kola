@@ -551,15 +551,19 @@ int motorUpdate() {
 int odomUpdate() {
     char buffer[64]; // Buffer to hold formatted strings
 
+    float x = chassis.getPose().x;
+    float y = chassis.getPose().y;
+    float theta = chassis.getPose().theta;
+
     lv_textarea_set_text(odom_textarea, ""); // Clear
 
-    snprintf(buffer, sizeof(buffer), "X: %f\n", 0.1); //chassis.getPose().x
+    snprintf(buffer, sizeof(buffer), "X: %f\n", x); //chassis.getPose().x
     lv_textarea_add_text(odom_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Y: %f\n", 0.1); //chassis.getPose().y
+    snprintf(buffer, sizeof(buffer), "Y: %f\n", y); //chassis.getPose().y
     lv_textarea_add_text(odom_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Theta: %f", 0.1); //chassis.getPose().theta
+    snprintf(buffer, sizeof(buffer), "Theta: %f", theta); //chassis.getPose().theta
     lv_textarea_add_text(odom_textarea, buffer); 
 
     return 0;
