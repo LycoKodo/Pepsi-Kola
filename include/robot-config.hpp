@@ -29,8 +29,6 @@ extern pros::Motor front_intake;
 extern pros::Motor middle_intake;
 extern pros::Motor back_intake;
 
-extern pros::MotorGroup intake;
-
 extern pros::adi::DigitalOut tongue;
 extern pros::adi::DigitalOut aligner;
 extern pros::adi::DigitalOut endgame;
@@ -45,13 +43,9 @@ extern pros::Optical preload_optical;
 extern macros::ColorSort colorsort;
 
 // ---------------------------------------
-// Macro (Wall Stake Mech)
+// Macro
 // ---------------------------------------
 
-extern pros::MotorGroup lady;
-extern lemlib::PID ladypid;
-extern pros::Rotation lady_rotation;
-extern lemlib::SmartMotor ladySmart;
 
 // ---------------------------------------
 // Odometry

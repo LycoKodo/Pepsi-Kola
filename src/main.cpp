@@ -90,20 +90,23 @@ void initialize() {
 
     chassis.calibrate(); // calibrate sensors
 
+<<<<<<< Updated upstream
     // -----------------------
     // Initialise Sensors
     // -----------------------
     // colorSort.set_led_pwm(100);
     // lady_rotation.set_position(0);
+=======
+    // // -----------------------
+    // // Initialise Sensors
+    // // -----------------------
+>>>>>>> Stashed changes
 
     colorsort.initialise(); // auto-detect alliance
 
     // // -----------------------
     // // Initialise Subsystems
     // // -----------------------
-    // intake.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-    // mogo_mech.set_value(true);
-    // doinker.set_value(false);
 
     lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
 
@@ -197,6 +200,7 @@ void autonomous() {
         // Default auton
         auton1ring();
     }
+
 
 
 }

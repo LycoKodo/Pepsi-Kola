@@ -142,9 +142,13 @@ bin/lemlib/selector.cpp.o: src/lemlib/selector.cpp include/api.h \
  include/fmt/core.h include/fmt/format-inl.h \
  include/lemlib/logger/baseSink.hpp include/fmt/args.h \
  include/lemlib/logger/message.hpp include/lemlib/logger/infoSink.hpp \
+<<<<<<< Updated upstream
  include/lemlib/logger/telemetrySink.hpp include/lemlib/smartMotor.hpp \
  include/colorsort.hpp include/controls.hpp include/lemlib/selector.hpp \
  include/lemlib/selector.hpp
+=======
+ include/lemlib/logger/telemetrySink.hpp include/lemlib/smartMotor.hpp
+>>>>>>> Stashed changes
 include/api.h:
 include/pros/adi.h:
 include/pros/colors.h:
@@ -387,7 +391,10 @@ include/lemlib/logger/message.hpp:
 include/lemlib/logger/infoSink.hpp:
 include/lemlib/logger/telemetrySink.hpp:
 include/lemlib/smartMotor.hpp:
+<<<<<<< Updated upstream
 include/colorsort.hpp:
 include/controls.hpp:
 include/lemlib/selector.hpp:
 include/lemlib/selector.hpp:
+=======
+>>>>>>> Stashed changes
