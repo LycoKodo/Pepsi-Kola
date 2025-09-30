@@ -43,7 +43,7 @@ pros::Motor front_intake(9, pros::MotorGearset::blue);
 pros::Motor middle_intake(4, pros::MotorGearset::blue);
 pros::Motor back_intake(2, pros::MotorGearset::blue);
 
-pros::MotorGroup intake({6, 9, 4, 2}, pros::MotorGearset::blue);
+pros::MotorGroup intake({-6, 9, -4, 2}, pros::MotorGearset::blue);
 
 pros::adi::DigitalOut tongue (1);
 pros::adi::DigitalOut aligner (2);
@@ -68,7 +68,7 @@ macros::ColorSort colorsort = macros::ColorSort();
 
 pros::Imu imu(7);
 
-pros::Rotation horizontal_encoder(13); // Change to the "A" tagged encoder
+pros::Rotation horizontal_encoder(-17); // Change to the "A" tagged encoder
 
 pros::Rotation vertical_encoder(16);
 
@@ -95,9 +95,9 @@ lemlib::ControllerSettings linearController(  4, // proportional gain (kP)
                                               2, // derivative gain (kD) 1.5
                                               1, // anti windup
                                               1, // small error range, in inches 1
-                                              500, // small error range timeout, in milliseconds 200
+                                              100, // small error range timeout, in milliseconds 200
                                               3, // large error range, in inches 3 
-                                              800, // large error range timeout, in milliseconds 500
+                                              500, // large error range timeout, in milliseconds 500
                                               0 // maximum acceleration (slew) 75
 );
 

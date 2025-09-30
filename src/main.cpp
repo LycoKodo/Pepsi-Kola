@@ -113,11 +113,11 @@ void initialize() {
 
 
     static const char* qualBtnmMap[] = {
-        "Q-Auton1", "Q-Auton2", "Q-Auton3", "\n",
+        "Left", "Q-Auton2", "Q-Auton3", "\n",
         "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
     };
     static const char* qualBtnmDesc[] = {
-        "Q-Auton1", "Q-Auton2", "Q-Auton3",
+        "Standard 3 Block for LEFT, scoring middle", "Q-Auton2", "Q-Auton3",
         "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
     };
 
@@ -156,14 +156,42 @@ void competition_initialize() {}
 void autonomous() {  
     chassis.setPose(0, 0, 0); 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+    intake.move(127); // 17.55
 
-    // chassis.turnToHeading(180, 1000, {.maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
-    // chassis.turnToHeading(0, 1000, {.maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
+    top_intake.move(-127);
+    front_intake.move(127);
+    middle_intake.move(-100);
+    back_intake.move(127);
 
-    chassis.moveToPose(0, 24, 0, 3000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
-    pros::delay(800);
-    chassis.moveToPose(0, 0, 0, 3000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
 
+    chassis.moveToPose(-2.7, 18.5, 2.6, 2000, {.forwards=true, .lead=0.01, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
+    pros::delay(1000);
+    chassis.moveToPose(-2.7, 25.3, 2.6, 2000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
+    pros::delay(500);
+    intake.move(0);
+    chassis.turnToHeading(60, 1200);
+
+    // // chassis.moveToPoint(12, 29.6, 2000, {.forwards=true, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
+    chassis.moveToPose(11.6, 32.55, 60, 3000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
+    pros::delay(500);
+
+    // Score Middle
+    back_intake.move(127);
+    top_intake.move(-127);
+    middle_intake.move(127);
+    front_intake.move(127);
+
+    pros::delay(1500);
+
+    chassis.moveToPose(12, 32.8, 60, 800, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
+    pros::delay(500);
+    chassis.moveToPose(0, 24, 60, 2000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
+    
+    
+    
+    
+    
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
 
     // int auton = lemlib::selector::auton;
 
