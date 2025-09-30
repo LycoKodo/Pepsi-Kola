@@ -204,10 +204,8 @@ void opcontrol() {
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
     // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
     pros::Task driveTask(drivetrain_control);
-    pros::Task scoreTask(score_goal);
+    pros::Task teleopTask(teleop_loop);
     pros::Task intakeTask([] {
         colorsort.sorted_intake_loop();
     }); // use a lambda
-    pros::Task endgameTask(endgame_ctl);
-    // pros::Task tongueAlignerTask(tongue_aligner_toggle);
 }
