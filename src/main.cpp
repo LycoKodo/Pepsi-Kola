@@ -160,9 +160,9 @@ void autonomous() {
     // chassis.turnToHeading(180, 1000, {.maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
     // chassis.turnToHeading(0, 1000, {.maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
 
-    chassis.moveToPoint(0, 24, 20000, {.forwards=true, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
+    chassis.moveToPose(0, 24, 0, 3000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
     pros::delay(800);
-    chassis.moveToPoint(0, 0, 20000, {.forwards=false, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
+    chassis.moveToPose(0, 0, 0, 3000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
 
 
     // int auton = lemlib::selector::auton;
