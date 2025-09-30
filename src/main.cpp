@@ -113,11 +113,11 @@ void initialize() {
 
 
     static const char* qualBtnmMap[] = {
-        "Left", "Q-Auton2", "Q-Auton3", "\n",
+        "Left", "Right", "Q-Auton3", "\n",
         "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
     };
     static const char* qualBtnmDesc[] = {
-        "Standard 3 Block for LEFT, scoring middle", "Q-Auton2", "Q-Auton3",
+        "Standard 4 Block for LEFT, scoring MID", "Standard 4 Block for RIGHT, scoring LOW", "Q-Auton3",
         "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
     };
 
@@ -154,89 +154,50 @@ void competition_initialize() {}
 
 
 void autonomous() {  
-    chassis.setPose(0, 0, 0); 
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-    intake.move(127); // 17.55
+    int auton = lemlib::selector::auton;
 
-    top_intake.move(-127);
-    front_intake.move(127);
-    middle_intake.move(-100);
-    back_intake.move(127);
-
-
-    chassis.moveToPose(-2.7, 18.5, 2.6, 2000, {.forwards=true, .lead=0.01, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
-    pros::delay(1000);
-    chassis.moveToPose(-2.7, 25.3, 2.6, 2000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
-    pros::delay(500);
-    intake.move(0);
-    chassis.turnToHeading(60, 1200);
-
-    // // chassis.moveToPoint(12, 29.6, 2000, {.forwards=true, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
-    chassis.moveToPose(11.6, 32.55, 60, 3000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
-    pros::delay(500);
-
-    // Score Middle
-    back_intake.move(127);
-    top_intake.move(-127);
-    middle_intake.move(127);
-    front_intake.move(127);
-
-    pros::delay(1500);
-
-    chassis.moveToPose(12, 32.8, 60, 800, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
-    pros::delay(500);
-    chassis.moveToPose(0, 24, 60, 2000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0, }, false);
+    lemlib::selector::autonStarted = true;
     
-    
-    
-    
-    
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
-
-    // int auton = lemlib::selector::auton;
-
-    // lemlib::selector::autonStarted = true;
-    
-    // if (auton >= 1 && auton <= 100) {
-    //     switch (auton) {
-    //         case 1: qual1(); break;
-    //         case 2: qual2(); break;
-    //         case 3: qual3(); break;
-    //         case 4: qual4(); break;
-    //         case 5: qual5(); break;
-    //         case 6: qual6(); break;
-    //         // add more red cases as needed up to 100
-    //     }
-    // }
-    // else if (auton >= -100 && auton <= -1) {
-    //     switch (auton) {
-    //         case -1: AI1(); break;
-    //         case -2: AI2(); break;
-    //         case -3: AI3(); break;
-    //         case -4: AI4(); break;
-    //         case -5: AI5(); break;
-    //         case -6: AI6(); break;
-    //         // add more blue cases as needed up to -100
-    //     }
-    // }
-    // else if (auton >= 101 && auton <= 201) {
-    //     switch (auton) {
-    //         case 101: skills1(); break;
-    //         case 102: skills2(); break;
-    //         case 103: skills3(); break;
-    //         case 104: skills4(); break;
-    //         case 105: skills5(); break;
-    //         case 106: skills6(); break;
-    //         // add more skills cases as needed up to 106
-    //     }
-    // }
-    // else {
-    //     // Default auton
-    //     auton1ring();
-    // }
-
-
+    if (auton >= 1 && auton <= 100) {
+        switch (auton) {
+            case 1: qual1(); break;
+            case 2: qual2(); break;
+            case 3: qual3(); break;
+            case 4: qual4(); break;
+            case 5: qual5(); break;
+            case 6: qual6(); break;
+            // add more red cases as needed up to 100
+        }
+    }
+    else if (auton >= -100 && auton <= -1) {
+        switch (auton) {
+            case -1: AI1(); break;
+            case -2: AI2(); break;
+            case -3: AI3(); break;
+            case -4: AI4(); break;
+            case -5: AI5(); break;
+            case -6: AI6(); break;
+            // add more blue cases as needed up to -100
+        }
+    }
+    else if (auton >= 101 && auton <= 201) {
+        switch (auton) {
+            case 101: skills1(); break;
+            case 102: skills2(); break;
+            case 103: skills3(); break;
+            case 104: skills4(); break;
+            case 105: skills5(); break;
+            case 106: skills6(); break;
+            // add more skills cases as needed up to 106
+        }
+    }
+    else {
+        // Default auton
+        auton1ring();
+    }
 }
+
+
 
 // TODO - Problem Lies in Controls
 void opcontrol() {
