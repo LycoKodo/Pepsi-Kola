@@ -79,9 +79,11 @@ void initialize() {
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------
-    lv_obj_t *img = lv_img_create(lv_scr_act()); // Add to screen
-    lv_img_set_src(img, &image); // Link to source image
-    lv_obj_align(img, LV_ALIGN_CENTER, 0, -20);
+    // lv_obj_t *img = lv_img_create(lv_scr_act()); // Add to screen
+    // lv_img_set_src(img, &image); // Link to source image
+    // lv_obj_align(img, LV_ALIGN_CENTER, 0, -20);
+
+    // colorsort.initialise('N');
 
     // -----------------------
     // Initialise Chassis
@@ -96,16 +98,9 @@ void initialize() {
     // colorSort.set_led_pwm(100);
     // lady_rotation.set_position(0);
 
-    colorsort.initialise(); // auto-detect alliance
+    // colorsort.initialise(); // auto-detect alliance
 
-    // // -----------------------
-    // // Initialise Subsystems
-    // // -----------------------
-    // intake.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-    // mogo_mech.set_value(true);
-    // doinker.set_value(false);
-
-    lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
+    // lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
 
     // -----------------------
     // TODO - LVGL INIT
@@ -154,6 +149,7 @@ void competition_initialize() {}
 
 
 void autonomous() {  
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
     int auton = lemlib::selector::auton;
 
     lemlib::selector::autonStarted = true;
@@ -203,9 +199,11 @@ void autonomous() {
 void opcontrol() {
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
     // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
+
+    
     pros::Task driveTask(drivetrain_control);
     pros::Task teleopTask(teleop_loop);
-    pros::Task intakeTask([] {
-        colorsort.sorted_intake_loop();
-    }); // use a lambda
+    // pros::Task intakeTask([] {
+    //     colorsort.sorted_intake_loop();
+    // }); // use a lambda
 }

@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "1831 Common Codebase",
+    "project_name": "Regionals TANK",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -299,7 +299,7 @@
     },
     "upload_options": {
       "description": "Main ~~Scattfold~~ Schlattfold",
-      "icon": "power",
+      "icon": "X",
       "slot": 1
     },
     "use_early_access": false

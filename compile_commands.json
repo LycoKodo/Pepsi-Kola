@@ -4655,11 +4655,11 @@
             "-funwind-tables",
             "--std=gnu++20",
             "-o",
-            "bin/main.cpp.o",
-            "src/main.cpp"
+            "bin/robot-config.cpp.o",
+            "src/robot-config.cpp"
         ],
         "directory": "/Users/arona/Documents/GitHub/1831D-TimmyTammies",
-        "file": "src/main.cpp"
+        "file": "src/robot-config.cpp"
     },
     {
         "arguments": [
@@ -4731,10 +4731,10 @@
             "-funwind-tables",
             "--std=gnu++20",
             "-o",
-            "bin/robot-config.cpp.o",
-            "src/robot-config.cpp"
+            "bin/main.cpp.o",
+            "src/main.cpp"
         ],
         "directory": "/Users/arona/Documents/GitHub/1831D-TimmyTammies",
-        "file": "src/robot-config.cpp"
+        "file": "src/main.cpp"
     }
 ]

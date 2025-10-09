@@ -576,7 +576,7 @@ int customUpdate() {
 
     // Logic to Update Alliance
 
-    char alliance = 'N';
+    // char alliance = 'N';
     // if (auton >= 1 && auton <= 100){
     //     alliance = 'R';
     // } else if (auton >= -100 && auton <= -1) {
@@ -584,6 +584,10 @@ int customUpdate() {
     // } else if (auton >= 101 && auton <= 201) {
     //     alliance = 'S'; // @note: alliance for skills is RED
     // }
+
+    // char alliance = colorsort.alliance;
+
+    char alliance = 'N'; // TODO - TEMPORARY
 
     snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
     lv_textarea_add_text(other_textarea, buffer);

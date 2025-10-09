@@ -32,12 +32,14 @@ namespace macros{
             // Public alliance indicator
             char alliance;
 
-        private:
-            // Alliance detection via optical sensor
-            char identify_alliance();
+            char get_alliance();
 
             // Ring inspection based on hue + alliance
             bool ringInspect();
+
+        private:
+            // Alliance detection via optical sensor
+            char identify_alliance();
     };
 
 }
