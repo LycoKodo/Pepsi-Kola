@@ -44,8 +44,8 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 // pros::Motor middle_intake(4, pros::MotorGearset::blue);
 // pros::Motor back_intake(2, pros::MotorGearset::blue);
 
-pros::MotorGroup intake({-20, 10, -8}, pros::MotorGearset::green);
-pros::Motor ramp(20, pros::MotorGearset::green);
+pros::MotorGroup intake({-19, 10, -8}, pros::MotorGearset::green);
+pros::Motor ramp(19, pros::MotorGearset::green);
 pros::Motor top1(10, pros::MotorGearset::green);
 pros::Motor top2(8, pros::MotorGearset::green);
 
