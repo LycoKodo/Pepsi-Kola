@@ -69,9 +69,9 @@ pros::adi::DigitalOut heaven(1);
 
 pros::Imu imu(17);
 
-pros::Rotation horizontal_encoder(-17); // Change to the "A" tagged encoder
+// pros::Rotation horizontal_encoder(-17); // Change to the "A" tagged encoder
 
-pros::Rotation vertical_encoder(-1);
+pros::Rotation vertical_encoder(-2);
 
 // CENTER = 5.77 // 164mm 
 

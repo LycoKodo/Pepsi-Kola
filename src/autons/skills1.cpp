@@ -15,6 +15,10 @@
 // e.g. 100% success run
 
 int skills1() {
+
+    top1.move(127);
+    pros::delay(2000);
+    top1.brake();
     
     return 0;
 }

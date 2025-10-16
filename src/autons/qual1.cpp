@@ -21,8 +21,11 @@ int qual1() {
     // TODO - Starter Struct:
         // chassis.moveToPose(0, 24, 0, 2000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0 }, false);
     
+    top1.move(127);
+    pros::delay(1000);
     ramp.move(127);
     chassis.moveToPose(0, 20, 0, 1100, {.forwards=true, .lead=0, .maxSpeed=90, .minSpeed=0 }, false);
+    top1.brake();
     pros::delay(200);  
     chassis.moveToPose(0, 26, 0, 1100, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0 }, false);
     ramp.move(0);
