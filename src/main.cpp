@@ -152,11 +152,24 @@ void autonomous() {
 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
-    chassis.moveToPose(0, 24, 90, 4500, {.forwards=true, .lead=0}, false);
-    chassis.moveToPose(0, 0, 0, 4500, {.forwards=false, .lead=0}, false);
+    chassis.moveToPose(0, 31.5, 0, 2000, {.forwards=true, .lead=0}, false);
 
-    chassis.turnToHeading(180, 1200);
-    chassis.turnToHeading(0, 1200);
+    chassis.turnToHeading(-90, 1200);
+
+    tongue.set_value(true);
+
+    ramp.move(127);
+
+    chassis.moveToPose(-20, 31.5, -90, 4500, {.forwards=true, .lead=0, .maxSpeed=100, .minSpeed=60}, true);
+
+    pros::delay(3000);
+
+    chassis.cancelAllMotions();
+    ramp.move(0);
+
+    
+    // chassis.turnToHeading(180, 1200);
+    // chassis.turnToHeading(0, 1200);
 
 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
