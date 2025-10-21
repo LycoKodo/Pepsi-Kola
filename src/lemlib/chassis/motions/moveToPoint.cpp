@@ -105,6 +105,8 @@ void lemlib::Chassis::moveToPoint(float x, float y, int timeout, MoveToPointPara
 
         infoSink()->debug("Angular Out: {}, Lateral Out: {}", angularOut, lateralOut);
 
+        printf("Angular Out: %f, Lateral Out: %f\n", angularOut, lateralOut);
+
         // ratio the speeds to respect the max speed
         float leftPower = lateralOut + angularOut;
         float rightPower = lateralOut - angularOut;

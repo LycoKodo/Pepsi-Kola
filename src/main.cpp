@@ -149,48 +149,58 @@ void competition_initialize() {}
 
 
 void autonomous() {  
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-    int auton = lemlib::selector::auton;
 
-    lemlib::selector::autonStarted = true;
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+
+    chassis.moveToPose(0, 24, 90, 4500, {.forwards=true, .lead=0}, false);
+    chassis.moveToPose(0, 0, 0, 4500, {.forwards=false, .lead=0}, false);
+
+    chassis.turnToHeading(180, 1200);
+    chassis.turnToHeading(0, 1200);
+
+
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    // int auton = lemlib::selector::auton;
+
+    // lemlib::selector::autonStarted = true;
     
-    if (auton >= 1 && auton <= 100) {
-        switch (auton) {
-            case 1: qual1(); break;
-            case 2: qual2(); break;
-            case 3: qual3(); break;
-            case 4: qual4(); break;
-            case 5: qual5(); break;
-            case 6: qual6(); break;
-            // add more red cases as needed up to 100
-        }
-    }
-    else if (auton >= -100 && auton <= -1) {
-        switch (auton) {
-            case -1: AI1(); break;
-            case -2: AI2(); break;
-            case -3: AI3(); break;
-            case -4: AI4(); break;
-            case -5: AI5(); break;
-            case -6: AI6(); break;
-            // add more blue cases as needed up to -100
-        }
-    }
-    else if (auton >= 101 && auton <= 201) {
-        switch (auton) {
-            case 101: skills1(); break;
-            case 102: skills2(); break;
-            case 103: skills3(); break;
-            case 104: skills4(); break;
-            case 105: skills5(); break;
-            case 106: skills6(); break;
-            // add more skills cases as needed up to 106
-        }
-    }
-    else {
-        // Default auton
-        auton1ring();
-    }
+    // if (auton >= 1 && auton <= 100) {
+    //     switch (auton) {
+    //         case 1: qual1(); break;
+    //         case 2: qual2(); break;
+    //         case 3: qual3(); break;
+    //         case 4: qual4(); break;
+    //         case 5: qual5(); break;
+    //         case 6: qual6(); break;
+    //         // add more red cases as needed up to 100
+    //     }
+    // }
+    // else if (auton >= -100 && auton <= -1) {
+    //     switch (auton) {
+    //         case -1: AI1(); break;
+    //         case -2: AI2(); break;
+    //         case -3: AI3(); break;
+    //         case -4: AI4(); break;
+    //         case -5: AI5(); break;
+    //         case -6: AI6(); break;
+    //         // add more blue cases as needed up to -100
+    //     }
+    // }
+    // else if (auton >= 101 && auton <= 201) {
+    //     switch (auton) {
+    //         case 101: skills1(); break;
+    //         case 102: skills2(); break;
+    //         case 103: skills3(); break;
+    //         case 104: skills4(); break;
+    //         case 105: skills5(); break;
+    //         case 106: skills6(); break;
+    //         // add more skills cases as needed up to 106
+    //     }
+    // }
+    // else {
+    //     // Default auton
+    //     auton1ring();
+    // }
 }
 
 

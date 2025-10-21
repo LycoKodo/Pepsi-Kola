@@ -29,7 +29,7 @@ lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
                               &rightMotors, // right motor group
                               11.54, // 11.6 inch track width
                               lemlib::Omniwheel::NEW_4, // using new 3"25' omnis
-                              450, // drivetrain rpm is 200 (green direct)
+                              400, // drivetrain rpm is 200 (green direct)
                               2 // horizontal drift is 2. If we had traction wheels, it would have been 8
 );
 
@@ -49,8 +49,8 @@ pros::Motor ramp(19, pros::MotorGearset::green);
 pros::Motor top1(10, pros::MotorGearset::green);
 pros::Motor top2(8, pros::MotorGearset::green);
 
-pros::adi::DigitalOut tongue (2);
-pros::adi::DigitalOut heaven(1);
+pros::adi::DigitalOut tongue (1);
+pros::adi::DigitalOut heaven(8);
 
 // pros::adi::DigitalOut doinker (7);
 // pros::adi::DigitalOut endgame (1);
@@ -67,26 +67,22 @@ pros::adi::DigitalOut heaven(1);
 // Odometry
 // ---------------------------------------
 
-pros::Imu imu(17);
+pros::Imu imu(7);
 
-// pros::Rotation horizontal_encoder(-17); // Change to the "A" tagged encoder
+// TODO - check ports
 
-pros::Rotation vertical_encoder(-2);
+pros::Rotation horizontal_encoder(17); // Change to the "A" tagged encoder
 
-// CENTER = 5.77 // 164mm 
+pros::Rotation vertical_encoder(2);
 
-// 6.45669
 
-// lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, +0.69);
+lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -1.75);
 
-lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwheel::NEW_275, +0.69);
-
-// chassis: 12.8 across, 13.5 height
-// traking cneter: 6.4, 6.75 
+lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwheel::NEW_325_HALF, -0.75);
 
 lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2, set to nullptr as we don't have a second one
-                            nullptr, // &horizontal_tracking_wheel
+                            &horizontal_tracking_wheel, // &horizontal_tracking_wheel
                             nullptr, // horizontal tracking wheel 2, set to nullptr as we don't have a second one
                             &imu     // inertial sensor &imu
 );
@@ -96,24 +92,24 @@ lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
 // ---------------------------------------
 
 lemlib::ControllerSettings linearController(  5, // proportional gain (kP)
-                                              0.001, // integral gain (kI) 0.11
-                                              10, // derivative gain (kD) 1.5
+                                              0, // integral gain (kI) 0.0035
+                                              10, // derivative gain (kD) 13.5
                                               0, // anti windup
-                                              0, // small error range, in inches 1
-                                              0, // small error range timeout, in milliseconds 200
-                                              0, // large error range, in inches 3 
-                                              0, // large error range timeout, in milliseconds 500
-                                              0 // maximum acceleration (slew) 75
+                                              1, // small error range, in inches 1
+                                              1500, // small error range timeout, in milliseconds 200
+                                              3, // large error range, in inches 3 
+                                              2000, // large error range timeout, in milliseconds 500
+                                              3 // maximum acceleration (slew) 75
 );
 
 lemlib::ControllerSettings angularController(2, // proportional gain (kP)
-                                             0.0001, // integral gain (kI) .0029 was good
-                                             15.5, // derivative gain (kD)
+                                             0, // integral gain (kI) .0029 was good
+                                             16.5, // derivative gain (kD)
                                              0, // anti windup
-                                             0, // small error range, in degrees 1
-                                             0, // small error range timeout, in milliseconds (200)
-                                             0, // large error range, in degrees 2
-                                             0, // large error range timeout, in milliseconds (500)
+                                             1, // small error range, in degrees 1
+                                             1500, // small error range timeout, in milliseconds (200)
+                                             2, // large error range, in degrees 2
+                                             1500, // large error range timeout, in milliseconds (500)
                                              0 // maximum acceleration (slew)
 ); 
 

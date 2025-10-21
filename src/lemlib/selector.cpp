@@ -242,8 +242,6 @@ void tabWatcher(void* param) {
                 // printf("Current Auton %i", auton);
                 pros::delay(10);
             }
-
-            printf("Tabwatcher refreshed. \n");
         }
     } catch (const std::exception& ex) {
         log_error("tabWatcher", ex.what());

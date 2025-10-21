@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "TANKK",
+    "project_name": "Euler",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -300,7 +300,7 @@
     "upload_options": {
       "description": "Main ~~Scattfold~~ Schlattfold",
       "icon": "X",
-      "slot": 3
+      "slot": 1
     },
     "use_early_access": false
   }
