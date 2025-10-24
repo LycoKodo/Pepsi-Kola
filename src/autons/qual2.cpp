@@ -18,15 +18,10 @@
 int qual2() {
     chassis.setPose(0, 0, 0); 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-    
 
-    // -------------------Other Side--------------------//
+    chassis.moveToPose(0, 30, 0, 1300, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
 
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-
-    chassis.moveToPose(0, 30, 0, 1300, {.forwards=true, .lead=0}, false);
-
-    chassis.turnToHeading(90, 2000);
+    chassis.turnToHeading(90, 900);
 
     tongue.set_value(true);
 
@@ -70,13 +65,11 @@ int qual2() {
 
     tongue.set_value(true);
 
-    chassis.turnToHeading(405, 900);
+    chassis.turnToHeading(225, 900);
 
-    chassis.moveToPose(-36.7, -1.39, 405, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+    chassis.moveToPose(-35.9, -2.27, 223, 1000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
 
-    pros::delay(1000);
-
-    intake.move(-127);
+    intake.move(127);
 
     return 0;
 }

@@ -223,8 +223,15 @@ void teleop_loop() {
             top1.move(127);
             top2.move(-127);
         } 
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+        else {
+            ramp.brake();
+            top1.brake();
+            top2.brake();
+        }
+        
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
             tongue.set_value(1);
+            heaven.set_value(false);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
             tongue.set_value(0);
@@ -234,11 +241,6 @@ void teleop_loop() {
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
             heaven.set_value(0);
-        }
-        else {
-            ramp.brake();
-            top1.brake();
-            top2.brake();
         }
 
         pros::delay(10);
