@@ -68,8 +68,6 @@ int qual1() {
     chassis.moveToPose(35.9, -2.27, -407, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
 
     intake.move(-127);
-    
-
 
     return 0;
 }
