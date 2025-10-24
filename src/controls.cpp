@@ -225,6 +225,8 @@ void teleop_loop() {
         } 
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
             tongue.set_value(1);
+            heaven.set_value(false);
+            
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
             tongue.set_value(0);
