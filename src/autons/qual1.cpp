@@ -65,7 +65,10 @@ int qual1() {
 
     chassis.turnToHeading(-405, 900);
 
-    chassis.moveToPose(35.9, -2.27, -407, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+    // chassis.moveToPose(35.9, -2.27, -407, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+
+    chassis.moveToPose(36.9, -3.47, -407, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+
 
     intake.move(-127);
 

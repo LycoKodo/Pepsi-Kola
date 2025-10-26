@@ -126,11 +126,11 @@ void initialize() {
     };
 
     static const char* skillsBtnmMap[] = {
-        "Auton", "Preload", "Skills 1", "\n",  
+        "Spinnn", "H&P", "Skills 1", "\n",  
         "Skills 2", "Skills 3", "Skills 4", nullptr
     };
     static const char* skillsBtnmDesc[] = {
-        "Auton", "Preload", "Skills 1",  
+        "spin intake", "I hope this works", "Skills 1",  
         "Skills 2", "Skills 3", "Skills 4", nullptr
     };
 
