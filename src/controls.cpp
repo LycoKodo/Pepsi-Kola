@@ -22,11 +22,11 @@ void drivetrain_control() {
     while (true) {
         int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         
-        int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        chassis.arcade(leftY, rightX); 
+        // int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+        // chassis.arcade(leftY, rightX); 
         
-        // int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
-        // chassis.tank(leftY, rightY);
+        int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+        chassis.tank(leftY, rightY);
         pros::delay(10);
     }
 
@@ -223,10 +223,15 @@ void teleop_loop() {
             top1.move(127);
             top2.move(-127);
         } 
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+        else {
+            ramp.brake();
+            top1.brake();
+            top2.brake();
+        }
+        
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
             tongue.set_value(1);
             heaven.set_value(false);
-            
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
             tongue.set_value(0);
@@ -236,11 +241,6 @@ void teleop_loop() {
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
             heaven.set_value(0);
-        }
-        else {
-            ramp.brake();
-            top1.brake();
-            top2.brake();
         }
 
         pros::delay(10);
