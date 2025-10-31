@@ -91,15 +91,15 @@ lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
 // PID Controller
 // ---------------------------------------
 
-lemlib::ControllerSettings linearController(  5, // proportional gain (kP)
+lemlib::ControllerSettings linearController(  24, // proportional gain (kP) // k_cr = 48
                                               0, // integral gain (kI) 0.0035
-                                              10, // derivative gain (kD) 13.5
+                                              196, // derivative gain (kD) 13.5
                                               0, // anti windup
-                                              1, // small error range, in inches 1
-                                              1500, // small error range timeout, in milliseconds 200
-                                              3, // large error range, in inches 3 
-                                              2000, // large error range timeout, in milliseconds 500
-                                              3 // maximum acceleration (slew) 75
+                                              0, // small error range, in inches 1
+                                              0, // small error range timeout, in milliseconds 200
+                                              0, // large error range, in inches 3 
+                                              0, // large error range timeout, in milliseconds 500
+                                              0 // maximum acceleration (slew) 75
 );
 
 lemlib::ControllerSettings angularController(2, // proportional gain (kP)

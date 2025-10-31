@@ -5,12 +5,12 @@
             "-c",
             "-target",
             "armv7ar-none-none-eabi",
-            "-isystem/Users/timerburgerking/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/include/c++/13.3.1",
-            "-isystem/Users/timerburgerking/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/include/c++/13.3.1/arm-none-eabi/thumb/v7-a+simd/softfp",
-            "-isystem/Users/timerburgerking/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/include/c++/13.3.1/backward",
-            "-isystem/Users/timerburgerking/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/../lib/gcc/arm-none-eabi/13.3.1/include",
-            "-isystem/Users/timerburgerking/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/../lib/gcc/arm-none-eabi/13.3.1/include-fixed",
-            "-isystem/Users/timerburgerking/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/include",
+            "-isystem/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/../../../../arm-none-eabi/include/c++/14.3.1",
+            "-isystem/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/../../../../arm-none-eabi/include/c++/14.3.1/arm-none-eabi/thumb/v7-a+simd/softfp",
+            "-isystem/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/../../../../arm-none-eabi/include/c++/14.3.1/backward",
+            "-isystem/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/include",
+            "-isystem/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/include-fixed",
+            "-isystem/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/../../../../arm-none-eabi/include",
             "-iquote./include",
             "-iquote./include/autons/",
             "-mcpu=cortex-a9",
@@ -31,10 +31,10 @@
             "-funwind-tables",
             "--std=gnu++20",
             "-o",
-            "bin/autons/qual2.cpp.o",
-            "src/autons/qual2.cpp"
+            "bin/autons/qual1.cpp.o",
+            "src/autons/qual1.cpp"
         ],
-        "directory": "/Users/timerburgerking/Documents/GitHub/1831D-TimmyTammies",
-        "file": "src/autons/qual2.cpp"
+        "directory": "/Users/arona/Documents/GitHub/1831D-TimmyTammies",
+        "file": "src/autons/qual1.cpp"
     }
 ]

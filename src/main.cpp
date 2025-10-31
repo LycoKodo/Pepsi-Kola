@@ -31,35 +31,6 @@
 `888a,.  ,aadd88888888888bma.   )88,  ,]I I8, .d' )88a8B ,d8 aI
   "888888PP"'        `8""""""8   "888PP'  `888P'  `88P"88P"8m"
 */
-// AND
-/*                                                                                                                                    
-                                                                                                                                             
-                                              -                                                                              
-                                             --                                                                              
-                                            --.-                                                                             
-                                           -- .:-                                                                            
-                                          -- ...:-                                                                           
-                                          - .....--                                                                          
-                                        -:...... --                                                                         
-                                        -  .  ... --                                                                        
-                                      -   ...  ..   -                                                                        
-                                      -:   ....  ..  -                                                                       
-                                     -- .. ....  . . .-                                                             
-                                    :- . .  ... ......--                                                              
-                                    -... . .... ... .. --                                                            
-                                  --:..... ... .. ..... --                                                      
-                                  -.....  .... ......... --                                                                 
-                                 -- ..   ....... ....  . --                                                                  
-                                -- ..   ....  ............:-                                                                 
-                               .- .. ..  ....  .... .......--                                                                
-                               -.... . ..... ....  . .......--                                                               
-                              -..... ............... .... .. --                                                              
-                             -:....... ..... ........... .... --                                                             
-                            -- .... ....... . ................ -                                                             
-                           --  ........ ................. ..... -                                                            
-                          ----------------------------------------                                                                                                                                   
-*/
-
 // ----------------------------------------------------
 // IMPORTANT - Autonomous Selector Routine Declaration
 // ----------------------------------------------------
@@ -79,11 +50,11 @@ void initialize() {
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------
-    // lv_obj_t *img = lv_img_create(lv_scr_act()); // Add to screen
-    // lv_img_set_src(img, &image); // Link to source image
-    // lv_obj_align(img, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_t *img = lv_img_create(lv_scr_act()); // Add to screen
+    lv_img_set_src(img, &image); // Link to source image
+    lv_obj_align(img, LV_ALIGN_CENTER, 0, -20);
 
-    // colorsort.initialise('N');
+    colorsort.initialise('N');
 
     // -----------------------
     // Initialise Chassis
@@ -149,7 +120,6 @@ void competition_initialize() {}
 
 
 void autonomous() {  
-
     // @NOTE - UNCOMMENT THE FOLLOWING TO  ENABLE AUTON SELECTOR
     int auton = lemlib::selector::auton;
 

@@ -13,11 +13,20 @@
 // LEFT Autonomous routine.  //
 // ------------------------- //
 
+ASSET(RedGoalRush_txt);
+
+// @NOTES:
+    // - [] use motion chaining for continuous movements
+    // - [] use maxspeed for long moveToPoints that are drifting
+    // - [] use path.jerryio for long complex movements
+
 int qual1() {
     chassis.setPose(0, 0, 0); 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
-    chassis.moveToPose(0, 30, 0, 1300, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+    // -- Approach Loader -- //
+
+    chassis.moveToPoint(0, 32, 1200, {.forwards=true, .maxSpeed=85}, false);
 
     chassis.turnToHeading(-90, 900);
 
@@ -25,31 +34,34 @@ int qual1() {
 
     ramp.move(127);
 
-    chassis.moveToPose(-4.3, 30, -90, 800, {.forwards=true, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
+    chassis.moveToPose(-4.3, 32.5, -90, 800, {.forwards=true, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
 
-    chassis.moveToPose(-3, 30, -90, 800, {.forwards=false, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
+    chassis.moveToPose(-3, 32.5, -90, 800, {.forwards=false, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
 
-    chassis.moveToPose(-4.3, 30, -90, 800, {.forwards=true, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
+    chassis.moveToPose(-4.3, 32.5, -90, 800, {.forwards=true, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
 
-    pros::delay(1500);
+    pros::delay(700);
 
     chassis.cancelAllMotions();
     ramp.move(0);
 
+    // -- Approach Long Goal -- //
     heaven.set_value(true);
 
-    chassis.moveToPose(25, 32, -90, 900, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+    chassis.moveToPose(25, 32.5, -90, 900, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
 
     intake.move(-127);
 
-    pros::delay(2000);
+    pros::delay(1800);
 
     tongue.set_value(false);
     heaven.set_value(false);
 
-    chassis.moveToPose(15, 32, -90, 900, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+    // -- Approach Mid Goal -- //
 
-    chassis.turnToHeading(-180, 800);
+    // TODO - FOLLOWING is motion that NEEDS TUNING 
+
+    chassis.moveToPose(15, 32, -90, 900, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
 
     chassis.moveToPose(10.6, 1, -180, 900, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
 
@@ -65,10 +77,19 @@ int qual1() {
 
     chassis.turnToHeading(-405, 900);
 
-    // chassis.moveToPose(35.9, -2.27, -407, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
-
     chassis.moveToPose(36.9, -3.47, -407, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
-
+    
+    // -------------------- // 
+    // TODO - @TIMMY this is a PATH.JERRYIO EXAMPLE!!!!
+    chassis.setPose(25.03, 15.00, -14); // [!] - make sure this is your starting point in path.jerryio!!!!!
+    chassis.follow(
+        RedGoalRush_txt,
+        15, 
+        2000,
+        true,
+        false
+    );
+    // -------------------- // 
 
     intake.move(-127);
 
