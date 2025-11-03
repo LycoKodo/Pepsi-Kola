@@ -23,11 +23,13 @@ int qual2() {
 
     chassis.moveToPoint(0, 32, 1000, {.forwards=true, .maxSpeed=90}, false);
 
-    chassis.turnToHeading(90, 700);
+    chassis.turnToHeading(90, 700, {}, false);
 
     tongue.set_value(true);
 
     ramp.move(127);
+
+    pros::delay(300);
 
     chassis.moveToPose(10, 32.5, 90, 1000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, true);
 

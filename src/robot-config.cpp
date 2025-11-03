@@ -93,7 +93,7 @@ lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
 
 lemlib::ControllerSettings linearController(  24, // proportional gain (kP) // k_cr = 48
                                               0, // integral gain (kI) 0.0035
-                                              196, // derivative gain (kD) 13.5
+                                              195, // derivative gain (kD) 13.5
                                               0, // anti windup
                                               0, // small error range, in inches 1
                                               0, // small error range timeout, in milliseconds 200

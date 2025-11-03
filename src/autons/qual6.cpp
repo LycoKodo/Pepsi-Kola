@@ -15,7 +15,7 @@
 // e.g. red right awp
 
 int qual6() {
-    
+    chassis.moveToPoint(0, 12, 2000, {}, false);
     return 0;
 }
 

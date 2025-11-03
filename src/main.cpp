@@ -54,8 +54,6 @@ void initialize() {
     lv_img_set_src(img, &image); // Link to source image
     lv_obj_align(img, LV_ALIGN_CENTER, 0, -20);
 
-    colorsort.initialise('N');
-
     // -----------------------
     // Initialise Chassis
     // -----------------------
@@ -71,7 +69,7 @@ void initialize() {
 
     // colorsort.initialise(); // auto-detect alliance
 
-    // lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
+    lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
 
     // -----------------------
     // TODO - LVGL INIT
