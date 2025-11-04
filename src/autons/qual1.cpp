@@ -34,11 +34,11 @@ int qual1() {
 
     ramp.move(127);
 
-    chassis.moveToPose(-4.3, 32.5, -90, 800, {.forwards=true, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
+    chassis.moveToPose(-10, 32.5, -90, 800, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, true);
 
-    chassis.moveToPose(-3, 32.5, -90, 800, {.forwards=false, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
+    chassis.moveToPose(-3, 32.5, -90, 800, {.forwards=false, .lead=0, .maxSpeed=80, .minSpeed=20}, true);
 
-    chassis.moveToPose(-4.3, 32.5, -90, 800, {.forwards=true, .lead=0, .maxSpeed=15, .minSpeed=60}, true);
+    chassis.moveToPose(-10, 32.5, -90, 800, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, true);
 
     pros::delay(700);
 
@@ -61,21 +61,23 @@ int qual1() {
 
     // TODO - FOLLOWING is motion that NEEDS TUNING 
 
-    chassis.moveToPose(12.5, 32, -90, 900, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPose(12.5, 32, -90, 900, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=30}, false);
 
     intake.move(0);
 
-    chassis.turnToHeading(140, 800);
-
+    chassis.turnToHeading(-212, 800);
+    
     ramp.move(127);
 
-    chassis.moveToPose(23, -42, 180, 4000, {.forwards=true, .lead=0.767, .maxSpeed=127, .minSpeed=0,}, false);
+    chassis.moveToPose(23, 7, -180, 4000, {.forwards=true, .lead=0.35, .maxSpeed=110, .minSpeed=20}, false);
 
-    chassis.turnToHeading(45, 800);
+    chassis.turnToHeading(-35, 1000);
 
-    chassis.moveToPose(32, -32, -316, 4000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0,}, false);
+    chassis.moveToPose(35, 2.3, -48, 4000, {.forwards=false, .lead=0, .maxSpeed=110, .minSpeed=20}, false);
 
-    intake.move(127);
+    // chassis.moveToPose(32, -32, -316, 4000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0,}, false);
+
+    // intake.move(127);
 
     // chassis.moveToPose(10.6, 1, -180, 900, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
 
@@ -105,6 +107,9 @@ int qual1() {
     //     false
     // );
     // -------------------- // 
+    pros::delay(1000);
+    
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
 
     return 0;
 }
