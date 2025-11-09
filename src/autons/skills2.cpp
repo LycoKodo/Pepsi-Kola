@@ -27,18 +27,26 @@ int skills2() {
 
     ramp.move(127);
 
-    chassis.moveToPose(-12, 31.5, -90, 1000, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, false);
+    chassis.moveToPose(-14, 32, -90, 1100, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, false);
 
-    chassis.moveToPose(-3, 31.5, -90, 950, {.forwards=false, .lead=0, .maxSpeed=80, .minSpeed=20}, false);
+    chassis.moveToPose(0, 32, -90, 1100, {.forwards=false, .lead=0, .maxSpeed=80, .minSpeed=20}, false);
 
-    chassis.moveToPose(-12, 31.5, -90, 1000, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, false);
+    chassis.moveToPose(-14, 32, -90, 1100, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, false);
 
     chassis.cancelAllMotions();
     ramp.move(0);
 
     heaven.set_value(true);
 
-    chassis.moveToPose(27, 32.5, -90, 900, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+    chassis.moveToPose(27, 32, -90, 900, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=60}, false);
+
+    intake.move(-127);
+
+    pros::delay(2000);
+
+    ramp.move(-50);
+
+    pros::delay(500);
 
     intake.move(-127);
 
@@ -46,16 +54,18 @@ int skills2() {
 
     intake.move(0);
 
+    heaven.set_value(false);
+
     // second run
 
-    chassis.moveToPose(-12, 31.5, -90, 1500, {.forwards=true, .lead=0, .maxSpeed=110, .minSpeed=60}, false);
+    chassis.moveToPose(-12, 32, -90, 1500, {.forwards=true, .lead=0, .maxSpeed=110, .minSpeed=40}, false);
     ramp.move(127);
 
     pros::delay(400);
 
-    chassis.moveToPose(-3, 31.5, -90, 950, {.forwards=false, .lead=0, .maxSpeed=80, .minSpeed=20}, true);
+    chassis.moveToPose(0, 32, -90, 1000, {.forwards=false, .lead=0, .maxSpeed=80, .minSpeed=20}, true);
 
-    chassis.moveToPose(-12, 31.5, -90, 800, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, true);
+    chassis.moveToPose(-14, 32, -90, 1000, {.forwards=true, .lead=0, .maxSpeed=80, .minSpeed=20}, true);
 
     pros::delay(1500);
 
@@ -82,7 +92,7 @@ int skills2() {
 
     chassis.turnToHeading(180, 2000);
 
-    chassis.moveToPose(10, -61, 180, 2500, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
+    chassis.moveToPose(10, -60, 180, 2500, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
 
     chassis.turnToHeading(270, 2000);
 
@@ -90,7 +100,7 @@ int skills2() {
 
     ramp.move(127);
 
-    chassis.moveToPose(-13, -61, 270, 1500, {.forwards=true, .lead=0, .maxSpeed=90, .minSpeed=0}, false);
+    chassis.moveToPose(-18, -60, 270, 1500, {.forwards=true, .lead=0, .maxSpeed=90, .minSpeed=0}, false);
 
     pros::delay(1000);
 
@@ -100,29 +110,35 @@ int skills2() {
 
     intake.move(-127);
 
+    pros::delay(2000);
+
+    ramp.move(-50);
+
+    pros::delay(300);
+
+    intake.move(-127);
+
     pros::delay(3000);
 
     intake.move(0);
 
     ramp.move(127);
 
-    chassis.moveToPose(-13, -61, 270, 1500, {.forwards=true, .lead=0, .maxSpeed=100, .minSpeed=0}, false);
-
     heaven.set_value(false);
+
+    chassis.moveToPose(-18, -61, 270, 1500, {.forwards=true, .lead=0, .maxSpeed=100, .minSpeed=0}, false);
 
     pros::delay(1500);
 
     heaven.set_value(true);
 
-    chassis.moveToPose(27, -61.4, 270, 1500, {.forwards=false, .lead=0, .maxSpeed=120, .minSpeed=20}, false);
+    chassis.moveToPose(27, -61, 270, 1500, {.forwards=false, .lead=0, .maxSpeed=120, .minSpeed=20}, false);
 
     intake.move(-127);
 
     pros::delay(3000);
 
-    intake.move(-127);
-
-    chassis.moveToPose(10, -61.4, 270, 1500, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
+    chassis.moveToPose(5, -61, 270, 1500, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
 
     heaven.set_value(false);
 
@@ -130,15 +146,15 @@ int skills2() {
 
     chassis.turnToHeading(0, 1500);
 
-    chassis.moveToPose(10, -14.5, 0, 1500, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
+    chassis.moveToPose(10, -12.5, 0, 1500, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
 
     intake.move(0);
 
     chassis.turnToHeading(270, 1500);
 
-    chassis.moveToPose(20, -14.5, 270, 1500, {.forwards=false, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
+    chassis.moveToPose(20, -12.5, 270, 1500, {.forwards=false, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
 
-    chassis.moveToPose(-30, -14.5, 270, 5000, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
+    chassis.moveToPose(-30, -12.5, 270, 5000, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=0}, false);
 
     // chassis.turnToHeading(0, 2000);
 
