@@ -41,19 +41,21 @@ int qual4() {
     // -- Approach Long Goal -- //
     heaven.set_value(true);
 
-    chassis.moveToPose(-27, 32, 90, 1200, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=30}, false);
+    intake.move(-20);
+
+    chassis.moveToPose(-27, 32, 90, 1100, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=40}, false);
 
     intake.move(-127);
 
     pros::delay(2000);
 
-    intake.move(80);
+    intake.move(40);
 
-    pros::delay(500);
+    pros::delay(200);
 
     intake.move(-127);
 
-    pros::delay(3500);
+    pros::delay(3000);
 
     tongue.set_value(false);
     heaven.set_value(false);
@@ -62,7 +64,7 @@ int qual4() {
 
     // TODO - FOLLOWING is motion that NEEDS TUNING 
 
-    chassis.moveToPose(-11, 32, 90, 1000, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=30}, false);
+    chassis.moveToPose(-11, 32, 90, 1000, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=40}, false);
 
     intake.move(0);
 
@@ -70,15 +72,15 @@ int qual4() {
 
     ramp.move(127);
 
-    chassis.moveToPose(-29, -40, -180, 2000, {.forwards=true, .lead=0.6, .maxSpeed=127, .minSpeed=70}, false);
+    chassis.moveToPose(-29, -38, -180, 2000, {.forwards=true, .lead=0.6, .maxSpeed=127, .minSpeed=70}, false);
 
-    chassis.turnToHeading(134, 600);
+    chassis.turnToHeading(134, 700);
 
     ramp.move(60);
     top1.move(-30);
     top2.move(20);
 
-    chassis.moveToPose(-40, -30.5, 134, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=40,}, false);
+    chassis.moveToPose(-39, -29.5, 134, 900, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=40,}, false);
 
 
     ramp.move(90);
