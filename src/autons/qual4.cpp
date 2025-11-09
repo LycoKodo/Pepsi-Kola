@@ -41,7 +41,7 @@ int qual4() {
     // -- Approach Long Goal -- //
     heaven.set_value(true);
 
-    chassis.moveToPose(-25, 32, 90, 1000, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=30}, false);
+    chassis.moveToPose(-27, 32, 90, 1200, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=30}, false);
 
     intake.move(-127);
 
@@ -53,7 +53,7 @@ int qual4() {
 
     intake.move(-127);
 
-    pros::delay(2000);
+    pros::delay(3500);
 
     tongue.set_value(false);
     heaven.set_value(false);

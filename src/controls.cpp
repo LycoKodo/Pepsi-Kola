@@ -22,11 +22,11 @@ void drivetrain_control() {
     while (true) {
         int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         
-        int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        chassis.arcade(leftY, rightX); 
+        // int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+        // chassis.arcade(leftY, rightX); 
         
-        // int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
-        // chassis.tank(leftY, rightY);
+        int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+        chassis.tank(leftY, rightY);
         pros::delay(10);
     }
 
