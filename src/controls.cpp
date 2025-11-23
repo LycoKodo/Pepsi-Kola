@@ -201,6 +201,8 @@ void teleop_loop() {
         // top_intake.move(topSpd);
         // back_intake.move(backSpd);
 
+
+        //Gavin's Robot Controller Config
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             ramp.move(127);
             top1.move(-127);
@@ -242,6 +244,57 @@ void teleop_loop() {
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
             heaven.set_value(0);
         }
+
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+            descore.set_value(1);
+        }
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
+            descore.set_value(0);
+        }
+
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
+            odomLift.set_value(1);
+        }
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
+            odomLift.set_value(0);
+        }
+
+
+        //Quinn's Robot Controller Config
+        // if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+        //     intake.move(127);
+        // }
+        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+        //     intake.move(-127);
+        // }
+        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+        //     intake1.move(127);
+        //     intake2.move(-127);
+        //     intake3.move(127);
+        //     intake4.move(127);
+        // } 
+        // // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+        // //     ramp.move(-127);
+        // //     top1.move(127);
+        // //     top2.move(-127);
+        // // } 
+        // else {
+        //     intake.brake();
+        // }
+        // 
+        // if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+        //     tongue.set_value(1);
+        //     heaven.set_value(false);
+        // }
+        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+        //     tongue.set_value(0);
+        // }
+        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
+        //     heaven.set_value(1);
+        // }
+        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+        //     heaven.set_value(0);
+        // }
 
         pros::delay(10);
     }

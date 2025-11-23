@@ -21,8 +21,13 @@
 
 // CLAWBOT CONFIGS
 
-pros::MotorGroup leftMotors({-12, -13, 11}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
-pros::MotorGroup rightMotors({14, 16, -15}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
+//Gavin's Robot
+pros::MotorGroup leftMotors({-11, -14, 15}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
+pros::MotorGroup rightMotors({1, 3, -2}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
+
+//Quinn's Robot
+// pros::MotorGroup leftMotors({-1, -3, 2}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
+// pros::MotorGroup rightMotors({4, 6, -5}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
 
 // TODO - Change params for this
 lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
@@ -44,13 +49,24 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 // pros::Motor middle_intake(4, pros::MotorGearset::blue);
 // pros::Motor back_intake(2, pros::MotorGearset::blue);
 
-pros::MotorGroup intake({-19, 10, -8}, pros::MotorGearset::green);
-pros::Motor ramp(19, pros::MotorGearset::green);
-pros::Motor top1(10, pros::MotorGearset::green);
-pros::Motor top2(8, pros::MotorGearset::green);
 
-pros::adi::DigitalOut tongue (1);
-pros::adi::DigitalOut heaven(8);
+//Gavin's Robot Config for Intake
+pros::MotorGroup intake({17, 8, -19}, pros::MotorGearset::green);
+pros::Motor ramp(8, pros::MotorGearset::blue);
+pros::Motor top1(-17, pros::MotorGearset::green);
+pros::Motor top2(19, pros::MotorGearset::green);
+
+//Quinn's Robot Config for Intake
+// pros::MotorGroup intake({2, 6, 7, 18}, pros::MotorGearset::green);
+// pros::Motor intake1(2, pros::MotorGearset::green);
+// pros::Motor intake2(6, pros::MotorGearset::green);
+// pros::Motor intake3(7, pros::MotorGearset::green);
+// pros::Motor intake4(18, pros::MotorGearset::green);
+
+pros::adi::DigitalOut heaven(1);
+pros::adi::DigitalOut tongue(6);
+pros::adi::DigitalOut odomLift(7);
+pros::adi::DigitalOut descore(8);
 
 // pros::adi::DigitalOut doinker (7);
 // pros::adi::DigitalOut endgame (1);

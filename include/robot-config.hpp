@@ -30,6 +30,8 @@ extern pros::Motor top1;
 extern pros::Motor top2;
 
 extern pros::adi::DigitalOut tongue;
+extern pros::adi::DigitalOut odomLift;
+extern pros::adi::DigitalOut descore;
 extern pros::adi::DigitalOut heaven;
 
 // ---------------------------------------
