@@ -6,7 +6,8 @@
         "${workspaceFolder}/**",
         "/Users/arona/Documents/GitHub/1831D-TimmyTammies/include",
         "/Users/skyfan/Documents/1831D-TimmyTammies/include",
-        "/Users/timerburgerking/Documents/GitHub/1831D-TimmyTammies/include"
+        "/Users/timerburgerking/Documents/GitHub/1831D-TimmyTammies/include",
+        "/home/alex/GitHub/1831D-TimmyTammies/include"
       ],
       "defines": [
         "_DEBUG",

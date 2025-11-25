@@ -205,24 +205,24 @@ void teleop_loop() {
         //Gavin's Robot Controller Config
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             ramp.move(127);
-            top1.move(-127);
+            top1.move(127);
             top2.move(127);
             heaven.set_value(true);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
             ramp.move(127);
-            top1.move(-127);
+            top1.move(127);
             top2.move(127);
             heaven.set_value(false);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            ramp.move(127);
+            ramp.move(-127);
             top1.brake();
             top2.brake();
         } 
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
             ramp.move(-127);
-            top1.move(127);
+            top1.move(-127);
             top2.move(-127);
         } 
         else {
