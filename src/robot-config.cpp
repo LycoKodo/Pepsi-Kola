@@ -52,8 +52,8 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 //Gavin's Robot Config for Intake
 pros::MotorGroup intake({17, 8, -19}, pros::MotorGearset::green);
-pros::Motor ramp(10, pros::MotorGearset::blue);
-pros::Motor top1(17, pros::MotorGearset::green);
+pros::Motor ramp(8, pros::MotorGearset::blue);
+pros::Motor top1(-17, pros::MotorGearset::green);
 pros::Motor top2(19, pros::MotorGearset::green);
 
 //Quinn's Robot Config for Intake
@@ -87,14 +87,14 @@ pros::Imu imu(7);
 
 // TODO - check ports
 
-pros::Rotation horizontal_encoder(17); // Change to the "A" tagged encoder
+pros::Rotation horizontal_encoder(4); // Change to the "A" tagged encoder
 
-pros::Rotation vertical_encoder(2);
+pros::Rotation vertical_encoder(-13);
 
 
-lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -1.75);
+lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, 3.345, -4.7);
 
-lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwheel::NEW_325_HALF, -0.75);
+lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, 2, +0.05);
 
 lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2, set to nullptr as we don't have a second one
