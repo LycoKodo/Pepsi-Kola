@@ -47,6 +47,15 @@ LV_IMG_DECLARE(image); //TKSRC Logo
 
 
 void initialize() {
+
+    // TODO - PUT ODOM DOWN, THEN CALIBRATE
+
+    // TIMMY HERE!!!
+    // TIMMY HERE!!!
+    // TIMMY HERE!!!
+    // TIMMY HERE!!!
+    // TIMMY HERE!!!
+
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------
