@@ -52,6 +52,8 @@ void initialize() {
 
     odomLift.set_value(1);
 
+    pros::delay(1000);
+
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------
