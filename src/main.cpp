@@ -166,13 +166,28 @@ void autonomous() {
 
 // TODO - Problem Lies in Controls
 void opcontrol() {
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
-    // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
+
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+    chassis.setPose(0,0,0);
+
+    chassis.moveToPose(24, 24, 90, 5000, {.forwards=true, .lead=0.5, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
+
+
+
+
+    // chassis.turnToHeading(180, 3500, {.direction=lemlib::AngularDirection::CW_CLOCKWISE}, false);
+    // chassis.turnToHeading(0, 3500, {.direction=lemlib::AngularDirection::CW_CLOCKWISE}, false);
+
+    // chassis.moveToPoint(0, 24, 4000, {.forwards=true}, false);
+    // chassis.moveToPoint(0, 0, 4000, {.forwards=false}, false);
+
+    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    // // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
 
     
-    pros::Task driveTask(drivetrain_control);
-    pros::Task teleopTask(teleop_loop);
-    // pros::Task intakeTask([] {
-    //     colorsort.sorted_intake_loop();
-    // }); // use a lambda
+    // pros::Task driveTask(drivetrain_control);
+    // pros::Task teleopTask(teleop_loop);
+    // // pros::Task intakeTask([] {
+    // //     colorsort.sorted_intake_loop();
+    // // }); // use a lambda
 }

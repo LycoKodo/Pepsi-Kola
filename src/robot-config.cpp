@@ -83,18 +83,18 @@ pros::adi::DigitalOut descore(8);
 // Odometry
 // ---------------------------------------
 
-pros::Imu imu(7);
+pros::Imu imu(5);
 
 // TODO - check ports
 
-pros::Rotation horizontal_encoder(4); // Change to the "A" tagged encoder
+pros::Rotation horizontal_encoder(-4); // Change to the "A" tagged encoder
 
 pros::Rotation vertical_encoder(-13);
 
 
-lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, 3.345, -4.7);
+lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, 3.348, -3.7);
 
-lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, 2, +0.05);
+lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, 2.025, +0.05);
 
 lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2, set to nullptr as we don't have a second one
@@ -107,25 +107,25 @@ lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
 // PID Controller
 // ---------------------------------------
 
-lemlib::ControllerSettings linearController(  24, // proportional gain (kP) // k_cr = 48
+lemlib::ControllerSettings linearController(  14.25, // proportional gain (kP) // k_cr = 48
                                               0, // integral gain (kI) 0.0035
-                                              195, // derivative gain (kD) 13.5
+                                              110, // derivative gain (kD) 13.5
                                               0, // anti windup
                                               0, // small error range, in inches 1
                                               0, // small error range timeout, in milliseconds 200
                                               0, // large error range, in inches 3 
                                               0, // large error range timeout, in milliseconds 500
-                                              0 // maximum acceleration (slew) 75
+                                              15 // maximum acceleration (slew) 75
 );
 
-lemlib::ControllerSettings angularController(2, // proportional gain (kP)
-                                             0, // integral gain (kI) .0029 was good
-                                             16.5, // derivative gain (kD)
+lemlib::ControllerSettings angularController(1.332, // proportional gain (kP)
+                                             0.00002, // integral gain (kI) .0029 was good
+                                             10, // derivative gain (kD)
                                              0, // anti windup
-                                             1, // small error range, in degrees 1
-                                             1500, // small error range timeout, in milliseconds (200)
-                                             2, // large error range, in degrees 2
-                                             1500, // large error range timeout, in milliseconds (500)
+                                             0, // small error range, in degrees 1
+                                             0, // small error range timeout, in milliseconds (200)
+                                             0, // large error range, in degrees 2
+                                             0, // large error range timeout, in milliseconds (500)
                                              0 // maximum acceleration (slew)
 ); 
 
