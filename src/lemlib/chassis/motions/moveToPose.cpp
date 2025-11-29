@@ -78,7 +78,7 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
                                 (carrot.x - target.x) * cos(target.theta) + params.earlyExitRange;
         const bool sameSide = robotSide == carrotSide;
         // exit if close
-        if (!sameSide && prevSameSide && close && params.minSpeed != 0) break;
+        if (!sameSide && prevSameSide && close && params.minSpeed != 0 && distTarget < 1.5) break; // NOTE - for timmy who likes minspeed
         prevSameSide = sameSide;
 
         // calculate error
