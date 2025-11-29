@@ -11,24 +11,24 @@
 #include "robot-config.hpp"
 
 void drivetrain_control() {
-    // while (true) {
-    //     int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-    //     int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-    //     chassis.arcade(leftY, rightX); 
-    //     pros::delay(10);
-
-    // }
-
     while (true) {
         int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-        
-        // int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        // chassis.arcade(leftY, rightX); 
-        
-        int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
-        chassis.tank(leftY, rightY);
+        int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+        chassis.arcade(leftY, rightX); 
         pros::delay(10);
+
     }
+
+    // while (true) {
+    //     int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+        
+    //     // int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+    //     // chassis.arcade(leftY, rightX); 
+        
+    //     int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+    //     chassis.tank(leftY, rightY);
+    //     pros::delay(10);
+    // }
 
 
 

@@ -50,11 +50,7 @@ void initialize() {
 
     // TODO - PUT ODOM DOWN, THEN CALIBRATE
 
-    // TIMMY HERE!!!
-    // TIMMY HERE!!!
-    // TIMMY HERE!!!
-    // TIMMY HERE!!!
-    // TIMMY HERE!!!
+    odomLift.set_value(1);
 
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
@@ -179,7 +175,7 @@ void opcontrol() {
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
     chassis.setPose(0,0,0);
 
-    chassis.moveToPose(24, 24, 90, 5000, {.forwards=true, .lead=0.5, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
+    // chassis.moveToPose(24, 24, 90, 5000, {.forwards=true, .lead=0.5, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
 
 
 
@@ -194,8 +190,8 @@ void opcontrol() {
     // // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
 
     
-    // pros::Task driveTask(drivetrain_control);
-    // pros::Task teleopTask(teleop_loop);
+    pros::Task driveTask(drivetrain_control);
+    pros::Task teleopTask(teleop_loop);
     // // pros::Task intakeTask([] {
     // //     colorsort.sorted_intake_loop();
     // // }); // use a lambda
