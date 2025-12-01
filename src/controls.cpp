@@ -11,24 +11,24 @@
 #include "robot-config.hpp"
 
 void drivetrain_control() {
-    while (true) {
-        int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-        int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        chassis.arcade(leftY, rightX); 
-        pros::delay(10);
-
-    }
-
     // while (true) {
     //     int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-        
-    //     // int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-    //     // chassis.arcade(leftY, rightX); 
-        
-    //     int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
-    //     chassis.tank(leftY, rightY);
+    //     int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+    //     chassis.arcade(leftY, rightX); 
     //     pros::delay(10);
+
     // }
+
+    while (true) {
+        int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+        
+        // int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+        // chassis.arcade(leftY, rightX); 
+        
+        int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+        chassis.tank(leftY, rightY);
+        pros::delay(10);
+    }
 
 
 
@@ -205,24 +205,24 @@ void teleop_loop() {
         //Gavin's Robot Controller Config
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             ramp.move(127);
-            top1.move(127);
+            top1.move(-127);
             top2.move(127);
             heaven.set_value(true);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
             ramp.move(127);
-            top1.move(127);
+            top1.move(-127);
             top2.move(127);
             heaven.set_value(false);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            ramp.move(-127);
+            ramp.move(127);
             top1.brake();
             top2.brake();
         } 
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
             ramp.move(-127);
-            top1.move(-127);
+            top1.move(127);
             top2.move(-127);
         } 
         else {
@@ -238,25 +238,13 @@ void teleop_loop() {
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
             tongue.set_value(0);
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
-            heaven.set_value(1);
-        }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-            heaven.set_value(0);
-        }
+        
 
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
             descore.set_value(1);
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
             descore.set_value(0);
-        }
-
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
-            odomLift.set_value(1);
-        }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
-            odomLift.set_value(0);
         }
 
 

@@ -51,10 +51,10 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 
 //Gavin's Robot Config for Intake
-pros::MotorGroup intake({17, 8, -19}, pros::MotorGearset::green);
-pros::Motor ramp(8, pros::MotorGearset::blue);
+pros::MotorGroup intake({17, 9, 19}, pros::MotorGearset::green);
+pros::Motor ramp(9, pros::MotorGearset::blue);
 pros::Motor top1(-17, pros::MotorGearset::green);
-pros::Motor top2(19, pros::MotorGearset::green);
+pros::Motor top2(19, pros::MotorGearset::green);  
 
 //Quinn's Robot Config for Intake
 // pros::MotorGroup intake({2, 6, 7, 18}, pros::MotorGearset::green);

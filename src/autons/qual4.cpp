@@ -15,98 +15,79 @@
 // e.g. normal rush
 
 int qual4() {
-    
 
     chassis.setPose(0, 0, 0); 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
     // -- Approach Loader -- //
 
-    chassis.moveToPoint(0, 31, 1000, {.forwards=true, .maxSpeed=120}, false);
+    chassis.moveToPoint(0, 28.8, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
 
-    chassis.turnToHeading(90, 500, {}, false);
+    chassis.turnToHeading(90, 1000);
 
     tongue.set_value(true);
 
     ramp.move(127);
 
-    pros::delay(500);
+    chassis.moveToPoint(13, 29.2, 1000, {.forwards=true}, false);
+    
+    pros::delay(250);
 
-    chassis.moveToPose(10, 32, 90, 1000, {.forwards=true, .lead=0, .maxSpeed=90, .minSpeed=30}, true);
+    heaven.set_value(true);
+
+    pros::delay(100);
+
+    chassis.moveToPoint(-21, 35, 1000, {.forwards=false, .maxSpeed=127, .minSpeed=45}, false);
+
+    intake.move(127);
 
     pros::delay(1100);
 
-    chassis.cancelAllMotions();
-
-    // -- Approach Long Goal -- //
-    heaven.set_value(true);
-
-    intake.move(-20);
-
-    chassis.moveToPose(-27, 32, 90, 1100, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=40}, false);
-
-    intake.move(-127);
-
-    pros::delay(2000);
-
-    intake.move(40);
-
-    pros::delay(200);
-
-    intake.move(-127);
-
-    pros::delay(3000);
-
     tongue.set_value(false);
-    heaven.set_value(false);
 
-    // -- Approach Mid Goal -- //
-
-    // TODO - FOLLOWING is motion that NEEDS TUNING 
-
-    chassis.moveToPose(-11, 32, 90, 1000, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=40}, false);
+    chassis.moveToPoint(-8, 31, 900, {.forwards=true}, false);
 
     intake.move(0);
 
-    chassis.turnToHeading(-140, 600);
+    heaven.set_value(false);
+
+    chassis.turnToHeading(215, 1000);
 
     ramp.move(127);
 
-    chassis.moveToPose(-29, -38, -180, 2000, {.forwards=true, .lead=0.6, .maxSpeed=127, .minSpeed=70}, false);
+    chassis.moveToPoint(-25.5, 10.8, 900, {.forwards=true, .maxSpeed=127, .minSpeed=45,  .earlyExitRange=2}, true);
 
-    chassis.turnToHeading(134, 700);
+    pros::delay(400);
 
-    ramp.move(60);
-    top1.move(-30);
-    top2.move(20);
+    tongue.set_value(true);
 
-    chassis.moveToPose(-39, -29.5, 134, 900, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=40,}, false);
+    chassis.turnToHeading(315, 900);
 
+    tongue.set_value(false);
 
-    ramp.move(90);
-    top1.move(-80);
-    top2.move(80);
+    chassis.moveToPose(-41, 29.3, 270, 1000, {.forwards=true, .lead=0.05,.maxSpeed=127, .minSpeed=20}, false);
 
-    // pros::delay(550);
+    pros::delay(500);
 
-    // top1.move(0);
-    // top2.move(0);
+    chassis.moveToPoint(-25.5, 10.2, 900, {.forwards=false, .maxSpeed=127, .minSpeed=45, .earlyExitRange=10}, false);
 
-    // // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    chassis.moveToPose(-25.5, 10.2, 288.6, 700, {.forwards=false, .lead=0.05,.maxSpeed=127, .minSpeed=0}, false);
 
-    // // pros::delay(10000);
+    chassis.moveToPoint(-14, 35.0, 900, {.forwards=false, .maxSpeed=127, .minSpeed=25, .earlyExitRange=15}, false);
 
-    // chassis.moveToPose(-10.56, -63.5, 137, 780, {.forwards=true, .lead=0, .maxSpeed=120, .minSpeed=60,}, false);
+    chassis.moveToPose(-14, 35, 135, 500, {.forwards=false, .lead=0.05,.maxSpeed=127, .minSpeed=0}, false);
 
-    // chassis.turnToHeading(90, 600);
+    ramp.move(0);
 
-    // heaven.set_value(true);
+    heaven.set_value(true);
 
-    // chassis.moveToPose(-25.44, -63.5, 90, 780, {.forwards=false, .lead=0, .maxSpeed=120, .minSpeed=60,}, false);
+    chassis.turnToHeading(90, 700);
 
-    // intake.move(-127);
+    chassis.moveToPoint(-22, 35, 900, {.forwards=false}, false);
 
+    intake.move(127);
 
+    odomLift.set_value(0);
 
     return 0;
 }

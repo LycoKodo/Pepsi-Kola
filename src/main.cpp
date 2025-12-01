@@ -50,7 +50,7 @@ void initialize() {
 
     // TODO - PUT ODOM DOWN, THEN CALIBRATE
 
-    odomLift.set_value(1);
+    odomLift.set_value(0);
 
     pros::delay(1000);
 
@@ -84,8 +84,8 @@ void initialize() {
 
 
     static const char* qualBtnmMap[] = {
-        "Left", "Right", "Q-Auton3", "\n",
-        "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
+        "Old-R", "Old-AWP", "Right-M", "\n",
+        "Right-L", "Left-M", "Left-L", nullptr
     };
     static const char* qualBtnmDesc[] = {
         "Standard 4 Block for LEFT, scoring MID", "Standard 4 Block for RIGHT, scoring LOW", "Q-Auton3",
@@ -176,6 +176,8 @@ void opcontrol() {
 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
     chassis.setPose(0,0,0);
+
+    odomLift.set_value(0);
 
     // chassis.moveToPose(24, 24, 90, 5000, {.forwards=true, .lead=0.5, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
 
