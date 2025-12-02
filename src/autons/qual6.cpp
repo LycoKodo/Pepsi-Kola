@@ -20,9 +20,9 @@ int qual6() {
 
     // -- Approach Loader -- //
 
-    chassis.moveToPoint(0, 30, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
+    chassis.moveToPoint(0, 30, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
 
-    chassis.turnToHeading(-90, 1000);
+    chassis.turnToHeading(-90, 750, {.maxSpeed=127}, false);
 
     tongue.set_value(true);
 
@@ -52,13 +52,13 @@ int qual6() {
 
     heaven.set_value(false);
 
-    chassis.turnToHeading(-215, 1000);
+    chassis.turnToHeading(-215, 1000, {}, false);
 
     ramp.move(127);
 
     chassis.moveToPoint(24.5, 10.2, 900, {.forwards=true, .maxSpeed=127, .minSpeed=45}, false);
 
-    chassis.turnToHeading(-315, 900);
+    chassis.turnToHeading(-315, 900, {}, false);
 
     chassis.moveToPoint(40.9, 27.3, 900, {.forwards=true, .maxSpeed=127, .minSpeed=25}, false);
 
@@ -70,11 +70,11 @@ int qual6() {
 
     chassis.moveToPose(14, 32, -135, 700, {.forwards=false, .lead=0.05,.maxSpeed=127, .minSpeed=0}, false);
 
-    ramp.move(0);
+    ramp.move(127);
 
     heaven.set_value(true);
 
-    chassis.turnToHeading(-90, 700);
+    chassis.turnToHeading(-90, 700, {}, false);
 
     chassis.moveToPoint(20, 31, 900, {.forwards=false}, false);
 

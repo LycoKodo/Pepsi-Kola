@@ -50,7 +50,7 @@ void initialize() {
 
     // TODO - PUT ODOM DOWN, THEN CALIBRATE
 
-    odomLift.set_value(0);
+    odomLift.set_value(1);
 
     pros::delay(1000);
 
