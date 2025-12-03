@@ -78,7 +78,6 @@ void initialize() {
     // Initialise Chassis
     // -----------------------
     // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
-
     chassis.calibrate(); // calibrate sensors
 
     // -----------------------
@@ -111,12 +110,23 @@ void initialize() {
     };
 
     static const char* AIBtnmMap[] = {
-        "COMB-L", "[TODO] COMB-R", "NULL", "\n",
-        "NULL", "NULL", "NULL", nullptr
+        "COMB-L", // AI 1
+        "[TODO] COMB-R", // AI 2
+        "NULL", // AI 3
+        "\n",
+        "NULL", // AI 4
+        "NULL", // AI 5
+        "NULL", // AI 6
+        nullptr
     };
     static const char* AIBtnmDesc[] = {
-        "", "", "",
-        "", "", "", nullptr
+        "", // AI 1
+        "", // AI 2
+        "", // AI 3
+        "", // AI 4
+        "", // AI 5
+        "", // AI 6
+        nullptr
     };
 
     static const char* skillsBtnmMap[] = {

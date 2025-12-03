@@ -28,6 +28,8 @@ int qual1() {
 
     ramp.move(127);
 
+    pros::delay(200);
+
     chassis.moveToPoint(13, 29.2, 1000, {.forwards=true}, false);
     
     pros::delay(250);
