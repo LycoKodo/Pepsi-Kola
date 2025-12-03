@@ -15,7 +15,6 @@
 #include "colorsort.hpp"
 
 // THIS CODE IS POWERED BY A PROJECT MANAGER AND TWO DORITO FANS POWERED BY 
-
 /*
          __                              ___   __        .ama     ,
       ,d888a                          ,d88888888888ba.  ,88"I)   d
@@ -31,27 +30,41 @@
 `888a,.  ,aadd88888888888bma.   )88,  ,]I I8, .d' )88a8B ,d8 aI
   "888888PP"'        `8""""""8   "888PP'  `888P'  `88P"88P"8m"
 */
+// Blessing of the water slug...
+/*
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠀⠤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢊⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠄⠒⠂⠀⠈⠀⠐⢒⡤⠄⠘⠂⠈⠉⠉⠠⠔⠋⠉⠀⠀⠀⠀⠀⠉⠐⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠎⠀⣀⣄⡀⠀⠀⠀⠶⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠒⠊⠣⡀⠀⠀⣣⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠂⠹⣟⠀⡨⠱⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⢄⠀⠀⢨⡷⣤⡇⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢳⠊⠀⢰⣉⠆⠢⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⢔⣉⡆⠀⠀⠣⣠⡶⡑⡼⢢⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠄⠢⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣷⡼⠁⠀⠡⡀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠊⠀⢠⠃⠀⠀⠀⠀⠀⠀⡇⠀⠀⡄⠀⠀⣄⠀⡾⡀⠀⠀⠀⡇⠀⠀⠀⠀⠘⡆⠀⠀⠀⢷⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢀⠊⠀⡔⢂⠇⠀⠀⢀⠀⠀⠀⢸⢸⠠⠞⠃⠀⠀⠛⡤⡇⡇⠀⠀⢠⡇⠀⠀⠀⠀⠀⢰⠀⠀⠀⠀⢣⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠈⠄⠀⠇⠸⠀⠀⠀⢸⡀⠀⠀⢺⠈⡄⠀⠀⠀⠀⠀⢠⠁⢰⠀⠀⢸⠇⠀⠀⠀⠀⠀⠈⡆⠀⠀⠀⠘⣆⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠂⠰⡇⠀⠀⠀⡈⢹⠀⠀⣼⡀⢱⠀⠀⠀⠀⠀⣼⣀⢸⠀⠀⡆⢸⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⢹⠢⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⠤⣒⣷⠀⠀⠀⡇⠀⢱⣴⣿⠋⠀⢳⠀⠀⠀⢀⠋⣙⣿⣶⣼⡀⠸⠀⠀⡸⠀⠀⠀⡇⠀⠀⠀⠀⠀⡆⠡⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⣔⠔⠀⡊⢸⡀⡀⠀⣇⣴⢟⣿⣾⣿⣆⠀⢣⠀⠀⡎⣾⣟⣿⣼⣏⠙⢿⣦⡠⠃⠀⢀⣀⣔⡀⠀⠀⠀⠀⢱⠀⠡⠀
+⠀⠀⠀⠀⠀⠀⢰⠂⠀⠀⢑⣸⠹⡧⡀⣿⠁⣸⠟⠛⠛⡻⠀⢠⡑⡜⠀⢟⠉⠉⠉⣻⡀⢺⠟⡇⢶⠭⠥⠤⣾⠀⠀⠀⠀⠀⠈⡄⠀⢡
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣸⠭⠭⣸⠚⠀⢊⣒⠒⠊⠁⠀⠚⠓⠛⠀⠀⠉⣭⢹⣁⠩⠔⠚⠓⠚⠛⠛⠣⢧⣇⠀⠀⠀⠀⠀⢱⠀⠀
+⠀⠀⠀⠀⠀⢀⡠⠄⠂⠉⢁⠼⡒⠈⠑⠠⠤⣈⣉⣀⣀⣀⣀⣀⣀⣀⣀⣀⠄⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣆⠀⠀⠀⠀⠈⠆⠀
+⠀⠀⠀⡠⠂⠁⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⡇⢠⠠⠄⠂⠤⠐⡘⢓⡞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠼⡆⠀⠀⠀⠀⠘⡀
+⠀⡠⠚⠠⢄⡀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⡇⢂⢐⣈⣔⣆⠡⠐⡼⠐⠒⠂⠤⣀⠀⠀⢀⠠⠤⠀⠒⠈⣉⠀⠤⠐⢻⣀⠀⠀⠀⠀⠡
+⢀⠯⡀⠀⠀⠈⠑⠢⡀⠀⠀⢀⠠⢇⢰⡀⠀⢗⡩⢣⠜⡠⢷⢈⡐⣇⣀⠀⠀⠀⠀⠉⠒⢄⡂⠀⠈⠉⠀⢀⡠⣄⡀⣸⠈⠢⣀⠀⠀⠘
+⠘⠰⡄⣱⣢⣄⠀⠀⠈⣂⣔⠥⠒⠉⠺⡙⢠⢼⠰⡡⢊⠾⣉⢢⠄⠳⠠⡍⠁⠒⠠⠄⣀⠀⢀⠦⢤⣒⣊⠭⠝⠓⠉⠀⠀⠀⠈⠂⢤⠂
+⠀⠀⠀⠁⠑⠐⠉⠂⠚⠉⠀⠀⠀⠀⠀⠀⢸⠌⡑⢆⡩⣼⠚⠤⣜⡠⠁⠜⡉⡖⠚⢒⠡⠉⠅⢂⠳⢀⣀⡲⠾⠂⠀⠀⠀⠀⠀⠀⠀⠁
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡆⢎⠱⡨⡐⣽⣉⣐⡆⠀⠉⠉⠒⢻⠨⠤⢂⣉⡐⠂⡧⠤⠤⠤⠔⠂⠀⠀⠀⠀⠀⠀⢠⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡏⡜⠰⣁⠖⡠⢯⡱⠀⠀⠀⠀⠀⢸⠠⠄⠁⠀⠀⠀⠈⢐⣒⣒⠲⠇⠀⢀⣀⠤⢶⢤⠜⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠬⣑⠢⢌⡑⢢⡇⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠈⠒⠒⠒⠒⠉⠁⡇⢎⠼⠧⣀⣀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢐⠨⡑⠤⠓⣌⠸⢄⡇⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡏⢆⠪⡑⠤⠀
+ */
 // ----------------------------------------------------
 // IMPORTANT - Autonomous Selector Routine Declaration
 // ----------------------------------------------------
 
 LV_IMG_DECLARE(image); //TKSRC Logo
-
-// TODO - Temporary
-// void autonwatcher() {
-//     while (true) {
-//         printf("Selected Auton: %i\n", lemlib::selector::auton);
-//         pros::delay(10);
-//     }
-// }
-
-
 void initialize() {
-
-    // TODO - PUT ODOM DOWN, THEN CALIBRATE
-
     odomLift.set_value(1);
-
     pros::delay(1000);
 
     // ------------------------------------------
@@ -64,52 +77,46 @@ void initialize() {
     // -----------------------
     // Initialise Chassis
     // -----------------------
-    // @removed - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
+    // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
 
     chassis.calibrate(); // calibrate sensors
 
     // -----------------------
     // Initialise Sensors
     // -----------------------
-    // colorSort.set_led_pwm(100);
-    // lady_rotation.set_position(0);
-
-    // colorsort.initialise(); // auto-detect alliance
-
     lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
 
     // -----------------------
-    // TODO - LVGL INIT
+    // LVGL INIT
     // -----------------------
 
-
     static const char* qualBtnmMap[] = {
-        "MAX-Right", // auton 1
-        "MAX-Left", // auton 2
+        "MAX-R", // auton 1
+        "MAX-L", // auton 2
         "LONG-L", // auton 3
         "\n", 
-        "LONG-R", // auton 4
+        "[TODO] LONG-R", // auton 4
         "MID-L", // auton 5
-        "MID-R", // auton 6
+        "[TODO] MID-R", // auton 6
         nullptr
     };
     static const char* qualBtnmDesc[] = {
         "9 Blocks in LG, Clears Loader", // auton 1
         "9 Blocks in LG, Clears Loader", // auton 2
-        "4 in Long", // auton 3
-        "Q-Auton4", // auton 4
-        "Q-Auton5", // auton 5
-        "Q-Auton6", // auton 6
+        "[SAFE] 4 in LG, Clears Loader", // auton 3
+        "[SAFE] 4 in LG, Clears Loader", // auton 4
+        "[SAFE] 4 in Mid", // auton 5
+        "[SAFE] 4 in Mid", // auton 6
         nullptr // keep it a null ptr
     };
 
     static const char* AIBtnmMap[] = {
-        "AI-Auton1", "AI-Auton2", "AI-Auton3", "\n",
-        "AI-Auton4", "AI-Auton5", "AI-Auton6", nullptr
+        "COMB-L", "[TODO] COMB-R", "NULL", "\n",
+        "NULL", "NULL", "NULL", nullptr
     };
     static const char* AIBtnmDesc[] = {
-        "AI-Auton1", "AI-Auton2", "AI-Auton3",
-        "AI-Auton4", "AI-Auton5", "AI-Auton6", nullptr
+        "", "", "",
+        "", "", "", nullptr
     };
 
     static const char* skillsBtnmMap[] = {
@@ -122,18 +129,11 @@ void initialize() {
     };
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
-
-    // TODO - temporary 
-    // pros::Task watcher(autonwatcher);
-
 }
-
 
 void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me bro fr)
 
-
 void competition_initialize() {}
-
 
 void autonomous() {  
     // @NOTE - UNCOMMENT THE FOLLOWING TO  ENABLE AUTON SELECTOR
@@ -180,34 +180,12 @@ void autonomous() {
     }
 }
 
-
-
-// TODO - Problem Lies in Controls
 void opcontrol() {
-
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+
     chassis.setPose(0,0,0);
-
     odomLift.set_value(0);
-
-    // chassis.moveToPose(24, 24, 90, 5000, {.forwards=true, .lead=0.5, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
-
-
-
-
-    // chassis.turnToHeading(180, 3500, {.direction=lemlib::AngularDirection::CW_CLOCKWISE}, false);
-    // chassis.turnToHeading(0, 3500, {.direction=lemlib::AngularDirection::CW_CLOCKWISE}, false);
-
-    // chassis.moveToPoint(0, 24, 4000, {.forwards=true}, false);
-    // chassis.moveToPoint(0, 0, 4000, {.forwards=false}, false);
-
-    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
-    // // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
-
     
     pros::Task driveTask(drivetrain_control);
     pros::Task teleopTask(teleop_loop);
-    // // pros::Task intakeTask([] {
-    // //     colorsort.sorted_intake_loop();
-    // // }); // use a lambda
 }
