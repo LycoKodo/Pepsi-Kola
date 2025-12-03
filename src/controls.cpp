@@ -11,54 +11,55 @@
 #include "robot-config.hpp"
 
 void drivetrain_control() {
-    // while (true) {
-    //     int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-    //     int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-    //     chassis.arcade(leftY, rightX); 
-    //     pros::delay(10);
-
-    // }
+    bool arcadeMode = true;   // default: ARCADE
+    bool latch = false;
 
     while (true) {
-        int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-        
-        // int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        // chassis.arcade(leftY, rightX); 
-        
+        // 1. Read toggle combo
+        bool combo_pressed =
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) &&
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_L2) &&
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) &&
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+
+        // 2. On *new* press, flip mode + buzz pattern
+        if (combo_pressed && !latch) {
+            // flip mode
+            arcadeMode = !arcadeMode;
+
+            // rumble feedback based on NEW mode
+            if (arcadeMode) {
+                // switched TO ARCADE → 1 buzz
+                master.rumble(".");      // short buzz
+            } else {
+                // switched TO TANK → 2 buzzes
+                master.rumble("..");     // two short buzzes
+            }
+
+            latch = true;  // prevent retrigger while held
+        } else if (!combo_pressed) {
+            latch = false; // allow next press to toggle
+        }
+
+        // 3. Read joysticks
+        int leftY  = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+        int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
-        chassis.tank(leftY, rightY);
+
+        // 4. Drive based on current mode
+        if (arcadeMode) {
+            printf("Control: Arcade\n");
+            chassis.arcade(leftY, rightX);
+        } else {
+            printf("Control: Tank\n");
+            chassis.tank(leftY, rightY);
+        }
+
         pros::delay(10);
     }
-
-
-
-
-    // bool toggle = true;
-    // bool latch = false;
-
-    // while (true) {
-    //     bool b_button = master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
-    //     int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-    //     int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-
-    //     if (b_button && !latch) {
-    //         // MODE - Variable Arcade
-    //         // move the chassis with curvature drive
-    //         chassis.arcade(leftY, rightX);                     // Regular tank
-    //         toggle = !toggle;             // Flip the toggle state
-    //         latch = true;                 // Engage latch to prevent repeated toggles
-            
-    //     } else if (!b_button) {
-    //         // MODE - Tank
-    //         // move the chassis with curvature drive
-    //         chassis.tank(leftY, rightX);                     // Regular tank
-    //         latch = false;                // Reset latch when button is released
-    //     }
-        
-    //     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
-    //     pros::delay(10);
-    // }
 }
+
+
 
 // void teleop_loop() {
 //     while(true) {

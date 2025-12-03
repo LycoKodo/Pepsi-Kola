@@ -84,12 +84,23 @@ void initialize() {
 
 
     static const char* qualBtnmMap[] = {
-        "Old-R", "Old-AWP", "Right-M", "\n",
-        "Right-L", "Left-M", "Left-L", nullptr
+        "MAX-Right", // auton 1
+        "MAX-Left", // auton 2
+        "LONG-L", // auton 3
+        "\n", 
+        "LONG-R", // auton 4
+        "MID-L", // auton 5
+        "MID-R", // auton 6
+        nullptr
     };
     static const char* qualBtnmDesc[] = {
-        "Standard 4 Block for LEFT, scoring MID", "Standard 4 Block for RIGHT, scoring LOW", "Q-Auton3",
-        "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
+        "9 Blocks in LG, Clears Loader", // auton 1
+        "9 Blocks in LG, Clears Loader", // auton 2
+        "4 in Long", // auton 3
+        "Q-Auton4", // auton 4
+        "Q-Auton5", // auton 5
+        "Q-Auton6", // auton 6
+        nullptr // keep it a null ptr
     };
 
     static const char* AIBtnmMap[] = {

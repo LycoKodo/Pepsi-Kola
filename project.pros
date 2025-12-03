@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Euler Tan",
+    "project_name": "Atlas Dev",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -299,7 +299,7 @@
     },
     "upload_options": {
       "description": "Main ~~Scattfold~~ Schlattfold",
-      "icon": "X",
+      "icon": "pros",
       "slot": 1
     },
     "use_early_access": false

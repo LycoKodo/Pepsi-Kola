@@ -21,59 +21,41 @@ int qual3() {
 
     // -- Approach Loader -- //
 
-    chassis.moveToPoint(0, 31, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
+    chassis.moveToPose(0, 33, 0, 2000, {.forwards=true, .maxSpeed=90, .minSpeed=0}, false);
 
-    chassis.turnToHeading(90, 1000);
+    chassis.turnToHeading(-90, 1000, {.maxSpeed=90}, false);
 
     tongue.set_value(true);
 
-    chassis.moveToPoint(10, 32, 1000, {.forwards=true}, false);
-    
-    pros::delay(500);
-
     ramp.move(127);
+
+    pros::delay(700);
+
+    chassis.moveToPoint(-10, 33, 1000, {.forwards=true, .maxSpeed=100}, false);
+    
+    pros::delay(300); // @NOTE - loader delay
 
     heaven.set_value(true);
 
     pros::delay(300);
 
-    chassis.moveToPoint(-18, 32, 1000, {.forwards=false, .maxSpeed=127, .minSpeed=45, .earlyExitRange=14}, false);
-
-    chassis.moveToPose(-19, 32, 90, 500, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
-
-    intake.move(127);
-
-    pros::delay(2000);
+    chassis.moveToPose(25, 33, -90, 2000, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
 
     tongue.set_value(false);
 
-    chassis.moveToPoint(-6, 32, 900, {.forwards=true}, false);
+    intake.move(127);
 
-    intake.move(0);
+    pros::delay(1500);
 
-    heaven.set_value(false);
+    intake.move(-30);
 
-    chassis.turnToHeading(215, 1000);
+    pros::delay(500);
 
-    ramp.move(127);
+    intake.move(127);
 
-    chassis.moveToPoint(-24.5, 10.2, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=45}, false);
+    odomLift.set_value(0);
 
-    chassis.turnToHeading(315, 900);
-
-    chassis.moveToPoint(-41.9, 28.3, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=45, .earlyExitRange=15}, false);
-
-    chassis.moveToPose(-41.9, 28.3, 298.6, 700, {.forwards=true, .lead=0.05,.maxSpeed=100, .minSpeed=0}, false);
-
-    chassis.moveToPoint(-25.5, 10.2, 1000, {.forwards=false, .maxSpeed=127, .minSpeed=45, .earlyExitRange=10}, false);
-
-    chassis.moveToPose(-25.5, 10.2, 288.6, 700, {.forwards=false, .lead=0.05,.maxSpeed=127, .minSpeed=0}, false);
-
-    chassis.turnToHeading(223, 900);
-
-    chassis.moveToPoint(-36.1, -1.4, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
-
-    intake.move(-127);
+    pros::delay(50000);
     return 0;
 }
 

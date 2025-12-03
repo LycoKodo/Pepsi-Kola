@@ -23,7 +23,7 @@ int qual4() {
 
     chassis.moveToPoint(0, 28.8, 1000, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
 
-    chassis.turnToHeading(90, 1000);
+    chassis.turnToHeading(90, 750, {}, false);
 
     tongue.set_value(true);
 
@@ -51,7 +51,7 @@ int qual4() {
 
     heaven.set_value(false);
 
-    chassis.turnToHeading(215, 1000);
+    chassis.turnToHeading(215, 1000, {}, false);
 
     ramp.move(127);
 
@@ -61,7 +61,7 @@ int qual4() {
 
     tongue.set_value(true);
 
-    chassis.turnToHeading(315, 900);
+    chassis.turnToHeading(315, 900, {}, false);
 
     tongue.set_value(false);
 
@@ -81,7 +81,7 @@ int qual4() {
 
     heaven.set_value(true);
 
-    chassis.turnToHeading(90, 700);
+    chassis.turnToHeading(90, 700, {}, false);
 
     chassis.moveToPoint(-22, 35, 900, {.forwards=false}, false);
 
