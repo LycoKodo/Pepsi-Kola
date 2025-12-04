@@ -75,7 +75,7 @@ int AI1() {
 
 
 
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
 
     return 0; // success, 1 for fail
 }

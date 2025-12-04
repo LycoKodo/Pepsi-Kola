@@ -111,12 +111,12 @@ void initialize() {
 
     static const char* AIBtnmMap[] = {
         "COMB-L", // AI 1
-        "[TODO] COMB-R", // AI 2
-        "NULL", // AI 3
+        "COMB-R(T)", // AI 2
+        "9 COMB L", // AI 3
         "\n",
         "NULL", // AI 4
-        "NULL", // AI 5
-        "NULL", // AI 6
+        "9 Long L", // AI 5
+        "9 Long R(T", // AI 6
         nullptr
     };
     static const char* AIBtnmDesc[] = {
