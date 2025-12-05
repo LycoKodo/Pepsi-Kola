@@ -94,9 +94,9 @@ void initialize() {
         "MAX-L", // auton 2
         "LONG-L", // auton 3
         "\n", 
-        "[TODO] LONG-R", // auton 4
+        "[EH] LONG-R", // auton 4
         "MID-L", // auton 5
-        "[TODO] MID-R", // auton 6
+        "[!] MID-R", // auton 6
         nullptr
     };
     static const char* qualBtnmDesc[] = {
@@ -105,7 +105,7 @@ void initialize() {
         "[SAFE] 4 in LG, Clears Loader", // auton 3
         "[SAFE] 4 in LG, Clears Loader", // auton 4
         "[SAFE] 4 in Mid", // auton 5
-        "[SAFE] 4 in Mid", // auton 6
+        "[NOTE!] LIKELY won't be able to score lower goal, mirrored version of mid L", // auton 6
         nullptr // keep it a null ptr
     };
 
@@ -116,7 +116,7 @@ void initialize() {
         "\n",
         "NULL", // AI 4
         "9 Long L", // AI 5
-        "9 Long R(T", // AI 6
+        "9 Long R(T)", // AI 6
         nullptr
     };
     static const char* AIBtnmDesc[] = {

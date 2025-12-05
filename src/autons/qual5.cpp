@@ -23,6 +23,7 @@ int qual5() {
 
     ramp.move(127);
     chassis.moveToPose(-0.5, 21.83, 0, 2500, {.forwards=true, .lead=0, .maxSpeed=45, .minSpeed=0}, false);
+    pros::delay(800); // pickup first row
     chassis.moveToPose(-1, 31.62, 0, 2500, {.forwards=true, .lead=0, .maxSpeed=45, .minSpeed=0}, false);
     chassis.turnToHeading(-119, 1200);
     chassis.moveToPose(12.0, 37.0, -119, 2500, {.forwards=false, .lead=0, .maxSpeed=45, .minSpeed=0}, false);

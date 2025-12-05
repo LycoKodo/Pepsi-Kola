@@ -65,12 +65,12 @@ int AI2() {
 
     // chassis.turnToHeading(-411.8, 900, {}, false);
 
-    ramp.move(127);
+    // ramp.move(127);
     
-    chassis.moveToPoint(-35, -3.8, 1500, {.forwards=false, .maxSpeed=75, .minSpeed=25}, false);
+    // chassis.moveToPoint(-35, -3.8, 1500, {.forwards=false, .maxSpeed=75, .minSpeed=25}, false);
 
-    top1.move(-55);
-    top2.move(55);
+    // top1.move(-55);
+    // top2.move(55);
     pros::delay(20000);
 
 
