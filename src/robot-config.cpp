@@ -65,8 +65,8 @@ pros::Motor top2(19, pros::MotorGearset::green);
 
 pros::adi::DigitalOut heaven(1);
 pros::adi::DigitalOut tongue(6);
-pros::adi::DigitalOut descore(7);
-pros::adi::DigitalOut odomLift(8);
+pros::adi::DigitalOut descore(8);
+pros::adi::DigitalOut odomLift(7);
 
 // pros::adi::DigitalOut doinker (7);
 // pros::adi::DigitalOut endgame (1);

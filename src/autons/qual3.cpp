@@ -21,9 +21,9 @@ int qual3() {
 
     // -- Approach Loader -- //
 
-    chassis.moveToPose(0, 33, 0, 2000, {.forwards=true, .maxSpeed=90, .minSpeed=0}, false);
+    chassis.moveToPose(0, 31.5, 0, 2000, {.forwards=true, .maxSpeed=90, .minSpeed=0}, false);
 
-    chassis.turnToHeading(-90, 1000, {.maxSpeed=90}, false);
+    chassis.turnToHeading(-90, 1400, {.maxSpeed=127}, false);
 
     tongue.set_value(true);
 
@@ -39,7 +39,7 @@ int qual3() {
 
     pros::delay(300);
 
-    chassis.moveToPose(25, 33, -90, 2000, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPose(25, 31.5, -90, 2000, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
 
     tongue.set_value(false);
 

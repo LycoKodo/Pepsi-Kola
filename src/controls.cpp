@@ -11,7 +11,7 @@
 #include "robot-config.hpp"
 
 void drivetrain_control() {
-    bool arcadeMode = true;   // default: ARCADE
+    bool arcadeMode = false;   // default: ARCADE
     bool latch = false;
 
     while (true) {
@@ -205,23 +205,29 @@ void teleop_loop() {
 
         //Gavin's Robot Controller Config
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+            // Score Long
             ramp.move(127);
-            top1.move(-127);
+            // TODO - experimental
+            // top1.move(-127);
+            top1.move_velocity(66.6666);
             top2.move(127);
             heaven.set_value(true);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            // Score Mid
             ramp.move(127);
             top1.move(-127);
             top2.move(127);
             heaven.set_value(false);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+            // Intake to Ramp, Top Forward, Bottom Reverse
             ramp.move(127);
-            top1.brake();
-            top2.brake();
+            top1.move(-127);
+            top2.move(-127);
         } 
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            // 
             ramp.move(-127);
             top1.move(127);
             top2.move(-127);
@@ -242,6 +248,7 @@ void teleop_loop() {
         
 
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
+            heaven.set_value(true);
             descore.set_value(1);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {

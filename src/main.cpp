@@ -64,6 +64,7 @@
 
 LV_IMG_DECLARE(image); //TKSRC Logo
 void initialize() {
+
     odomLift.set_value(1);
     pros::delay(1000);
 
@@ -195,6 +196,7 @@ void opcontrol() {
 
     chassis.setPose(0,0,0);
     odomLift.set_value(0);
+    
     
     pros::Task driveTask(drivetrain_control);
     pros::Task teleopTask(teleop_loop);

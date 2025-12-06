@@ -16,7 +16,7 @@
 
 int AI3() {
     
-    chassis.setPose(0, 0, 0); 
+    chassis.setPose(0, 0.8, 0); 
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
     // -- Approach 3 Stack -- //
@@ -44,25 +44,44 @@ int AI3() {
     top1.move(0);
     top2.move(0);
 
-    chassis.moveToPose(-34.0, 9.26, -160.84, 1800, {.forwards=true, .lead=0.02, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPose(-32, 9.26, -160.84, 1800, {.forwards=true, .lead=0.02, .maxSpeed=127, .minSpeed=0}, false);
 
     tongue.set_value(1);
 
     pros::delay(200);
 
-    chassis.moveToPose(-37.949, -0.255, -162.50, 1000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=0}, false);
+    // chassis.moveToPose(-35.249, -3.255, -160.50, 1000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=20}, false);
 
-    pros::delay(200);
+    // pros::delay(400);
+
+    leftMotors.move(50);
+    rightMotors.move(50);
+    pros::delay(800);
+    leftMotors.move(0);
+    rightMotors.move(0);
+
+    pros::delay(400);
+
 
     heaven.set_value(1);
 
-    chassis.moveToPose(-25.68, 35.34, -160.50, 1500, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPose(-23.68, 37.34, -160.50, 1500, {.forwards=false, .lead=0, .maxSpeed=127, .minSpeed=0}, false);
 
     intake.move(127);
 
+    tongue.set_value(0);
+
+    pros::delay(1000);
+
+    ramp.move(-30);
+
+    pros::delay(300);
+
+    ramp.move(127);
+
     //================================================================================
 
-    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
     pros::delay(20000);
 
     return 0;
