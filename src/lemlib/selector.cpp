@@ -9,6 +9,7 @@
 #include "liblvgl/extra/widgets/tabview/lv_tabview.h"
 #include "liblvgl/misc/lv_anim.h"
 #include "liblvgl/misc/lv_area.h"
+#include "liblvgl/misc/lv_timer.h"
 #include "liblvgl/misc/lv_types.h"
 #include "liblvgl/widgets/lv_btnmatrix.h"
 #include "liblvgl/widgets/lv_textarea.h"
@@ -47,9 +48,9 @@ uint16_t currentQualButton = UINT16_MAX; // button IDs for buttons selected rn
 uint16_t currentAIButton = UINT16_MAX;
 uint16_t currentSKillsButton = UINT16_MAX;
 
-void tabWatcher(void* param);
+void tabWatcher(lv_timer_t* timer);
 
-pros::rtos::Task* tabWatcher_task = nullptr;
+lv_timer_t* tabWatcher_timer = nullptr;
 
 const char* qualBtnmMap[MAX_AUTONS];
 const char* AIBtnmMap[MAX_AUTONS];
@@ -201,47 +202,49 @@ void skillsBtnmAction(lv_event_t* e) {
     }
 }
 
-void tabWatcher(void* param) {
+void tabWatcher(lv_timer_t* timer) {
+    (void) timer;
     try {
-        while (true) {
+        if (!autonStarted) {
             int activeTab = lv_tabview_get_tab_act(tabview);
-            if (!autonStarted) {
-                int currentTab = lv_tabview_get_tab_act(tabview);
+            int currentTab = lv_tabview_get_tab_act(tabview);
 
-                if (currentTab != activeTab) {
-                    activeTab = currentTab;
-                }
-                // Handle actions for the active tab
-                if (activeTab == 1 && currentQualButton < UINT16_MAX) {
-                    deselect_all_buttons(qualBtnm);
-                    lv_btnmatrix_set_btn_ctrl(qualBtnm, currentQualButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 2 && currentAIButton < UINT16_MAX) {
-                    deselect_all_buttons(AIBtnm);
-                    lv_btnmatrix_set_btn_ctrl(AIBtnm, currentAIButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 3 && currentSKillsButton < UINT16_MAX) {
-                    deselect_all_buttons(skillsBtnm);
-                    lv_btnmatrix_set_btn_ctrl(skillsBtnm, currentSKillsButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 0) {
-                    motorUpdate();
-                    odomUpdate();
-                }
-
-                if (auton == 999) {
-                    master.rumble(".");
-                }
-                textUpdate();
-                // printf("Current Auton %i", auton);
-                pros::delay(10);
+            if (currentTab != activeTab) {
+                activeTab = currentTab;
             }
-
-            // Auton has started
-            if (autonStarted) {
-                lv_tabview_set_act(tabview, 0, LV_ANIM_OFF);
+            // Handle actions for the active tab
+            if (activeTab == 1 && currentQualButton < UINT16_MAX) {
+                deselect_all_buttons(qualBtnm);
+                lv_btnmatrix_set_btn_ctrl(qualBtnm, currentQualButton, LV_BTNMATRIX_CTRL_CHECKED);
+            } else if (activeTab == 2 && currentAIButton < UINT16_MAX) {
+                deselect_all_buttons(AIBtnm);
+                lv_btnmatrix_set_btn_ctrl(AIBtnm, currentAIButton, LV_BTNMATRIX_CTRL_CHECKED);
+            } else if (activeTab == 3 && currentSKillsButton < UINT16_MAX) {
+                deselect_all_buttons(skillsBtnm);
+                lv_btnmatrix_set_btn_ctrl(skillsBtnm, currentSKillsButton, LV_BTNMATRIX_CTRL_CHECKED);
+            } else if (activeTab == 0) {
                 motorUpdate();
                 odomUpdate();
-                // printf("Current Auton %i", auton);
-                pros::delay(10);
             }
+
+            if (auton == 999) {
+                static uint32_t lastRumbleTime = 0;
+                uint32_t now = pros::millis();
+                if (now - lastRumbleTime > 500) {
+                    master.rumble(".");
+                    lastRumbleTime = now;
+                }
+            }
+            textUpdate();
+            // printf("Current Auton %i", auton);
+        }
+
+        // Auton has started
+        if (autonStarted) {
+            lv_tabview_set_act(tabview, 0, LV_ANIM_OFF);
+            motorUpdate();
+            odomUpdate();
+            // printf("Current Auton %i", auton);
         }
     } catch (const std::exception& ex) {
         log_error("tabWatcher", ex.what());
@@ -403,7 +406,7 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         // Set the image scale to 90% (zoom factor is in 256ths, so 90% = 0.9 * 256 = 230)
         lv_img_set_zoom(img, 200);
 
-        tabWatcher_task = new pros::Task(tabWatcher, nullptr, "tabWatcher");
+        tabWatcher_timer = lv_timer_create(tabWatcher, 10, nullptr);
 
         printf("Selector initialised!\n");
 
@@ -413,10 +416,9 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
 }
 
 void destroy() {
-    if (tabWatcher_task != nullptr) {
-        tabWatcher_task->remove();
-        delete tabWatcher_task;
-        tabWatcher_task = nullptr;
+    if (tabWatcher_timer != nullptr) {
+        lv_timer_del(tabWatcher_timer);
+        tabWatcher_timer = nullptr;
     }
 }
 
