@@ -118,14 +118,14 @@ lemlib::ControllerSettings linearController(  14.25, // proportional gain (kP) /
                                               15 // maximum acceleration (slew) 75
 );
 
-lemlib::ControllerSettings angularController(1.332, // proportional gain (kP)
-                                             0.00002, // integral gain (kI) .0029 was good
+lemlib::ControllerSettings angularController(2, // proportional gain (kP)
+                                             0, // integral gain (kI) .0029 was good
                                              10, // derivative gain (kD)
                                              0, // anti windup
                                              1, // small error range, in degrees 1
-                                             2000, // small error range timeout, in milliseconds (200)
+                                             200, // small error range timeout, in milliseconds (200)
                                              3, // large error range, in degrees 2
-                                             5000, // large error range timeout, in milliseconds (500)
+                                             500, // large error range timeout, in milliseconds (500)
                                              0 // maximum acceleration (slew)
 ); 
 

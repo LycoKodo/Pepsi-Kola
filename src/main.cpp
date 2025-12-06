@@ -131,8 +131,8 @@ void initialize() {
     };
 
     static const char* skillsBtnmMap[] = {
-        "Spinnn", "H&P", "Skills 1", "\n",  
-        "Skills 2", "Skills 3", "Skills 4", nullptr
+        "Spinnn", "H&P", "WORKING!", "\n",  
+        "SAFE!", "Skills 3", "Skills 4", nullptr
     };
     static const char* skillsBtnmDesc[] = {
         "spin intake", "I hope this works", "Skills 1",  
@@ -147,7 +147,13 @@ void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me br
 void competition_initialize() {}
 
 void autonomous() {  
-    // @NOTE - UNCOMMENT THE FOLLOWING TO  ENABLE AUTON SELECTOR
+
+    // chassis.setPose(0, 0, 0); 
+    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+
+    // chassis.turnToHeading(90, 1200, {}, false);
+    // // @NOTE - UNCOMMENT THE FOLLOWING TO  ENABLE AUTON SELECTOR
+    
     int auton = lemlib::selector::auton;
 
     lemlib::selector::autonStarted = true;

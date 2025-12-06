@@ -11,7 +11,7 @@
 #include "robot-config.hpp"
 
 void drivetrain_control() {
-    bool arcadeMode = false;   // default: ARCADE
+    bool arcadeMode = true;   // default: ARCADE
     bool latch = false;
 
     while (true) {
@@ -208,8 +208,8 @@ void teleop_loop() {
             // Score Long
             ramp.move(127);
             // TODO - experimental
-            // top1.move(-127);
-            top1.move_velocity(66.6666);
+            top1.move(-127);
+            // top1.move_velocity(-66.6666); // YES!
             top2.move(127);
             heaven.set_value(true);
         }

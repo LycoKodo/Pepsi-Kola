@@ -50,8 +50,6 @@ int AI3() {
 
     pros::delay(200);
 
-    // chassis.moveToPose(-35.249, -3.255, -160.50, 1000, {.forwards=true, .lead=0, .maxSpeed=127, .minSpeed=20}, false);
-
     // pros::delay(400);
 
     leftMotors.move(50);
