@@ -15,7 +15,15 @@
 // e.g. idk whatever you want
 
 int skills6() {
-    
+    ramp.move(-127);
+    top1.move(127);
+    top2.move(-127);
+    chassis.moveToPose(0, 48, 0, 1500, {.forwards=true}, false);
+    chassis.moveToPose(0, 0, 0, 1500, {.forwards=false}, false);
+
+    ramp.move(127);
+    top1.move(-127);
+    top2.move(-127);
     return 0;
 }
 

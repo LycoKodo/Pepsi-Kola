@@ -43,25 +43,26 @@ int skills4() {
 
     tongue.set_value(false);
 
-    chassis.moveToPoint(9, -66.5, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=60, .earlyExitRange=24}, false);
-    chassis.moveToPose(9, -66.5, 180, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPoint(9, -63, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=60, .earlyExitRange=24}, false);
+    chassis.moveToPose(9, -63, 180, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
 
     chassis.turnToHeading(-90, 1200, {}, false);
     heaven.set_value(true);
     pros::delay(600);
 
-    chassis.moveToPoint(30, -66.5, 1200, {.forwards=false, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
+    chassis.moveToPoint(30, -63, 1200, {.forwards=false, .maxSpeed=100, .minSpeed=0, .earlyExitRange=0}, false);
     intake.move(127);
 
     tongue.set_value(true);
-    pros::delay(2000);
+    pros::delay(2500);
 
     ramp.move(127);
     top1.move(-127);
     top2.move(-127);
 
-    chassis.moveToPoint(0, -66.5, 1500, {.maxSpeed=100, .minSpeed=45, .earlyExitRange=5}, false);
-    chassis.moveToPoint(-10, -66.5, 1500, {.maxSpeed=80, .minSpeed=0}, false);
+    chassis.moveToPoint(0, -63, 1500, {.maxSpeed=100, .minSpeed=45, .earlyExitRange=5}, false);
+    heaven.set_value(false);
+    chassis.moveToPoint(-10, -63, 1500, {.maxSpeed=80, .minSpeed=0}, false);
 
     pros::delay(200);
 
@@ -71,10 +72,37 @@ int skills4() {
     leftMotors.move(0);
     rightMotors.move(0);
 
-    // intake.move(127);
-
-
+    // score 2nd time
     
+    chassis.moveToPoint(10, -63, 1500, {.forwards=false, .maxSpeed=100, .minSpeed=0, .earlyExitRange=0}, false);
+    
+    
+    heaven.set_value(true);
+    chassis.turnToHeading(-90, 600, {}, true);
+    pros::delay(600);
+
+    chassis.moveToPoint(30, -63, 1200, {.forwards=false, .maxSpeed=100, .minSpeed=0, .earlyExitRange=0}, false);
+    intake.move(127);
+    tongue.set_value(false);
+
+    pros::delay(1500);
+
+    ramp.move(-40);
+
+    pros::delay(300);
+
+    ramp.move(127);
+
+    pros::delay(2000);
+    // Score Long for 2.7sec
+
+    chassis.moveToPose(10, -63, -180, 1200, {.forwards=true, .maxSpeed=100, .minSpeed=0, .earlyExitRange=0}, false);
+    heaven.set_value(false);
+
+    chassis.turnToHeading(-180, 200);
+
+    // TODO - Add Parking
+
     return 0;
 }
 

@@ -48,7 +48,7 @@ int AI3() {
 
     tongue.set_value(1);
 
-    pros::delay(200);
+    pros::delay(750);
 
     // pros::delay(400);
 
