@@ -60,14 +60,18 @@ class PID {
          * @endcode
          */
         void reset();
+        /**
+         * @brief Set new PID gains and windup range
+         */
+        void setGains(float newKP, float newKI, float newKD, float newWindupRange);
     protected:
         // gains
-        const float kP;
-        const float kI;
-        const float kD;
+        float kP;
+        float kI;
+        float kD;
 
         // optimizations
-        const float windupRange;
+        float windupRange;
         const bool signFlipReset;
 
         float integral = 0;

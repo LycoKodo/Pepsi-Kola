@@ -11,6 +11,8 @@ int AI3();
 int AI4();
 int AI5();
 int AI6();
+int tuningLinear();
+int tuningAngular();
 int qual1();
 int qual2();
 int qual3();

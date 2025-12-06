@@ -69,6 +69,11 @@ void competition_initialize(void);
 void opcontrol(void);
 #ifdef __cplusplus
 }
+
+// tuning switches
+extern bool tuning_mode;
+extern bool tuning_linear_mode;
+extern bool tuning_auton_active;
 #endif
 
 #ifdef __cplusplus
