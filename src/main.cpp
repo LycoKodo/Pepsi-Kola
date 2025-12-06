@@ -14,111 +14,6 @@
 #include "autons.hpp"
 #include "colorsort.hpp"
 
-bool tuning_mode = true;
-bool tuning_linear_mode = true;
-bool tuning_auton_active = false;
-
-static lemlib::selector::PIDTerm activePidTerm = lemlib::selector::PIDTerm::KP;
-
-static void syncChassisPid() {
-    chassis.lateralPID.setGains(linearController.kP, linearController.kI, linearController.kD, linearController.windupRange);
-    chassis.angularPID.setGains(angularController.kP, angularController.kI, angularController.kD, angularController.windupRange);
-}
-
-static float* getActivePidTerm() {
-    lemlib::ControllerSettings& ctrl = tuning_linear_mode ? linearController : angularController;
-    switch (activePidTerm) {
-        case lemlib::selector::PIDTerm::KP: return &ctrl.kP;
-        case lemlib::selector::PIDTerm::KI: return &ctrl.kI;
-        case lemlib::selector::PIDTerm::KD: return &ctrl.kD;
-    }
-    return &ctrl.kP;
-}
-
-// @note - step size to adjust the PID konstants
-static float getStepSize() {
-    switch (activePidTerm) {
-        case lemlib::selector::PIDTerm::KP: return 0.25f;
-        case lemlib::selector::PIDTerm::KI: return 0.002f;
-        case lemlib::selector::PIDTerm::KD: return 0.5f;
-    }
-    return 0.1f;
-}
-
-static void adjustPidValue(int direction) {
-    float* target = getActivePidTerm();
-    *target += static_cast<float>(direction) * getStepSize();
-    if (*target < 0) *target = 0;
-    if (tuning_linear_mode) {
-        chassis.lateralPID.setGains(linearController.kP, linearController.kI, linearController.kD, linearController.windupRange);
-    } else {
-        chassis.angularPID.setGains(angularController.kP, angularController.kI, angularController.kD, angularController.windupRange);
-    }
-    lemlib::selector::setTuningState(tuning_mode, tuning_linear_mode, activePidTerm);
-}
-
-static void runTuningAuton() {
-    if (tuning_auton_active) return;
-    tuning_auton_active = true;
-    if (tuning_linear_mode) {
-        tuningLinear();
-    } else {
-        tuningAngular();
-    }
-    tuning_auton_active = false;
-}
-
-void tuning_loop() {
-    syncChassisPid();
-    lemlib::selector::setTuningState(tuning_mode, tuning_linear_mode, activePidTerm);
-    while (true) {
-        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
-            tuning_mode = !tuning_mode;
-            syncChassisPid();
-            lemlib::selector::setTuningState(tuning_mode, tuning_linear_mode, activePidTerm);
-            master.rumble(tuning_mode ? ".-" : "--");
-        }
-
-        if (!tuning_mode) {
-            pros::delay(20);
-            continue;
-        }
-
-        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
-            tuning_linear_mode = !tuning_linear_mode;
-            syncChassisPid();
-            lemlib::selector::setTuningState(tuning_mode, tuning_linear_mode, activePidTerm);
-            master.rumble(tuning_linear_mode ? "." : "..");
-        }
-
-        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
-            switch (activePidTerm) {
-                case lemlib::selector::PIDTerm::KP:
-                    activePidTerm = lemlib::selector::PIDTerm::KI;
-                    break;
-                case lemlib::selector::PIDTerm::KI:
-                    activePidTerm = lemlib::selector::PIDTerm::KD;
-                    break;
-                case lemlib::selector::PIDTerm::KD:
-                    activePidTerm = lemlib::selector::PIDTerm::KP;
-                    break;
-            }
-            lemlib::selector::setTuningState(tuning_mode, tuning_linear_mode, activePidTerm);
-        }
-
-        bool downPressed = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
-        if (downPressed && master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
-            runTuningAuton();
-        } else if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
-            adjustPidValue(1);
-        } else if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-            adjustPidValue(-1);
-        }
-
-        pros::delay(20);
-    }
-}
-
 // THIS CODE IS POWERED BY A PROJECT MANAGER AND TWO DORITO FANS POWERED BY 
 /*
          __                              ___   __        .ama     ,
@@ -245,7 +140,6 @@ void initialize() {
     };
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
-    lemlib::selector::setTuningState(tuning_mode, tuning_linear_mode, activePidTerm);
 }
 
 void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me bro fr)
@@ -312,9 +206,4 @@ void opcontrol() {
     
     pros::Task driveTask(drivetrain_control);
     pros::Task teleopTask(teleop_loop);
-    pros::Task tuningTask(tuning_loop);
-
-    while (true) {
-        pros::delay(20);
-    }
 }

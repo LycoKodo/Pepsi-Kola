@@ -27,11 +27,4 @@ void PID::reset() {
     integral = 0;
     prevError = 0;
 }
-
-void PID::setGains(float newKP, float newKI, float newKD, float newWindupRange) {
-    kP = newKP;
-    kI = newKI;
-    kD = newKD;
-    windupRange = newWindupRange;
-}
 } // namespace lemlib

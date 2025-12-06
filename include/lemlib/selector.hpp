@@ -25,12 +25,6 @@ enum AutonState {
     SKILLS = 101
 };
 
-enum class PIDTerm {
-    KP,
-    KI,
-    KD
-};
-
 extern bool autonStarted;
 
 // Global variables for selector logic
@@ -62,7 +56,6 @@ void qualBtnmAction(lv_event_t* e);
 void AIBtnmAction(lv_event_t* e);
 void skillsBtnmAction(lv_event_t* e);
 void tabWatcher(lv_timer_t* timer);
-void setTuningState(bool enabled, bool linearFocus, PIDTerm term);
 void init(int default_auton, const char** qualAutons, const char** AIAutons, const char** skillsAutons,
             const char** qualDesc, const char** AIDesc, const char** skillsDesc);
 void destroy();

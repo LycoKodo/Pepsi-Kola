@@ -47,9 +47,6 @@ bool autonStarted = false;
 uint16_t currentQualButton = UINT16_MAX; // button IDs for buttons selected rn
 uint16_t currentAIButton = UINT16_MAX;
 uint16_t currentSKillsButton = UINT16_MAX;
-bool tuningModeEnabled = false;
-bool tuningLinearFocus = true;
-PIDTerm tuningTerm = PIDTerm::KP;
 
 void tabWatcher(lv_timer_t* timer);
 
@@ -203,12 +200,6 @@ void skillsBtnmAction(lv_event_t* e) {
     } catch (const std::exception& ex) {
         log_error("skillsBtnmAction", ex.what());
     }
-}
-
-void setTuningState(bool enabled, bool linearFocus, PIDTerm term) {
-    tuningModeEnabled = enabled;
-    tuningLinearFocus = linearFocus;
-    tuningTerm = term;
 }
 
 void tabWatcher(lv_timer_t* timer) {
@@ -583,47 +574,32 @@ int customUpdate() {
 
     char buffer[64]; // Buffer to hold formatted strings
 
-    if (tuningModeEnabled) {
-        const bool focusLinear = tuningLinearFocus;
-        const char* focusLabel = focusLinear ? "LINEAR" : "ANGULAR";
+    // Logic to Update Alliance
 
-        snprintf(buffer, sizeof(buffer), "Tuning: %s\n", focusLabel);
-        lv_textarea_add_text(other_textarea, buffer);
+    // char alliance = 'N';
+    // if (auton >= 1 && auton <= 100){
+    //     alliance = 'R';
+    // } else if (auton >= -100 && auton <= -1) {
+    //     alliance = 'B';
+    // } else if (auton >= 101 && auton <= 201) {
+    //     alliance = 'S'; // @note: alliance for skills is RED
+    // }
 
-        const char* linKPPrefix = (focusLinear && tuningTerm == PIDTerm::KP) ? ">" : " ";
-        const char* linKIPrefix = (focusLinear && tuningTerm == PIDTerm::KI) ? ">" : " ";
-        const char* linKDPrefix = (focusLinear && tuningTerm == PIDTerm::KD) ? ">" : " ";
+    // char alliance = colorsort.alliance;
 
-        snprintf(buffer, sizeof(buffer), "%sP: %.2f  %sI: %.3f  %sD: %.2f\n",
-                 linKPPrefix, linearController.kP,
-                 linKIPrefix, linearController.kI,
-                 linKDPrefix, linearController.kD);
-        lv_textarea_add_text(other_textarea, buffer);
+    char alliance = 'N'; // TODO - TEMPORARY
 
-        const char* angKPPrefix = (!focusLinear && tuningTerm == PIDTerm::KP) ? ">" : " ";
-        const char* angKIPrefix = (!focusLinear && tuningTerm == PIDTerm::KI) ? ">" : " ";
-        const char* angKDPrefix = (!focusLinear && tuningTerm == PIDTerm::KD) ? ">" : " ";
+    snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
+    lv_textarea_add_text(other_textarea, buffer);
 
-        snprintf(buffer, sizeof(buffer), "%sP: %.2f  %sI: %.3f  %sD: %.2f",
-                 angKPPrefix, angularController.kP,
-                 angKIPrefix, angularController.kI,
-                 angKDPrefix, angularController.kD);
-        lv_textarea_add_text(other_textarea, buffer);
-    } else {
-        char alliance = 'N'; // TODO - TEMPORARY
+    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f\n", 9.9);
+    lv_textarea_add_text(other_textarea, buffer);
 
-        snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
-        lv_textarea_add_text(other_textarea, buffer);
+    snprintf(buffer, sizeof(buffer), "Drive P: %.2f I: %.2f D: %.2f\n", linearController.kP, linearController.kI, linearController.kD);
+    lv_textarea_add_text(other_textarea, buffer);
 
-        snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f\n", 9.9);
-        lv_textarea_add_text(other_textarea, buffer);
-
-        snprintf(buffer, sizeof(buffer), "Drive P: %.2f I: %.2f D: %.2f\n", linearController.kP, linearController.kI, linearController.kD);
-        lv_textarea_add_text(other_textarea, buffer);
-
-        snprintf(buffer, sizeof(buffer), "Turn P: %.2f I: %.2f D: %.2f\n", angularController.kP, angularController.kI, angularController.kD);
-        lv_textarea_add_text(other_textarea, buffer);
-    }
+    snprintf(buffer, sizeof(buffer), "Turn P: %.2f I: %.2f D: %.2f\n", angularController.kP, angularController.kI, angularController.kD);
+    lv_textarea_add_text(other_textarea, buffer);
 
     return 0;
 }

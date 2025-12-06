@@ -300,7 +300,7 @@
     "upload_options": {
       "description": "Main ~~Scattfold~~ Schlattfold",
       "icon": "pros",
-      "slot": 8
+      "slot": 1
     },
     "use_early_access": false
   }

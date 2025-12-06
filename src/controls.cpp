@@ -15,10 +15,6 @@ void drivetrain_control() {
     bool latch = false;
 
     while (true) {
-        if (tuning_mode || tuning_auton_active) {
-            pros::delay(20);
-            continue;
-        }
         // 1. Read toggle combo
         bool combo_pressed =
             master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) &&
@@ -116,10 +112,6 @@ void drivetrain_control() {
 
 void teleop_loop() {
     while (true) {
-        if (tuning_mode || tuning_auton_active) {
-            pros::delay(20);
-            continue;
-        }
         // // --- Read inputs once ---
         // const bool btnL2   = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);   // long goal
         // const bool btnL1   = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1);   // intake (color sort)

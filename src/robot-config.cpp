@@ -107,9 +107,9 @@ lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
 // PID Controller
 // ---------------------------------------
 
-lemlib::ControllerSettings linearController(  2, // proportional gain (kP) // k_cr = 48
+lemlib::ControllerSettings linearController(  14.25, // proportional gain (kP) // k_cr = 48
                                               0, // integral gain (kI) 0.0035
-                                              10, // derivative gain (kD) 13.5
+                                              110, // derivative gain (kD) 13.5
                                               0, // anti windup
                                               1, // small error range, in inches 1
                                               2000, // small error range timeout, in milliseconds 200
@@ -134,13 +134,13 @@ lemlib::ControllerSettings angularController(2, // proportional gain (kP)
 // ---------------------------------------
 
 // input curve for throttle input during driver control
-lemlib::ExpoDriveCurve throttleCurve(30, // joystick deadband out of 127
+lemlib::ExpoDriveCurve throttleCurve(0, // joystick deadband out of 127
                                      10, // minimum output where drivetrain will move out of 127
                                      1 // expo curve gain 1.019 (LOG 0.9991)
 );
 
 // input curve for steer input during driver control
-lemlib::ExpoDriveCurve steerCurve(30, // joystick deadband out of 127
+lemlib::ExpoDriveCurve steerCurve(0, // joystick deadband out of 127
                                   10, // minimum output where drivetrain will move out of 127
                                   1.010 // expo curve gain org 1.019
 );
