@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Atlas Angus",
+    "project_name": "Atlas Tank",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -300,7 +300,7 @@
     "upload_options": {
       "description": "Main ~~Scattfold~~ Schlattfold",
       "icon": "pros",
-      "slot": 1
+      "slot": 2
     },
     "use_early_access": false
   }

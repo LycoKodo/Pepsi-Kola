@@ -11,7 +11,7 @@
 #include "robot-config.hpp"
 
 void drivetrain_control() {
-    bool arcadeMode = true;   // default: ARCADE
+    bool arcadeMode = false;   // default: ARCADE
     bool latch = false;
 
     while (true) {
