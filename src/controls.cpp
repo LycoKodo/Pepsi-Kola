@@ -111,187 +111,114 @@ void drivetrain_control() {
 // }
 
 void teleop_loop() {
+    // STATE VARIABLE: Tracks if the lift/heaven is currently UP (true) or DOWN (false)
+    // Adjust 'false' to 'true' if your robot starts the match with the lift up.
+    bool is_heaven_up = false; 
+
     while (true) {
-        // // --- Read inputs once ---
-        // const bool btnL2   = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);   // long goal
-        // const bool btnL1   = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1);   // intake (color sort)
-        // const bool btnR1   = master.get_digital(pros::E_CONTROLLER_DIGITAL_R1);   // outtake
-        // const bool btnR2   = master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);   // middle goal
-        // const bool btnDown = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN); // endgame down
-        // const bool btnUp   = master.get_digital(pros::E_CONTROLLER_DIGITAL_UP);   // endgame up
-        // const bool btnA    = master.get_digital(pros::E_CONTROLLER_DIGITAL_A);    // aligner on
-        // const bool btnB    = master.get_digital(pros::E_CONTROLLER_DIGITAL_B);    // tongue on
-        // const bool btnX    = master.get_digital(pros::E_CONTROLLER_DIGITAL_X);    // both off
-
-        // // --- Sensors / derived state ---
-        // const bool passed = true; // colorsort.ringInspect();
-
-        // // --- Actuators to compute ---
-        // int frontSpd  = 0;
-        // int middleSpd = 0;
-        // int topSpd    = 0;
-        // int backSpd   = 0;
-
-        // // Default aux states
-        // int  alignerVal = -1;  // -1 = leave as-is this cycle; 0/1 = force
-        // int  tongueVal  = -1;
-        // int  endgameVal = -1;
-        // int  redirect   = 0;   // intake_redirect default (0 normal, 1 redirect)
-
-        // // --- Endgame is independent ---
-        // if (btnDown)      endgameVal = 1;
-        // else if (btnUp)   endgameVal = 0;
-
-        // // --- Aligner / Tongue are independent manual toggles ---
-        // if (btnA) { alignerVal = 1; tongueVal = 0; }
-        // else if (btnB) { alignerVal = 0; tongueVal = 1; }
-        // else if (btnX) { alignerVal = 0; tongueVal = 0; }
-
-        // // --- Build motor speeds by priority ---
-        // // Highest priority: OUTTAKE (R1)
-        // if (btnR1) {
-        //     redirect   = 0;
-        //     frontSpd   = -127;
-        //     middleSpd  =  127;
-        //     topSpd     =  127;
-        //     backSpd    = -127;
-        // }
-        // // Next: LONG GOAL (L2)
-        // else if (btnL2) {
-        //     // Also force aligner/tongue as per your original L2 behavior
-        //     if (passed) {
-        //         redirect   = 0;
-        //         frontSpd   = 127;
-        //         middleSpd  = 127;
-        //         topSpd     = 127;
-        //         backSpd    = 127;
-        //     } else {
-        //         // Wrong color: redirect on; choose behavior for motors.
-        //         // If you want them stopped while redirecting, keep 0s.
-        //         redirect   = 1;
-        //         // Optionally: set a specific eject/redirect pattern here.
-        //     }
-        // }
-        // // Next: MIDDLE GOAL (R2)
-        // else if (btnR2) {
-        //     redirect   = 0;
-        //     frontSpd   = 127;
-        //     middleSpd  = 127;
-        //     topSpd     = -127;
-        //     backSpd    = 127;
-        // }
-        // // Next: INTAKE (L1) with color sort
-        // else if (btnL1) {
-        //     redirect   = 0;
-        //     frontSpd   =  127;
-        //     middleSpd  = -127;
-        //     topSpd     = -127;
-        //     backSpd    =  127;
-        // }
-        // // else: all speeds remain 0
-
-        // // --- Apply outputs in one place ---
-        // if (alignerVal != -1) aligner.set_value(alignerVal);
-        // if (tongueVal  != -1) tongue.set_value(tongueVal);
-        // if (endgameVal != -1) endgame.set_value(endgameVal);
-
-        // intake_redirect.set_value(redirect);
-
-        // front_intake.move(frontSpd);
-        // middle_intake.move(middleSpd);
-        // top_intake.move(topSpd);
-        // back_intake.move(backSpd);
-
-
-        //Gavin's Robot Controller Config
+        
+        // --- L1 Logic (Score Long / Raise) ---
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            // Score Long
-            ramp.move(127);
-            // TODO - experimental
-            top1.move(-127);
-            // top1.move_velocity(-66.6666); // YES!
-            top2.move(127);
-            heaven.set_value(true);
+            if (!is_heaven_up) {
+                // If robot is currently LOWERED:
+                // Only move robot UP, do NOT spin intake
+                is_heaven_up = true;
+                heaven.set_value(true);
+                
+                // Ensure motors are stopped while lifting
+                ramp.brake();
+                top1.brake();
+                top2.brake();
+            } else {
+                // If robot is ALREADY UP:
+                // ONLY spin intake (Score Long)
+                ramp.move(127);
+                top1.move(-127); // Scoring direction
+                top2.move(127);  // Scoring direction
+            }
         }
+        // --- R1 Logic (Score Mid / Lower) ---
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-            // Score Mid
-            ramp.move(127);
-            top1.move(-45);
-            top2.move(45);
-            heaven.set_value(false);
+            if (is_heaven_up) {
+                // If robot is currently UP:
+                // Only move robot DOWN, do NOT spin intake
+                is_heaven_up = false;
+                heaven.set_value(false);
+
+                // Ensure motors are stopped while lowering
+                ramp.brake();
+                top1.brake();
+                top2.brake();
+            } else {
+                // If robot is ALREADY DOWN:
+                // ONLY spin intake (Score Mid)
+                ramp.move(127);
+                top1.move(-45);
+                top2.move(45);
+            }
         }
+        // --- L2 Logic (Intake) ---
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             // Intake to Ramp, Top Forward, Bottom Reverse
             ramp.move(127);
             top1.move(-127);
             top2.move(-127);
         } 
+        // --- R2 Logic (Outtake) ---
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-            // 
             ramp.move(-127);
             top1.move(127);
             top2.move(-127);
+        }
+        // --- UP ARROW Logic (New Request) ---
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
+            // Lower robot
+            is_heaven_up = false;
+            heaven.set_value(false);
+
+            // Spin ramp 127
+            ramp.move(127);
+
+            // Top1/Top2 scoring direction at 50% (approx 64 speed)
+            // Based on L1 logic: Top1 scoring is negative, Top2 scoring is positive
+            top1.move(-64); 
+            top2.move(64);
         } 
+        // --- Idle State ---
         else {
             ramp.brake();
             top1.brake();
             top2.brake();
         }
         
+        // --- Pneumatics (Wings/Tongue) ---
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
             tongue.set_value(1);
+            // Original code set heaven false here. 
+            // We must update the state variable to match!
             heaven.set_value(false);
+            is_heaven_up = false; 
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
             tongue.set_value(0);
         }
         
-
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
+            // Original code set heaven true here.
+            // Update state variable to match.
             heaven.set_value(true);
+            is_heaven_up = true;
             descore.set_value(1);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
             descore.set_value(0);
         }
 
-
-        //Quinn's Robot Controller Config
-        // if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-        //     intake.move(127);
-        // }
-        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-        //     intake.move(-127);
-        // }
-        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-        //     intake1.move(127);
-        //     intake2.move(-127);
-        //     intake3.move(127);
-        //     intake4.move(127);
-        // } 
-        // // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-        // //     ramp.move(-127);
-        // //     top1.move(127);
-        // //     top2.move(-127);
-        // // } 
-        // else {
-        //     intake.brake();
-        // }
-        // 
-        // if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-        //     tongue.set_value(1);
-        //     heaven.set_value(false);
-        // }
-        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
-        //     tongue.set_value(0);
-        // }
-        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
-        //     heaven.set_value(1);
-        // }
-        // else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-        //     heaven.set_value(0);
-        // }
-
         pros::delay(10);
     }
 }
+// TODO - 
+// If you press L1 and robot is lowered (heaven is false), it only moves robot up without intake | else if robot is already up, it ONLY spins intake
+// If you press R1 and robot is Up (heaven is false), it only moves robot DOWN (heaven false) without intake | else if robot is already down, it ONLY spins intake
+
+// if up arrow pressed, lower robot (hevaen), spinning ramp 127, and top1 top2 at scoring direction, but at 50%
