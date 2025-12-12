@@ -11,7 +11,7 @@
 #include "robot-config.hpp"
 
 void drivetrain_control() {
-    bool arcadeMode = false;   // default: ARCADE
+    bool arcadeMode = true;   // default: ARCADE
     bool latch = false;
 
     while (true) {
@@ -216,8 +216,8 @@ void teleop_loop() {
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
             // Score Mid
             ramp.move(127);
-            top1.move(-127);
-            top2.move(127);
+            top1.move(-45);
+            top2.move(45);
             heaven.set_value(false);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {

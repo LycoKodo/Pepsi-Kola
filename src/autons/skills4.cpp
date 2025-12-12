@@ -18,8 +18,8 @@ int skills4() {
     chassis.setPose(0,0,0);
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
     
-    chassis.moveToPoint(0, 33, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0, .earlyExitRange=8}, false);
-    chassis.moveToPose(0, 33, 0, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPoint(0, 31, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0, .earlyExitRange=8}, false);
+    chassis.moveToPose(0, 31, 0, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
 
     tongue.set_value(true);
 
@@ -28,7 +28,7 @@ int skills4() {
     top2.move(-127);
 
     chassis.turnToHeading(-90, 1500);
-    chassis.moveToPoint(-10, 33, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPoint(-10, 33, 1200, {.forwards=true, .maxSpeed=100, .minSpeed=0}, false);
     
     pros::delay(200);
 
@@ -96,14 +96,33 @@ int skills4() {
     pros::delay(2000);
     // Score Long for 2.7sec
 
-    chassis.moveToPose(10, -63, -180, 1200, {.forwards=true, .maxSpeed=100, .minSpeed=0, .earlyExitRange=0}, false);
+    // move out of goal
+    chassis.moveToPoint(10, -63, 2000, {.forwards=true, .maxSpeed=100, .minSpeed=35, .earlyExitRange=10}, false);
+    chassis.moveToPose(10, -63, -180, 2000, {.forwards=true, .lead=0, .maxSpeed=100, .minSpeed=0, .earlyExitRange=0}, false);
     heaven.set_value(false);
 
-    chassis.turnToHeading(-180, 200);
+    chassis.turnToHeading(-180, 200); // 
 
-    // TODO - Add Parking
+    chassis.moveToPoint(10, -15.5, 1200, {.forwards=false, .maxSpeed=127, .minSpeed=45, .earlyExitRange=20}, false);
+    chassis.moveToPose(10, -15.5, -180, 2000, {.forwards=false, .maxSpeed=100, .minSpeed=0, .earlyExitRange=0}, false);
+
+    chassis.turnToHeading(-90, 1000);
+
+    chassis.moveToPose(24, -15.5, -90, 2000, {.forwards=false, .maxSpeed=127, .minSpeed=0, .earlyExitRange=0}, false);
+
+    odomLift.set_value(0);
+
+    ramp.move(127);
+
+    leftMotors.move(127);
+    rightMotors.move(127);
+    pros::delay(1500);
+    leftMotors.brake();
+    rightMotors.brake();
+
+    ramp.brake();
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
     return 0;
 }
-
 

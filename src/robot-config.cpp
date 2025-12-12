@@ -23,7 +23,7 @@
 
 //Gavin's Robot
 pros::MotorGroup leftMotors({-11, -14, 15}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
-pros::MotorGroup rightMotors({1, 3, -2}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
+pros::MotorGroup rightMotors({1, 4, -3}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
 
 //Quinn's Robot
 // pros::MotorGroup leftMotors({-1, -3, 2}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
@@ -83,11 +83,11 @@ pros::adi::DigitalOut odomLift(7);
 // Odometry
 // ---------------------------------------
 
-pros::Imu imu(5);
+pros::Imu imu(6);
 
 // TODO - check ports
 
-pros::Rotation horizontal_encoder(-4); // Change to the "A" tagged encoder
+pros::Rotation horizontal_encoder(-5); // Change to the "A" tagged encoder
 
 pros::Rotation vertical_encoder(-13);
 
