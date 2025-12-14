@@ -129,6 +129,10 @@ void teleop_loop() {
                 ramp.brake();
                 top1.brake();
                 top2.brake();
+
+                while (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+                    pros::delay(10);
+                }
             } else {
                 // If robot is ALREADY UP:
                 // ONLY spin intake (Score Long)
@@ -149,6 +153,10 @@ void teleop_loop() {
                 ramp.brake();
                 top1.brake();
                 top2.brake();
+ 
+                while (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+                    pros::delay(10);
+                }
             } else {
                 // If robot is ALREADY DOWN:
                 // ONLY spin intake (Score Mid)
@@ -181,8 +189,8 @@ void teleop_loop() {
 
             // Top1/Top2 scoring direction at 50% (approx 64 speed)
             // Based on L1 logic: Top1 scoring is negative, Top2 scoring is positive
-            top1.move(-64); 
-            top2.move(64);
+            top1.move(-30); 
+            top2.move(30);
         } 
         // --- Idle State ---
         else {

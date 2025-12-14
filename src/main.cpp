@@ -198,7 +198,7 @@ void autonomous() {
 }
 
 void opcontrol() {
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
     chassis.setPose(0,0,0);
     odomLift.set_value(0);
