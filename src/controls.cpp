@@ -192,6 +192,17 @@ void teleop_loop() {
             top1.move(-30); 
             top2.move(30);
         } 
+        // DOWN ARROW Logic (Macro Aligner for Mid)
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+            // Declare variables and fix getPose() syntax
+            float x_pose = chassis.getPose().x;  // Add () after getPose, no () after .x
+            float y_pose = chassis.getPose().y;  // Add () after getPose, no () after .y
+            
+            // Move forward 100mm (convert to inches: 100mm ≈ 3.94 inches)
+            chassis.moveToPoint(x_pose, y_pose + 1.7, 600, {.forwards=true, .maxSpeed=80, .minSpeed=0}, false);
+            
+
+}
         // --- Idle State ---
         else {
             ramp.brake();
