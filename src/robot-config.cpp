@@ -89,7 +89,7 @@ pros::Imu imu(6);
 
 pros::Rotation horizontal_encoder(-5); // Change to the "A" tagged encoder
 
-pros::Rotation vertical_encoder(-13);
+pros::Rotation vertical_encoder(13);
 
 
 lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, 3.348, -3.7);

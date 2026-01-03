@@ -114,6 +114,7 @@ void teleop_loop() {
     // STATE VARIABLE: Tracks if the lift/heaven is currently UP (true) or DOWN (false)
     // Adjust 'false' to 'true' if your robot starts the match with the lift up.
     bool is_heaven_up = false; 
+    int i = 0;
 
     while (true) {
         
@@ -161,8 +162,8 @@ void teleop_loop() {
                 // If robot is ALREADY DOWN:
                 // ONLY spin intake (Score Mid)
                 ramp.move(127);
-                top1.move(-45);
-                top2.move(45);
+                top1.move(-55);
+                top2.move(55);
             }
         }
         // --- L2 Logic (Intake) ---
@@ -190,17 +191,13 @@ void teleop_loop() {
             // Top1/Top2 scoring direction at 50% (approx 64 speed)
             // Based on L1 logic: Top1 scoring is negative, Top2 scoring is positive
             top1.move(-30); 
-            top2.move(30);
+            top2.move(40);
         } 
         // DOWN ARROW Logic (Macro Aligner for Mid)
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-            float x_pose = chassis.getPose().x;  
-            float y_pose = chassis.getPose().y;  
-            
-            chassis.moveToPoint(x_pose, y_pose + 1.7, 600, {.forwards=true, .maxSpeed=80, .minSpeed=0}, false);
-            
-
-}
+            chassis.setPose(0,0,0);
+            chassis.moveToPose(1, 2, 13, 600, {.forwards=true, .maxSpeed=127, .minSpeed=30}, false);
+        }
         // --- Idle State ---
         else {
             ramp.brake();
@@ -223,17 +220,25 @@ void teleop_loop() {
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
             // Original code set heaven true here.
             // Update state variable to match.
-            heaven.set_value(true);
-            is_heaven_up = true;
+            // heaven.set_value(true);
+            // is_heaven_up = true;
             descore.set_value(1);
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
             descore.set_value(0);
         }
 
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
+            odomLift.set_value(1);
+        }
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
+            odomLift.set_value(0);
+        }
+
         pros::delay(10);
     }
 }
+
 // TODO - 
 // If you press L1 and robot is lowered (heaven is false), it only moves robot up without intake | else if robot is already up, it ONLY spins intake
 // If you press R1 and robot is Up (heaven is false), it only moves robot DOWN (heaven false) without intake | else if robot is already down, it ONLY spins intake

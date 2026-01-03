@@ -15,8 +15,9 @@
 // e.g. idk whatever you want
 
 int skills4() {
+    odomLift.set_value(1);
     chassis.setPose(0,0,0);
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
     
     chassis.moveToPoint(0, 31, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0, .earlyExitRange=8}, false);
     chassis.moveToPose(0, 31, 0, 1200, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
@@ -119,6 +120,7 @@ int skills4() {
     pros::delay(1500);
     leftMotors.brake();
     rightMotors.brake();
+        odomLift.set_value(0);
 
     ramp.brake();
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
