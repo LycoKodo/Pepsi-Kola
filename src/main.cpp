@@ -132,11 +132,11 @@ void initialize() {
 
     static const char* skillsBtnmMap[] = {
         "Spinnn", "H&P", "WORKING!", "\n",  
-        "SAFE!", "Skills 3", "Skills 4", nullptr
+        "SAFE!", "TEST ONLY", "FINALE", nullptr
     };
     static const char* skillsBtnmDesc[] = {
         "spin intake", "I hope this works", "Skills 1",  
-        "Skills 2", "Skills 3", "Skills 4", nullptr
+        "Skills 2", "!!TEST ONLY!!", "Optimal route with 79 pts, TS BETTER WORK", nullptr
     };
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton

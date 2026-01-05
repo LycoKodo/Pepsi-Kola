@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Atlas QF1-1",
+    "project_name": "Prometheus V0.1",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -299,7 +299,7 @@
     },
     "upload_options": {
       "description": "Main ~~Scattfold~~ Schlattfold",
-      "icon": "pros",
+      "icon": "X",
       "slot": 1
     },
     "use_early_access": false
