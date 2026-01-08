@@ -120,12 +120,15 @@ void teleop_loop() {
         
         // --- L1 Logic (Score Long / Raise) ---
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+
+            descore.set_value(0); // Ensure descorer is retracted when scoring long
+
             if (!is_heaven_up) {
                 // If robot is currently LOWERED:
                 // Only move robot UP, do NOT spin intake
                 is_heaven_up = true;
                 heaven.set_value(true);
-                
+                tongue.set_value(0);
                 // Ensure motors are stopped while lifting
                 ramp.brake();
                 top1.brake();
@@ -138,12 +141,15 @@ void teleop_loop() {
                 // If robot is ALREADY UP:
                 // ONLY spin intake (Score Long)
                 ramp.move(127);
-                top1.move(-127); // Scoring direction
+                top1.move(-60); // Scoring direction
                 top2.move(127);  // Scoring direction
             }
         }
         // --- R1 Logic (Score Mid / Lower) ---
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+
+            descore.set_value(1); // Ensure descorer is retracted when scoring mid
+
             if (is_heaven_up) {
                 // If robot is currently UP:
                 // Only move robot DOWN, do NOT spin intake
@@ -163,7 +169,7 @@ void teleop_loop() {
                 // ONLY spin intake (Score Mid)
                 ramp.move(127);
                 top1.move(-55);
-                top2.move(55);
+                top2.move(127);
             }
         }
         // --- L2 Logic (Intake) ---
@@ -179,24 +185,15 @@ void teleop_loop() {
             top1.move(127);
             top2.move(-127);
         }
+
         // --- UP ARROW Logic (New Request) ---
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
-            // Lower robot
-            is_heaven_up = false;
-            heaven.set_value(false);
-
-            // Spin ramp 127
-            ramp.move(127);
-
-            // Top1/Top2 scoring direction at 50% (approx 64 speed)
-            // Based on L1 logic: Top1 scoring is negative, Top2 scoring is positive
-            top1.move(-30); 
-            top2.move(40);
+            descore.set_value(1);
         } 
+
         // DOWN ARROW Logic (Macro Aligner for Mid)
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-            chassis.setPose(0,0,0);
-            chassis.moveToPose(1, 2, 13, 600, {.forwards=true, .maxSpeed=127, .minSpeed=30}, false);
+            descore.set_value(0);
         }
         // --- Idle State ---
         else {
@@ -207,6 +204,7 @@ void teleop_loop() {
         
         // --- Pneumatics (Wings/Tongue) ---
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+            descore.set_value(0); // Ensure descorer is retracted when scoring long
             tongue.set_value(1);
             // Original code set heaven false here. 
             // We must update the state variable to match!
@@ -215,24 +213,6 @@ void teleop_loop() {
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
             tongue.set_value(0);
-        }
-        
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
-            // Original code set heaven true here.
-            // Update state variable to match.
-            // heaven.set_value(true);
-            // is_heaven_up = true;
-            descore.set_value(1);
-        }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
-            descore.set_value(0);
-        }
-
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
-            odomLift.set_value(1);
-        }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
-            odomLift.set_value(0);
         }
 
         pros::delay(10);
