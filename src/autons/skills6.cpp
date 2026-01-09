@@ -63,7 +63,7 @@ int skills6() {
     chassis.moveToPoint(92, 48, 2500, {.forwards=true, .maxSpeed=110, .minSpeed=20}, false);
     ::pros::delay(240);
     //!!!!changed from 2600
-    chassis.moveToPose(92, 31.5, 90, 4000, {.forwards=true, .maxSpeed=127, .minSpeed=10}, false);
+    chassis.moveToPose(92, 33.5, 90, 4000, {.forwards=true, .maxSpeed=127, .minSpeed=10}, false);
     heaven.set_value(true);
     ::pros::delay(400);
 
@@ -76,7 +76,7 @@ int skills6() {
     chassis.turnToHeading(90, 900);
 
     //!!!!changed from 1000
-    chassis.moveToPoint(75, 33, 1200, {.forwards=false, .maxSpeed=127, .minSpeed=40}, false);
+    chassis.moveToPoint(75, 35, 1200, {.forwards=false, .maxSpeed=127, .minSpeed=40}, false);
         //reset pose at long goal
         //score long goal
     ramp.move(127);
@@ -207,8 +207,8 @@ int skills6() {
     chassis.moveToPose(90, 47.5, -90, 2000, {.forwards=false, .maxSpeed=127, .minSpeed=20}, false);
     ::pros::delay(160);
         //approach long in two movements to adjust pos
-    chassis.moveToPose(105, 34.8, 0, 2000, {.forwards=false, .maxSpeed=127, .minSpeed=60}, false);
-    chassis.moveToPoint(105, 34.8, 1000, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
+    chassis.moveToPose(105, 34.2, 0, 2000, {.forwards=false, .maxSpeed=127, .minSpeed=60}, false);
+    chassis.moveToPoint(105, 34.2, 1000, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
         //turn to long
     chassis.turnToHeading(90, 1000, {.maxSpeed=127, .minSpeed=50}, false);
     ::pros::delay(100);
@@ -216,7 +216,7 @@ int skills6() {
     ::pros ::delay(400);
 
     //move to long and score
-    chassis.moveToPoint(88, 34.8, 1000, {.forwards=false, .maxSpeed=127, .minSpeed=50}, false);
+    chassis.moveToPoint(88, 34.2, 1000, {.forwards=false, .maxSpeed=127, .minSpeed=50}, false);
     ramp.move(127);
     top1.move(-127);
     top2.move(127);
