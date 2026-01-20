@@ -60,15 +60,14 @@ int skills6() {
 
 
     //move to the other side of the field 2450
-    chassis.moveToPoint(92, 48, 2500, {.forwards=true, .maxSpeed=110, .minSpeed=20}, false);
-    ::pros::delay(240);
+    chassis.moveToPoint(92, 48, 2500, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
+    ::pros::delay(160);
+    chassis.turnToHeading(180, 900);
+    ::pros::delay(160);
+    chassis.moveToPoint(92, 33, 700, {.forwards=true, .maxSpeed=110, .minSpeed=00}, false);
     //!!!!changed from 2600
-    chassis.moveToPose(92, 33.5, 90, 4000, {.forwards=true, .maxSpeed=127, .minSpeed=10}, false);
     heaven.set_value(true);
     ::pros::delay(400);
-
-    //!!!!delayed extra second
-    ::pros ::delay(500);
 
 
     //move to long goal for scoring
