@@ -194,6 +194,14 @@ void teleop_loop() {
         // DOWN ARROW Logic (Macro Aligner for Mid)
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
             descore.set_value(0);
+        } 
+        // Left for odom lift up
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
+            odomLift.set_value(0);
+        }
+        // right for odom lift down
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
+            odomLift.set_value(1);
         }
         // --- Idle State ---
         else {

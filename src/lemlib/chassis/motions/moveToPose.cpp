@@ -146,7 +146,7 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
         }
 
         // move the drivetrain
-        drivetrain.leftMotors->move(leftPower);
+        drivetrain.leftMotors->move(leftPower*0.9);
         drivetrain.rightMotors->move(rightPower);
 
         // delay to save resources

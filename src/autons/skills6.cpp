@@ -16,169 +16,175 @@
 
 int skills6() {
 
-    //intial setup
-    odomLift.set_value(1);
-    chassis.setPose(0,0,0);
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+    // //intial setup
+    // odomLift.set_value(1);
+    // chassis.setPose(0,0,0);
+    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
     
 
-    //move to loader
-    chassis.moveToPoint(0, 32.5, 800, {.forwards=true, .maxSpeed=80, .minSpeed=0, .earlyExitRange=8}, false);
-    chassis.moveToPose(0, 32.5, 0, 600, {.forwards=true, .maxSpeed=80, .minSpeed=0}, false);
+    // //move to loader
+    // chassis.moveToPoint(0, 32.5, 800, {.forwards=true, .maxSpeed=80, .minSpeed=0, .earlyExitRange=8}, false);
+    // chassis.moveToPose(0, 32.5, 0, 600, {.forwards=true, .maxSpeed=80, .minSpeed=0}, false);
 
 
-    //clear loader NO1
-    tongue.set_value(true);
-    ramp.move(127);
-    top1.move(-100);
-    top2.move(-127);
-    chassis.turnToHeading(-90, 800);
-    chassis.moveToPoint(-10, 32.5, 900, {.forwards=true, .maxSpeed=100, .minSpeed=30}, false);
-        //ram into loader to clear
-    for (int i = 0; i < 5; i++) {
-        leftMotors.move(50);
-        rightMotors.move(50);
-        pros::delay(200);
-        leftMotors.brake();
-        rightMotors.brake();
-        pros::delay(100);
-    }
-        //reset pos at loader
+    // //clear loader NO1
+    // tongue.set_value(true);
+    // ramp.move(127);
+    // top1.move(-100);
+    // top2.move(-127);
+    // chassis.turnToHeading(-90, 800);
+    // chassis.moveToPoint(-10, 32.5, 900, {.forwards=true, .maxSpeed=100, .minSpeed=30}, false);
+    //     //ram into loader to clear
+    // for (int i = 0; i < 5; i++) {
+    //     leftMotors.move(50);
+    //     rightMotors.move(50);
+    //     pros::delay(200);
+    //     leftMotors.brake();
+    //     rightMotors.brake();
+    //     pros::delay(100);
+    // }
+    //     //reset pos at loader
     lemlib::Pose current = chassis.getPose();
-    ///--================--///
-    ///    CHECK POINT    ///
-    ///--===============--///
-    chassis.setPose(-7, 32, current.theta);
-    ::pros ::delay(160);
+    // ///--================--///
+    // ///    CHECK POINT    ///
+    // ///--===============--///
+    // chassis.setPose(-7, 32, current.theta);
+    // ::pros ::delay(160);
 
 
-    //turn into the funnel
-    chassis.moveToPoint(2, 32, 900, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
-    tongue.set_value(false);
-    chassis.turnToHeading(0, 900);
-    chassis.moveToPose(22, 48, 90, 3000, {.forwards=true, .maxSpeed=127, .minSpeed=30}, false);
+    // //turn into the funnel
+    // chassis.moveToPoint(2, 32, 900, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
+    // tongue.set_value(false);
+    // chassis.turnToHeading(0, 900);
+    // chassis.moveToPose(22, 49, 90, 3000, {.forwards=true, .maxSpeed=127, .minSpeed=30}, false);
 
 
-    //move to the other side of the field 2450
-    chassis.moveToPoint(92, 48, 2500, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
-    ::pros::delay(160);
-    chassis.turnToHeading(180, 900);
-    ::pros::delay(160);
-    chassis.moveToPoint(92, 33, 700, {.forwards=true, .maxSpeed=110, .minSpeed=00}, false);
-    //!!!!changed from 2600
-    heaven.set_value(true);
-    ::pros::delay(400);
+    // //move to the other side of the field 2450
+    // chassis.moveToPoint(92, 49, 2500, {.forwards=true, .maxSpeed=127, .minSpeed=20}, false);
+    // ::pros::delay(160);
+    // chassis.turnToHeading(180, 900);
+    // ::pros::delay(160);
+    // chassis.moveToPoint(92, 38, 700, {.forwards=true, .maxSpeed=110, .minSpeed=0}, false);
+    // //!!!!changed from 2600
+    // heaven.set_value(true);
+    // ::pros::delay(400);
 
 
-    //move to long goal for scoring
+    // //move to long goal for scoring
 
-    chassis.turnToHeading(90, 900);
+    // chassis.turnToHeading(90, 900);
 
-    //!!!!changed from 1000
-    chassis.moveToPoint(75, 35, 1200, {.forwards=false, .maxSpeed=127, .minSpeed=40}, false);
-        //reset pose at long goal
-        //score long goal
-    ramp.move(127);
-    top1.move(-127);
-    top2.move(127);
-    ::pros::delay(1400);
-    current = chassis.getPose();
-    ///--================--///
-    ///    CHECK POINT    ///
-    ///--===============--///
-    chassis.setPose(75,32,current.theta);
-    ::pros::delay(1400);
-
-
-    //move away from long goal
-    chassis.moveToPoint(90, 32, 700, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
-    top1.move(-100);
-    top2.move(-127);
-    heaven.set_value(false);
-    tongue.set_value(true);
+    // //!!!!changed from 1000
+    // chassis.moveToPoint(75, 38, 1200, {.forwards=false, .maxSpeed=127, .minSpeed=20}, false);
+    //     //reset pose at long goal
+    //     //score long goal
+    // ramp.move(127);
+    // top1.move(-127);
+    // top2.move(127);
+    // ::pros::delay(1400);
+    // current = chassis.getPose();
+    // ///--================--///
+    // ///    CHECK POINT    ///
+    // ///--===============--///
+    // chassis.setPose(75,32,current.theta);
+    // ::pros::delay(1400);
 
 
-    //clear loader NO2
-    chassis.moveToPoint(104, 32, 1100, {.forwards=true, .maxSpeed=70, .minSpeed=0}, false);
-        //ram into loader to clear
-    for (int i = 0; i < 5; i++) {
-        leftMotors.move(30);
-        rightMotors.move(30);
-        pros::delay(200);
-        leftMotors.brake();
-        rightMotors.brake();
-        pros::delay(100);
-    }
-    ::pros ::delay(160);
-
-    //enter scoring position before reaching goal
-    chassis.moveToPoint(90, 32, 900, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
-    tongue.set_value(false);
-    heaven.set_value(true);
-    ::pros ::delay(400);
-
-    //reach and score on long goal
-    chassis.moveToPoint(72, 32, 900, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
-
-        //score long goal
-    ramp.move(127);
-    top1.move(-127);
-    top2.move(127);
-    ::pros::delay(1400);
-        //reset pose at long goal
-    current = chassis.getPose();
-    ///--================--///
-    ///    CHECK POINT    ///
-    ///--===============--///
-    chassis.setPose(75,32,current.theta);
-    ::pros::delay(1400);
+    // //move away from long goal
+    // chassis.moveToPoint(90, 32, 700, {.forwards=true, .maxSpeed=127, .minSpeed=0}, false);
+    // top1.move(-100);
+    // top2.move(-127);
+    // heaven.set_value(false);
+    // tongue.set_value(true);
 
 
-    //move away form goal
-    chassis.moveToPose(110, 2, 180, 3500, {.forwards=true, .lead=0.3, .maxSpeed=127, .minSpeed=0}, false);
+    // //clear loader NO2
+    // chassis.moveToPoint(104, 32, 1100, {.forwards=true, .maxSpeed=70, .minSpeed=0}, false);
+    //     //ram into loader to clear
+    // for (int i = 0; i < 5; i++) {
+    //     leftMotors.move(30);
+    //     rightMotors.move(30);
+    //     pros::delay(200);
+    //     leftMotors.brake();
+    //     rightMotors.brake();
+    //     pros::delay(100);
+    // }
+    // ::pros ::delay(160);
 
-    //prepare to clear park
-    heaven.set_value(false);
-    tongue.set_value(true);
-    top1.brake();
-    top2.brake();
-    odomLift.set_value(0);
-    ramp.move(127);
+    // //enter scoring position before reaching goal
+    // chassis.moveToPoint(90, 32, 900, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
+    // tongue.set_value(false);
+    // heaven.set_value(true);
+    // ::pros ::delay(400);
 
-    ::pros::delay(100);
+    // //reach and score on long goal
+    // chassis.moveToPoint(72, 32, 900, {.forwards=false, .maxSpeed=127, .minSpeed=0}, false);
+
+    //     //score long goal
+    // ramp.move(127);
+    // top1.move(-127);
+    // top2.move(127);
+    // ::pros::delay(1400);
+    //     //reset pose at long goal
+    // current = chassis.getPose();
+    // ///--================--///
+    // ///    CHECK POINT    ///
+    // ///--===============--///
+    // chassis.setPose(75,32,current.theta);
+    // ::pros::delay(1400);
 
 
-    //clear park
-    leftMotors.move(80);
-    rightMotors.move(80);
-    ::pros::delay(1500);
+    // //move away form goal
+    // chassis.moveToPose(110, 2, 180, 3500, {.forwards=true, .lead=0.3, .maxSpeed=127, .minSpeed=0}, false);
+
+    // //prepare to clear park
+    // heaven.set_value(false);
+    // tongue.set_value(true);
+    // top1.brake();
+    // top2.brake();
+    // odomLift.set_value(0);
+    // ramp.move(127);
+
+    // ::pros::delay(100);
+
+
+    // //clear park
+    // leftMotors.move(80);
+    // rightMotors.move(80);
+    // ::pros::delay(1500);
     
-    leftMotors.brake();
-    rightMotors.brake();
-    ramp.brake();
+    // leftMotors.brake();
+    // rightMotors.brake();
+    // ramp.brake();
 
-    //reset position at side of park
-    leftMotors.move(-33);
-    rightMotors.move(-33);
-    ::pros::delay(800);
-    leftMotors.brake();
-    rightMotors.brake();
+    // //reset position at side of park
+    // leftMotors.move(-33);
+    // rightMotors.move(-33);
+    // ::pros::delay(800);
+    // leftMotors.brake();
+    // rightMotors.brake();
     
-    ::pros::delay(150);
-    odomLift.set_value(1);
-    ///--================--///
-    ///    CHECK POINT    ///
-    ///--===============--///
-    chassis.setPose(0,0,0);
+    // ::pros::delay(150);
+    // odomLift.set_value(1);
+    // ///--================--///
+    // ///    CHECK POINT    ///
+    // ///--===============--///
+    // chassis.setPose(0,0,0); // resert to park zone
 
 
-    ::pros::delay(100);
+    // pros::delay(300);
+
+    // TODO 
     //turn to loader NO3
-    chassis.moveToPose(15, 32.5, 0, 3000, {.forwards=true, .maxSpeed=127, .minSpeed=30}, false);
+    chassis.moveToPose(15, 32.5, 0, 3000, {.forwards=true, .maxSpeed=127, .minSpeed=30}, false); // after reset
 
-        //turn to loader NO3
+    pros::delay(3000);
+
+    //turn to loader NO3
     chassis.turnToHeading(-90, 1000);
     ::pros::delay(160);
+
+    pros::delay(3000);
     
     //clear loader NO3
     ramp.move(127);
@@ -298,7 +304,7 @@ int skills6() {
 
     //============================//
     // TS BETTER WORK ON THE DAY //
-    // !! GLORY  TO  THE  CCP !! //
+    // !! GLORY  TO  THE  CPP !! //
     //===========================//
     return 0;
 }

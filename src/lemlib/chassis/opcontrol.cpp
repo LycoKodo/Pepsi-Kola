@@ -40,7 +40,7 @@ void Chassis::arcade(int throttle, int turn, bool disableDriveCurve, float desat
     int rightPower = throttle - turn;
 
     // move drive
-    drivetrain.leftMotors->move(leftPower);
+    drivetrain.leftMotors->move(leftPower*0.9);
     drivetrain.rightMotors->move(rightPower);
 }
 

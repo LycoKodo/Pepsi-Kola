@@ -147,7 +147,7 @@ void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me br
 void competition_initialize() {}
 
 void autonomous() {  
-
+    printf("Selecting Auton\n");
     // chassis.setPose(0, 0, 0); 
     // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
