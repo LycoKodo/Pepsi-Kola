@@ -15,6 +15,7 @@
 #include "pros/rtos.hpp"
 
 #include "robot-config.hpp"
+#include "pidtuner.hpp"
 #include "lemlib/selector.hpp"
 
 LV_IMG_DECLARE(dorito); //TKSRC Logo
@@ -202,9 +203,16 @@ void skillsBtnmAction(lv_event_t* e) {
 }
 
 void tabWatcher(void* param) {
+    int rumbleTicks = 0;
     try {
         while (true) {
             int activeTab = lv_tabview_get_tab_act(tabview);
+
+            // the PID editor owns the D-pad while the Developer tab is showing.
+            // teleop_loop checks pidtuner::isActive() so the two never fight
+            pidtuner::setActive(activeTab == 0);
+            pidtuner::handleInput();
+
             if (!autonStarted) {
                 int currentTab = lv_tabview_get_tab_act(tabview);
 
@@ -226,7 +234,10 @@ void tabWatcher(void* param) {
                     odomUpdate();
                 }
 
-                if (auton == 999) {
+                // once every 2s, not every 10ms: spamming rumble saturates the
+                // controller link and makes D-pad reads lag in the PID editor
+                if (auton == 999 && ++rumbleTicks >= 200) {
+                    rumbleTicks = 0;
                     master.rumble(".");
                 }
                 textUpdate();
@@ -239,6 +250,7 @@ void tabWatcher(void* param) {
                 lv_tabview_set_act(tabview, 0, LV_ANIM_OFF);
                 motorUpdate();
                 odomUpdate();
+                customUpdate();
                 // printf("Current Auton %i", auton);
                 pros::delay(10);
             }
@@ -383,18 +395,20 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         lv_textarea_set_password_mode(odom_textarea, false);
         lv_obj_add_state(odom_textarea, LV_STATE_DISABLED);
 
-        lv_obj_set_size(other_textarea, left_width, 100);
+        // shrunk from 100px to make room for the PID editor below it. the gains
+        // it used to print are now shown, and edited, by pidtuner
+        lv_obj_set_size(other_textarea, left_width, 46);
         lv_obj_align(other_textarea, LV_ALIGN_TOP_LEFT, 203, 65);
         lv_textarea_add_text(other_textarea, "Alliance: \n");
-        lv_textarea_add_text(other_textarea, "Lady Position: \n");
-        lv_textarea_add_text(other_textarea, "Chassis Kp: \n");
-        lv_textarea_add_text(other_textarea, "Chassis Ki: \n");
-        lv_textarea_add_text(other_textarea, "Chassis Kd: ");
+        lv_textarea_add_text(other_textarea, "Lady Position: ");
 
         lv_textarea_set_cursor_click_pos(other_textarea, false);
         lv_textarea_set_password_mode(other_textarea, false);
         lv_obj_add_state(other_textarea, LV_STATE_DISABLED);
 
+        // PID editor fills the strip between the alliance readout and the
+        // bottom of the tab: y 115..207 of the ~222px content area
+        pidtuner::init(devTab, 203, 115, left_width, 92);
 
         lv_obj_t *img = lv_img_create(bocchiTab);
         lv_img_set_src(img, &dorito); // Link to source image
@@ -590,14 +604,12 @@ int customUpdate() {
     snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
     lv_textarea_add_text(other_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f\n", 9.9);
+    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f", 9.9);
     lv_textarea_add_text(other_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Drive P: %.2f I: %.2f D: %.2f\n", linearController.kP, linearController.kI, linearController.kD);
-    lv_textarea_add_text(other_textarea, buffer);
-
-    snprintf(buffer, sizeof(buffer), "Turn P: %.2f I: %.2f D: %.2f\n", angularController.kP, angularController.kI, angularController.kD);
-    lv_textarea_add_text(other_textarea, buffer);
+    // the drive/turn gains moved into the PID editor, which reads them off the
+    // live chassis PIDs rather than the ControllerSettings copies
+    pidtuner::render();
 
     return 0;
 }
