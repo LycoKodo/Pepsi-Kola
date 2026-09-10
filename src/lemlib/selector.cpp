@@ -16,6 +16,7 @@
 
 #include "robot-config.hpp"
 #include "pidtuner.hpp"
+#include "autotune.hpp"
 #include "lemlib/selector.hpp"
 
 LV_IMG_DECLARE(dorito); //TKSRC Logo
@@ -208,10 +209,18 @@ void tabWatcher(void* param) {
         while (true) {
             int activeTab = lv_tabview_get_tab_act(tabview);
 
-            // the PID editor owns the D-pad while the Developer tab is showing.
-            // teleop_loop checks pidtuner::isActive() so the two never fight
-            pidtuner::setActive(activeTab == 0);
-            pidtuner::handleInput();
+            // the auto-tune wizard is a full screen overlay, so while it is up it
+            // takes the D-pad outright. otherwise the PID editor owns it while
+            // the Developer tab is showing. teleop_loop checks both so nothing
+            // ends up driving the robot and the UI at the same time
+            if (autotune::isRunning()) {
+                pidtuner::setActive(false);
+                autotune::handleInput();
+                autotune::render();
+            } else {
+                pidtuner::setActive(activeTab == 0);
+                pidtuner::handleInput();
+            }
 
             if (!autonStarted) {
                 int currentTab = lv_tabview_get_tab_act(tabview);

@@ -10,6 +10,7 @@
 #include "lemlib/pid.hpp"
 #include "lemlib/chassis/chassis.hpp"
 #include "robot-config.hpp"
+#include "autotune.hpp"
 
 namespace pidtuner {
 
@@ -27,6 +28,7 @@ enum Field {
     ANG_I,
     ANG_D,
     STEP,
+    AUTO,
     FIELD_COUNT
 };
 
@@ -60,6 +62,12 @@ float clampGain(float value) { return value < 0.0f ? 0.0f : value; }
  * @param dir +1 for RIGHT, -1 for LEFT
  */
 void adjust(int dir) {
+    if (selected == AUTO) {
+        // RIGHT launches the relay auto-tuner. LEFT is deliberately inert so a
+        // stray press cannot start the robot moving
+        if (dir > 0) autotune::start();
+        return;
+    }
     if (selected == STEP) {
         stepIndex += dir;
         if (stepIndex < 0) stepIndex = 0;
@@ -171,11 +179,12 @@ void render() {
              "LAT%s%s%s\n"
              "ANG%s%s%s\n"
              "STEP%c%6.3f%c  %s\n"
-             "UP=next  L/R=adj",
+             "%cAUTO-TUNE%c  UP=next  L/R=adj",
              latP, latI, latD,
              angP, angI, angD,
              stepOpen, STEPS[stepIndex], stepClose,
-             active ? "EDIT" : "----");
+             active ? "EDIT" : "----",
+             (selected == AUTO) ? '>' : ' ', (selected == AUTO) ? '<' : ' ');
 
     lv_textarea_set_text(pid_textarea, buffer);
 }
