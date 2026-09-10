@@ -52,7 +52,7 @@ void lemlib::Chassis::moveToPoint(float x, float y, int timeout, MoveToPointPara
         const float distTarget = pose.distance(target);
 
         // check if the robot is close enough to the target to start settling
-        if (distTarget < 7.5 && close == false) {
+        if (distTarget < 7.5 && close == false ) { 
             close = true;
             params.maxSpeed = fmax(fabs(prevLateralOut), 60);
         }
@@ -104,6 +104,8 @@ void lemlib::Chassis::moveToPoint(float x, float y, int timeout, MoveToPointPara
         prevLateralOut = lateralOut;
 
         infoSink()->debug("Angular Out: {}, Lateral Out: {}", angularOut, lateralOut);
+
+        printf("Angular Out: %f, Lateral Out: %f\n", angularOut, lateralOut);
 
         // ratio the speeds to respect the max speed
         float leftPower = lateralOut + angularOut;

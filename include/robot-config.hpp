@@ -24,22 +24,32 @@ extern lemlib::Drivetrain drivetrain;
 // ---------------------------------------
 extern pros::Controller master;
 
+<<<<<<< HEAD
 extern pros::Motor top_intake;
 extern pros::Motor front_intake;
 extern pros::Motor middle_intake;
 extern pros::Motor back_intake;
+=======
+extern pros::MotorGroup intake;
+extern pros::Motor ramp;
+extern pros::Motor top1;
+extern pros::Motor top2;
+>>>>>>> gavin-bot
 
 extern pros::adi::DigitalOut tongue;
-extern pros::adi::DigitalOut aligner;
-extern pros::adi::DigitalOut endgame;
-extern pros::adi::DigitalOut intake_redirect;
+extern pros::adi::DigitalOut odomLift;
+extern pros::adi::DigitalOut descore;
+extern pros::adi::DigitalOut heaven;
 
 // ---------------------------------------
 // Sensors (Miscellaneous)
 // ---------------------------------------
 extern pros::Imu imu;
 extern pros::Optical color_sort_optical;
+<<<<<<< HEAD
 extern pros::Optical preload_optical;
+=======
+>>>>>>> gavin-bot
 extern macros::ColorSort colorsort;
 
 // ---------------------------------------

@@ -559,8 +559,13 @@ int motorUpdate() {
 int odomUpdate() {
     char buffer[64]; // Buffer to hold formatted strings
 
+    float x = chassis.getPose().x;
+    float y = chassis.getPose().y;
+    float theta = chassis.getPose().theta;
+
     lv_textarea_set_text(odom_textarea, ""); // Clear
 
+<<<<<<< HEAD
     snprintf(buffer, sizeof(buffer), "X: %f\n", 0.1); //chassis.getPose().x
     lv_textarea_add_text(odom_textarea, buffer);
 
@@ -568,6 +573,15 @@ int odomUpdate() {
     lv_textarea_add_text(odom_textarea, buffer);
 
     snprintf(buffer, sizeof(buffer), "Theta: %f", 0.1); //chassis.getPose().theta
+=======
+    snprintf(buffer, sizeof(buffer), "X: %f\n", x); //chassis.getPose().x
+    lv_textarea_add_text(odom_textarea, buffer);
+
+    snprintf(buffer, sizeof(buffer), "Y: %f\n", y); //chassis.getPose().y
+    lv_textarea_add_text(odom_textarea, buffer);
+
+    snprintf(buffer, sizeof(buffer), "Theta: %f", theta); //chassis.getPose().theta
+>>>>>>> gavin-bot
     lv_textarea_add_text(odom_textarea, buffer); 
 
     return 0;
@@ -580,8 +594,12 @@ int customUpdate() {
 
     // Logic to Update Alliance
 
+<<<<<<< HEAD
     char alliance = 'N';
 <<<<<<< Updated upstream
+=======
+    // char alliance = 'N';
+>>>>>>> gavin-bot
     // if (auton >= 1 && auton <= 100){
     //     alliance = 'R';
     // } else if (auton >= -100 && auton <= -1) {
@@ -590,6 +608,7 @@ int customUpdate() {
     //     alliance = 'S'; // @note: alliance for skills is RED
     // }
 
+<<<<<<< HEAD
     snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
     lv_textarea_add_text(other_textarea, buffer);
 
@@ -603,6 +622,13 @@ int customUpdate() {
         alliance = 'S'; // @note: alliance for skills is RED
     }
     snprintf(buffer, sizeof(buffer), "Alliance: \n");
+=======
+    // char alliance = colorsort.alliance;
+
+    char alliance = 'N'; // TODO - TEMPORARY
+
+    snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
+>>>>>>> gavin-bot
     lv_textarea_add_text(other_textarea, buffer);
 
     snprintf(buffer, sizeof(buffer), "Lady Rotation: \n");

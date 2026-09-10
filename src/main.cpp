@@ -15,7 +15,6 @@
 #include "colorsort.hpp"
 
 // THIS CODE IS POWERED BY A PROJECT MANAGER AND TWO DORITO FANS POWERED BY 
-
 /*
          __                              ___   __        .ama     ,
       ,d888a                          ,d88888888888ba.  ,88"I)   d
@@ -31,40 +30,40 @@
 `888a,.  ,aadd88888888888bma.   )88,  ,]I I8, .d' )88a8B ,d8 aI
   "888888PP"'        `8""""""8   "888PP'  `888P'  `88P"88P"8m"
 */
-// AND
-/*                                                                                                                                    
-                                                                                                                                             
-                                              -                                                                              
-                                             --                                                                              
-                                            --.-                                                                             
-                                           -- .:-                                                                            
-                                          -- ...:-                                                                           
-                                          - .....--                                                                          
-                                        -:...... --                                                                         
-                                        -  .  ... --                                                                        
-                                      -   ...  ..   -                                                                        
-                                      -:   ....  ..  -                                                                       
-                                     -- .. ....  . . .-                                                             
-                                    :- . .  ... ......--                                                              
-                                    -... . .... ... .. --                                                            
-                                  --:..... ... .. ..... --                                                      
-                                  -.....  .... ......... --                                                                 
-                                 -- ..   ....... ....  . --                                                                  
-                                -- ..   ....  ............:-                                                                 
-                               .- .. ..  ....  .... .......--                                                                
-                               -.... . ..... ....  . .......--                                                               
-                              -..... ............... .... .. --                                                              
-                             -:....... ..... ........... .... --                                                             
-                            -- .... ....... . ................ -                                                             
-                           --  ........ ................. ..... -                                                            
-                          ----------------------------------------                                                                                                                                   
-*/
-
+// Blessing of the water slug...
+/*
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠀⠤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢊⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠄⠒⠂⠀⠈⠀⠐⢒⡤⠄⠘⠂⠈⠉⠉⠠⠔⠋⠉⠀⠀⠀⠀⠀⠉⠐⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠎⠀⣀⣄⡀⠀⠀⠀⠶⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠒⠊⠣⡀⠀⠀⣣⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠂⠹⣟⠀⡨⠱⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⢄⠀⠀⢨⡷⣤⡇⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢳⠊⠀⢰⣉⠆⠢⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⢔⣉⡆⠀⠀⠣⣠⡶⡑⡼⢢⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠄⠢⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣷⡼⠁⠀⠡⡀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠊⠀⢠⠃⠀⠀⠀⠀⠀⠀⡇⠀⠀⡄⠀⠀⣄⠀⡾⡀⠀⠀⠀⡇⠀⠀⠀⠀⠘⡆⠀⠀⠀⢷⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢀⠊⠀⡔⢂⠇⠀⠀⢀⠀⠀⠀⢸⢸⠠⠞⠃⠀⠀⠛⡤⡇⡇⠀⠀⢠⡇⠀⠀⠀⠀⠀⢰⠀⠀⠀⠀⢣⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠈⠄⠀⠇⠸⠀⠀⠀⢸⡀⠀⠀⢺⠈⡄⠀⠀⠀⠀⠀⢠⠁⢰⠀⠀⢸⠇⠀⠀⠀⠀⠀⠈⡆⠀⠀⠀⠘⣆⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠂⠰⡇⠀⠀⠀⡈⢹⠀⠀⣼⡀⢱⠀⠀⠀⠀⠀⣼⣀⢸⠀⠀⡆⢸⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⢹⠢⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⠤⣒⣷⠀⠀⠀⡇⠀⢱⣴⣿⠋⠀⢳⠀⠀⠀⢀⠋⣙⣿⣶⣼⡀⠸⠀⠀⡸⠀⠀⠀⡇⠀⠀⠀⠀⠀⡆⠡⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⣔⠔⠀⡊⢸⡀⡀⠀⣇⣴⢟⣿⣾⣿⣆⠀⢣⠀⠀⡎⣾⣟⣿⣼⣏⠙⢿⣦⡠⠃⠀⢀⣀⣔⡀⠀⠀⠀⠀⢱⠀⠡⠀
+⠀⠀⠀⠀⠀⠀⢰⠂⠀⠀⢑⣸⠹⡧⡀⣿⠁⣸⠟⠛⠛⡻⠀⢠⡑⡜⠀⢟⠉⠉⠉⣻⡀⢺⠟⡇⢶⠭⠥⠤⣾⠀⠀⠀⠀⠀⠈⡄⠀⢡
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣸⠭⠭⣸⠚⠀⢊⣒⠒⠊⠁⠀⠚⠓⠛⠀⠀⠉⣭⢹⣁⠩⠔⠚⠓⠚⠛⠛⠣⢧⣇⠀⠀⠀⠀⠀⢱⠀⠀
+⠀⠀⠀⠀⠀⢀⡠⠄⠂⠉⢁⠼⡒⠈⠑⠠⠤⣈⣉⣀⣀⣀⣀⣀⣀⣀⣀⣀⠄⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣆⠀⠀⠀⠀⠈⠆⠀
+⠀⠀⠀⡠⠂⠁⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⡇⢠⠠⠄⠂⠤⠐⡘⢓⡞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠼⡆⠀⠀⠀⠀⠘⡀
+⠀⡠⠚⠠⢄⡀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⡇⢂⢐⣈⣔⣆⠡⠐⡼⠐⠒⠂⠤⣀⠀⠀⢀⠠⠤⠀⠒⠈⣉⠀⠤⠐⢻⣀⠀⠀⠀⠀⠡
+⢀⠯⡀⠀⠀⠈⠑⠢⡀⠀⠀⢀⠠⢇⢰⡀⠀⢗⡩⢣⠜⡠⢷⢈⡐⣇⣀⠀⠀⠀⠀⠉⠒⢄⡂⠀⠈⠉⠀⢀⡠⣄⡀⣸⠈⠢⣀⠀⠀⠘
+⠘⠰⡄⣱⣢⣄⠀⠀⠈⣂⣔⠥⠒⠉⠺⡙⢠⢼⠰⡡⢊⠾⣉⢢⠄⠳⠠⡍⠁⠒⠠⠄⣀⠀⢀⠦⢤⣒⣊⠭⠝⠓⠉⠀⠀⠀⠈⠂⢤⠂
+⠀⠀⠀⠁⠑⠐⠉⠂⠚⠉⠀⠀⠀⠀⠀⠀⢸⠌⡑⢆⡩⣼⠚⠤⣜⡠⠁⠜⡉⡖⠚⢒⠡⠉⠅⢂⠳⢀⣀⡲⠾⠂⠀⠀⠀⠀⠀⠀⠀⠁
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡆⢎⠱⡨⡐⣽⣉⣐⡆⠀⠉⠉⠒⢻⠨⠤⢂⣉⡐⠂⡧⠤⠤⠤⠔⠂⠀⠀⠀⠀⠀⠀⢠⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡏⡜⠰⣁⠖⡠⢯⡱⠀⠀⠀⠀⠀⢸⠠⠄⠁⠀⠀⠀⠈⢐⣒⣒⠲⠇⠀⢀⣀⠤⢶⢤⠜⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠬⣑⠢⢌⡑⢢⡇⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠈⠒⠒⠒⠒⠉⠁⡇⢎⠼⠧⣀⣀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢐⠨⡑⠤⠓⣌⠸⢄⡇⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡏⢆⠪⡑⠤⠀
+ */
 // ----------------------------------------------------
 // IMPORTANT - Autonomous Selector Routine Declaration
 // ----------------------------------------------------
 
 LV_IMG_DECLARE(image); //TKSRC Logo
+<<<<<<< HEAD
 
 // TODO - Temporary
 // void autonwatcher() {
@@ -75,7 +74,13 @@ LV_IMG_DECLARE(image); //TKSRC Logo
 // }
 
 
+=======
+>>>>>>> gavin-bot
 void initialize() {
+
+    odomLift.set_value(1);
+    pros::delay(1000);
+
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------
@@ -86,14 +91,14 @@ void initialize() {
     // -----------------------
     // Initialise Chassis
     // -----------------------
-    // @removed - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
-
+    // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
 
 <<<<<<< Updated upstream
     // -----------------------
     // Initialise Sensors
     // -----------------------
+<<<<<<< HEAD
     // colorSort.set_led_pwm(100);
     // lady_rotation.set_position(0);
 =======
@@ -108,57 +113,85 @@ void initialize() {
     // // Initialise Subsystems
     // // -----------------------
 
+=======
+>>>>>>> gavin-bot
     lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
 
     // -----------------------
-    // TODO - LVGL INIT
+    // LVGL INIT
     // -----------------------
 
-
     static const char* qualBtnmMap[] = {
-        "Q-Auton1", "Q-Auton2", "Q-Auton3", "\n",
-        "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
+        "MAX-R", // auton 1
+        "MAX-L", // auton 2
+        "LONG-L", // auton 3
+        "\n", 
+        "[EH] LONG-R", // auton 4
+        "MID-L", // auton 5
+        "[!] MID-R", // auton 6
+        nullptr
     };
     static const char* qualBtnmDesc[] = {
-        "Q-Auton1", "Q-Auton2", "Q-Auton3",
-        "Q-Auton4", "Q-Auton5", "Q-Auton6", nullptr
+        "9 Blocks in LG, Clears Loader", // auton 1
+        "9 Blocks in LG, Clears Loader", // auton 2
+        "[SAFE] 4 in LG, Clears Loader", // auton 3
+        "[SAFE] 4 in LG, Clears Loader", // auton 4
+        "[SAFE] 4 in Mid", // auton 5
+        "[NOTE!] LIKELY won't be able to score lower goal, mirrored version of mid L", // auton 6
+        nullptr // keep it a null ptr
     };
 
     static const char* AIBtnmMap[] = {
-        "AI-Auton1", "AI-Auton2", "AI-Auton3", "\n",
-        "AI-Auton4", "AI-Auton5", "AI-Auton6", nullptr
+        "COMB-L", // AI 1
+        "COMB-R(T)", // AI 2
+        "9 COMB L", // AI 3
+        "\n",
+        "NULL", // AI 4
+        "9 Long L", // AI 5
+        "9 Long R(T)", // AI 6
+        nullptr
     };
     static const char* AIBtnmDesc[] = {
-        "AI-Auton1", "AI-Auton2", "AI-Auton3",
-        "AI-Auton4", "AI-Auton5", "AI-Auton6", nullptr
+        "", // AI 1
+        "", // AI 2
+        "", // AI 3
+        "", // AI 4
+        "", // AI 5
+        "", // AI 6
+        nullptr
     };
 
     static const char* skillsBtnmMap[] = {
-        "Auton", "Preload", "Skills 1", "\n",  
-        "Skills 2", "Skills 3", "Skills 4", nullptr
+        "Spinnn", "H&P", "WORKING!", "\n",  
+        "SAFE!", "TEST ONLY", "FINALE", nullptr
     };
     static const char* skillsBtnmDesc[] = {
-        "Auton", "Preload", "Skills 1",  
-        "Skills 2", "Skills 3", "Skills 4", nullptr
+        "spin intake", "I hope this works", "Skills 1",  
+        "Skills 2", "!!TEST ONLY!!", "Optimal route with 79 pts, TS BETTER WORK", nullptr
     };
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
+<<<<<<< HEAD
 
     // TODO - temporary 
     // pros::Task watcher(autonwatcher);
 
+=======
+>>>>>>> gavin-bot
 }
-
 
 void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me bro fr)
 
-
 void competition_initialize() {}
 
-
 void autonomous() {  
-    chassis.setPose(0, 0, 0); 
+    printf("Selecting Auton\n");
+    // chassis.setPose(0, 0, 0); 
+    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
+    // chassis.turnToHeading(90, 1200, {}, false);
+    // // @NOTE - UNCOMMENT THE FOLLOWING TO  ENABLE AUTON SELECTOR
+    
     int auton = lemlib::selector::auton;
 
     lemlib::selector::autonStarted = true;
@@ -200,20 +233,31 @@ void autonomous() {
         // Default auton
         auton1ring();
     }
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> gavin-bot
 }
 
 // TODO - Problem Lies in Controls
 void opcontrol() {
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
-    // DON'T CHANGE!: Multi-treading for robot controls (To prevent color sort interruption)
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+
+    chassis.setPose(0,0,0);
+    odomLift.set_value(0);
+    
+    
     pros::Task driveTask(drivetrain_control);
+<<<<<<< HEAD
     // pros::Task scoreTask(score_goal);
     pros::Task intakeTask([] {
         colorsort.sorted_intake_loop();
     }); // use a lambda
     // pros::Task endgameTask(endgame_ctl);
     // pros::Task tongueAlignerTask(tongue_aligner_toggle);
+=======
+    pros::Task teleopTask(teleop_loop);
+>>>>>>> gavin-bot
 }

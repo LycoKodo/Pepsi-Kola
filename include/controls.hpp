@@ -15,9 +15,6 @@
  * @brief Provides joystick-based drivetrain control with toggleable braking modes.
  */
 void drivetrain_control();
-void score_goal();
-void intake_loop(); 
-void endgame_ctl();
-void tongue_aligner_toggle();
+void teleop_loop();
 
 #endif // CONTROLS_HPP

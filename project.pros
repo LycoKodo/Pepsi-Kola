@@ -1,7 +1,11 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
+<<<<<<< HEAD
     "project_name": "1831 ",
+=======
+    "project_name": "Prometheus V0.1",
+>>>>>>> gavin-bot
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -299,7 +303,7 @@
     },
     "upload_options": {
       "description": "Main ~~Scattfold~~ Schlattfold",
-      "icon": "power",
+      "icon": "X",
       "slot": 1
     },
     "use_early_access": false

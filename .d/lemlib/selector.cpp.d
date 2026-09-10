@@ -146,9 +146,12 @@ bin/lemlib/selector.cpp.o: src/lemlib/selector.cpp include/api.h \
  include/lemlib/logger/telemetrySink.hpp include/lemlib/smartMotor.hpp \
  include/colorsort.hpp include/controls.hpp include/lemlib/selector.hpp \
  include/lemlib/selector.hpp
+<<<<<<< HEAD
 =======
  include/lemlib/logger/telemetrySink.hpp include/lemlib/smartMotor.hpp
 >>>>>>> Stashed changes
+=======
+>>>>>>> gavin-bot
 include/api.h:
 include/pros/adi.h:
 include/pros/colors.h:
@@ -396,5 +399,8 @@ include/colorsort.hpp:
 include/controls.hpp:
 include/lemlib/selector.hpp:
 include/lemlib/selector.hpp:
+<<<<<<< HEAD
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> gavin-bot

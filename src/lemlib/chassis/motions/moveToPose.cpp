@@ -59,7 +59,7 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
         const float distTarget = pose.distance(target);
 
         // check if the robot is close enough to the target to start settling
-        if (distTarget < 0.1 && close == false) {
+        if (distTarget < 7.5 && close == false) {
             close = true;
             params.maxSpeed = fmax(fabs(prevLateralOut), 60);
         }
@@ -78,7 +78,7 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
                                 (carrot.x - target.x) * cos(target.theta) + params.earlyExitRange;
         const bool sameSide = robotSide == carrotSide;
         // exit if close
-        if (!sameSide && prevSameSide && close && params.minSpeed != 0) break;
+        if (!sameSide && prevSameSide && close && params.minSpeed != 0 && distTarget < 1.5) break; // NOTE - for timmy who likes minspeed
         prevSameSide = sameSide;
 
         // calculate error
@@ -146,7 +146,7 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
         }
 
         // move the drivetrain
-        drivetrain.leftMotors->move(leftPower);
+        drivetrain.leftMotors->move(leftPower*0.9);
         drivetrain.rightMotors->move(rightPower);
 
         // delay to save resources
