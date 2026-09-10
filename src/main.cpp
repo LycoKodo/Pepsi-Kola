@@ -63,19 +63,6 @@
 // ----------------------------------------------------
 
 LV_IMG_DECLARE(image); //TKSRC Logo
-<<<<<<< HEAD
-
-// TODO - Temporary
-// void autonwatcher() {
-//     while (true) {
-//         printf("Selected Auton: %i\n", lemlib::selector::auton);
-//         pros::delay(10);
-//     }
-// }
-
-
-=======
->>>>>>> gavin-bot
 void initialize() {
 
     odomLift.set_value(1);
@@ -94,27 +81,9 @@ void initialize() {
     // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
 
-<<<<<<< Updated upstream
     // -----------------------
     // Initialise Sensors
     // -----------------------
-<<<<<<< HEAD
-    // colorSort.set_led_pwm(100);
-    // lady_rotation.set_position(0);
-=======
-    // // -----------------------
-    // // Initialise Sensors
-    // // -----------------------
->>>>>>> Stashed changes
-
-    colorsort.initialise(); // auto-detect alliance
-
-    // // -----------------------
-    // // Initialise Subsystems
-    // // -----------------------
-
-=======
->>>>>>> gavin-bot
     lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
 
     // -----------------------
@@ -171,13 +140,6 @@ void initialize() {
     };
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
-<<<<<<< HEAD
-
-    // TODO - temporary 
-    // pros::Task watcher(autonwatcher);
-
-=======
->>>>>>> gavin-bot
 }
 
 void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me bro fr)
@@ -233,15 +195,8 @@ void autonomous() {
         // Default auton
         auton1ring();
     }
-<<<<<<< HEAD
-
-
-
-=======
->>>>>>> gavin-bot
 }
 
-// TODO - Problem Lies in Controls
 void opcontrol() {
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
@@ -250,14 +205,5 @@ void opcontrol() {
     
     
     pros::Task driveTask(drivetrain_control);
-<<<<<<< HEAD
-    // pros::Task scoreTask(score_goal);
-    pros::Task intakeTask([] {
-        colorsort.sorted_intake_loop();
-    }); // use a lambda
-    // pros::Task endgameTask(endgame_ctl);
-    // pros::Task tongueAlignerTask(tongue_aligner_toggle);
-=======
     pros::Task teleopTask(teleop_loop);
->>>>>>> gavin-bot
 }

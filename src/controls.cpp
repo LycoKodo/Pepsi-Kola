@@ -10,8 +10,6 @@
 
 #include "robot-config.hpp"
 
-
-
 void drivetrain_control() {
     bool arcadeMode = true;   // default: ARCADE
     bool latch = false;
@@ -212,91 +210,9 @@ void teleop_loop() {
             top2.brake();
         }
         
-<<<<<<< HEAD
-        chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
-        pros::delay(10);
-    }
-}
-
-void score_goal() {
-    while (true) {
-        if (master.get_digital(DIGITAL_R2)) {
-            front_intake.move(127);
-            middle_intake.move(127);
-            top_intake.move(127);
-            back_intake.move(127);
-        }
-        else if (master.get_digital(DIGITAL_L2)) {
-            front_intake.move(127);
-            middle_intake.move(127);
-            top_intake.move(-127);
-            back_intake.move(127);
-        } else {
-            front_intake.brake();
-            middle_intake.brake();
-            top_intake.brake();
-            back_intake.brake();
-        }
-        pros::delay(10);
-    }
-}
-
-void intake_loop() {
-    while(true) {
-        if (master.get_digital(DIGITAL_R1)) {
-            front_intake.move(127);
-            middle_intake.move(-127);
-            top_intake.move(-127);
-            back_intake.move(127);
-        }
-        else if (master.get_digital(DIGITAL_L1)) {
-            front_intake.move(-127);
-            middle_intake.move(127);
-            top_intake.move(127);
-            back_intake.move(-127);
-        } else {
-            front_intake.brake();
-            middle_intake.brake();
-            top_intake.brake();
-            back_intake.brake();
-        }
-        pros::delay(10);
-    }
-}
-
-void endgame_ctl() {
-    bool toggle = true;
-    bool latch = false;
-
-    while (true) {
-        bool b_button = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
-
-        if (b_button && !latch) {
-            endgame.set_value(1);
-            toggle = !toggle;             // Flip the toggle state
-            latch = true;                 // Engage latch to prevent repeated toggles
-            
-        } else if (!b_button) {
-            endgame.set_value(0);
-            latch = false;                // Reset latch when button is released
-        }
-        pros::delay(10);
-    }
-}
-
-void tongue_aligner_toggle() {
-    bool toggle = true;
-    bool latch = false;
-
-    while (true) {
-        bool b_button = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
-
-        if (b_button && !latch) {
-=======
         // --- Pneumatics (Wings/Tongue) ---
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
             descore.set_value(0); // Ensure descorer is retracted when scoring long
->>>>>>> gavin-bot
             tongue.set_value(1);
             // Original code set heaven false here. 
             // We must update the state variable to match!

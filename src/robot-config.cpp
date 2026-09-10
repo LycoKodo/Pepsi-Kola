@@ -75,16 +75,9 @@ pros::adi::DigitalOut odomLift(7);
 // Sensors (Miscellaneous)
 // ---------------------------------------
 
-<<<<<<< HEAD
-pros::Optical color_sort_optical(7); // TODO - Change port
-pros::Optical preload_optical(19);
-
-macros::ColorSort colorsort = macros::ColorSort();
-=======
 // pros::Optical color_sort_optical(15); // TODO - Change port
 
 // macros::ColorSort colorsort = macros::ColorSort();
->>>>>>> gavin-bot
 
 // ---------------------------------------
 // Odometry

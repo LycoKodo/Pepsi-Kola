@@ -242,8 +242,6 @@ void tabWatcher(void* param) {
                 // printf("Current Auton %i", auton);
                 pros::delay(10);
             }
-
-            printf("Tabwatcher refreshed. \n");
         }
     } catch (const std::exception& ex) {
         log_error("tabWatcher", ex.what());
@@ -388,7 +386,7 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         lv_obj_set_size(other_textarea, left_width, 100);
         lv_obj_align(other_textarea, LV_ALIGN_TOP_LEFT, 203, 65);
         lv_textarea_add_text(other_textarea, "Alliance: \n");
-
+        lv_textarea_add_text(other_textarea, "Lady Position: \n");
         lv_textarea_add_text(other_textarea, "Chassis Kp: \n");
         lv_textarea_add_text(other_textarea, "Chassis Ki: \n");
         lv_textarea_add_text(other_textarea, "Chassis Kd: ");
@@ -424,7 +422,7 @@ void destroy() {
 
 // Holy shit this is horrible but it fucking works so dont u dare touch it
 // @LycoKodo *wags finger* nuh uh (i didnt touch it dw)
-// TODO: make this less terrible            <-- this was an autocomplete suggested comment btw 
+// TODO: make this less terrible            <-- this was an autocomplete suggested comment btw :skull:
 // TODO: figure out how to highlight which motor to prioritise cooling
 
 int motorUpdate() {
@@ -519,15 +517,11 @@ int motorUpdate() {
     // @LycoKodo wdyt? 
 
     try {
-<<<<<<< Updated upstream
         double current = 999;//intake.get_temperature();
-=======
-        double current = front_intake.get_temperature();
->>>>>>> Stashed changes
         if (current == PROS_ERR_F) {
             lv_textarea_add_text(motor_temps_textarea, "Intake: ERROR (PROS)\n");
         } else {
-            snprintf(buffer, sizeof(buffer), "Intake:");
+            snprintf(buffer, sizeof(buffer), "Intake: %d\n", static_cast<int>(current));
             lv_textarea_add_text(motor_temps_textarea, buffer);
         }
     } catch (std::out_of_range&) {
@@ -535,17 +529,13 @@ int motorUpdate() {
         ret = 1;
     }
 
-    //Note: IMO this is not rlly needed as in a tournament in a rush you will NOT prioritise cooling lady brown motor
+    // Note: IMO this is not rlly needed as in a tournament in a rush you will NOT prioritise cooling lady brown motor
     try {
-<<<<<<< Updated upstream
         double current = 999; //lady.get_temperature();
         if (current == PROS_ERR_F) {
-=======
-        if (true) {
->>>>>>> Stashed changes
             lv_textarea_add_text(motor_temps_textarea, "WallMech: ERROR (PROS)");
         } else {
-            snprintf(buffer, sizeof(buffer), "WallMech:");
+            snprintf(buffer, sizeof(buffer), "WallMech: %d", static_cast<int>(current));
             lv_textarea_add_text(motor_temps_textarea, buffer);
         }
     } catch (std::out_of_range&) {
@@ -565,15 +555,6 @@ int odomUpdate() {
 
     lv_textarea_set_text(odom_textarea, ""); // Clear
 
-<<<<<<< HEAD
-    snprintf(buffer, sizeof(buffer), "X: %f\n", 0.1); //chassis.getPose().x
-    lv_textarea_add_text(odom_textarea, buffer);
-
-    snprintf(buffer, sizeof(buffer), "Y: %f\n", 0.1); //chassis.getPose().y
-    lv_textarea_add_text(odom_textarea, buffer);
-
-    snprintf(buffer, sizeof(buffer), "Theta: %f", 0.1); //chassis.getPose().theta
-=======
     snprintf(buffer, sizeof(buffer), "X: %f\n", x); //chassis.getPose().x
     lv_textarea_add_text(odom_textarea, buffer);
 
@@ -581,7 +562,6 @@ int odomUpdate() {
     lv_textarea_add_text(odom_textarea, buffer);
 
     snprintf(buffer, sizeof(buffer), "Theta: %f", theta); //chassis.getPose().theta
->>>>>>> gavin-bot
     lv_textarea_add_text(odom_textarea, buffer); 
 
     return 0;
@@ -594,12 +574,7 @@ int customUpdate() {
 
     // Logic to Update Alliance
 
-<<<<<<< HEAD
-    char alliance = 'N';
-<<<<<<< Updated upstream
-=======
     // char alliance = 'N';
->>>>>>> gavin-bot
     // if (auton >= 1 && auton <= 100){
     //     alliance = 'R';
     // } else if (auton >= -100 && auton <= -1) {
@@ -608,31 +583,14 @@ int customUpdate() {
     //     alliance = 'S'; // @note: alliance for skills is RED
     // }
 
-<<<<<<< HEAD
-    snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
-    lv_textarea_add_text(other_textarea, buffer);
-
-    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f\n", 9.9);
-=======
-    if (auton >= 1 && auton <= 100){
-        alliance = 'R';
-    } else if (auton >= -100 && auton <= -1) {
-        alliance = 'B';
-    } else if (auton >= 101 && auton <= 201) {
-        alliance = 'S'; // @note: alliance for skills is RED
-    }
-    snprintf(buffer, sizeof(buffer), "Alliance: \n");
-=======
     // char alliance = colorsort.alliance;
 
     char alliance = 'N'; // TODO - TEMPORARY
 
     snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
->>>>>>> gavin-bot
     lv_textarea_add_text(other_textarea, buffer);
 
-    snprintf(buffer, sizeof(buffer), "Lady Rotation: \n");
->>>>>>> Stashed changes
+    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f\n", 9.9);
     lv_textarea_add_text(other_textarea, buffer);
 
     snprintf(buffer, sizeof(buffer), "Drive P: %.2f I: %.2f D: %.2f\n", linearController.kP, linearController.kI, linearController.kD);

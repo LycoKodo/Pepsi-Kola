@@ -19,12 +19,7 @@ ColorSort::ColorSort() {}
 
 void ColorSort::initialise(char alliance) {
     // CPP DEFAULT PARAM SYNTAX GUIDDE: https://en.cppreference.com/w/cpp/language/default_arguments
-<<<<<<< HEAD
-    preload_optical.set_led_pwm(100);
-    color_sort_optical.set_led_pwm(100);
-=======
     // color_sort_optical.set_led_pwm(100);
->>>>>>> gavin-bot
     if (alliance != 'N') {
         this->alliance = alliance;
     } else {
@@ -32,13 +27,10 @@ void ColorSort::initialise(char alliance) {
     }
 }
 
-<<<<<<< HEAD
-=======
 char ColorSort::get_alliance() {
     return this->alliance;
 }
 
->>>>>>> gavin-bot
 // RED CLRSRT -> 10 
 // RED PRELOAD -> 13
 
@@ -48,11 +40,7 @@ char ColorSort::identify_alliance() {
     // TODO - IMPLEMENT TUNING
     const float blue_lim_low = 185, blue_lim_high = 240;
     const float red_lim_low = 0, red_lim_high = 30;
-<<<<<<< HEAD
-    double hue = preload_optical.get_hue();
-=======
     double hue = 100; //color_sort_optical.get_hue();
->>>>>>> gavin-bot
 
     if (red_lim_low < hue && hue < red_lim_high) {
         return 'R';
@@ -66,11 +54,7 @@ bool ColorSort::ringInspect() {
     // TODO - Tune these values
     const float blue_lim_low = 185, blue_lim_high = 240;
     const float red_lim_low = 0, red_lim_high = 30;
-<<<<<<< HEAD
-    double hue = color_sort_optical.get_hue();
-=======
     double hue = 100; // color_sort_optical.get_hue();
->>>>>>> gavin-bot
 
     // TODO - figure out alliancing (color_sort_identifier, + monitoring on dev page)
     if (alliance == 'B') {

@@ -1,11 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-<<<<<<< HEAD
-    "project_name": "1831 ",
-=======
     "project_name": "Prometheus V0.1",
->>>>>>> gavin-bot
     "target": "v5",
     "templates": {
       "LemLib": {

@@ -32,14 +32,6 @@ namespace macros{
             // Public alliance indicator
             char alliance;
 
-<<<<<<< HEAD
-        private:
-            // Alliance detection via optical sensor
-            char identify_alliance();
-
-            // Ring inspection based on hue + alliance
-            bool ringInspect();
-=======
             char get_alliance();
 
             // Ring inspection based on hue + alliance
@@ -48,7 +40,6 @@ namespace macros{
         private:
             // Alliance detection via optical sensor
             char identify_alliance();
->>>>>>> gavin-bot
     };
 
 }
