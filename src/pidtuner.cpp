@@ -38,6 +38,10 @@ int selected = LAT_P;
 constexpr float STEPS[] = {0.001f, 0.01f, 0.1f, 1.0f, 5.0f};
 constexpr int STEP_COUNT = sizeof(STEPS) / sizeof(STEPS[0]);
 
+/** @brief Decimals needed to show one step of each STEPS entry */
+constexpr int STEP_DECIMALS[] = {3, 2, 1, 0, 0};
+static_assert(sizeof(STEP_DECIMALS) / sizeof(STEP_DECIMALS[0]) == STEP_COUNT);
+
 int stepIndex = 2; // 0.1
 
 /**
@@ -50,6 +54,10 @@ int stepIndex = 2; // 0.1
 void writeCell(char* dest, size_t size, float value, int field, int decimals) {
     const char open = (field == selected) ? '>' : ' ';
     const char close = (field == selected) ? '<' : ' ';
+    // never show fewer decimals than the step changes, or a press lands below
+    // the display's resolution and the editor looks like it ignored it. at the
+    // 0.001 step a 2 decimal cell would need ten presses to visibly move
+    if (STEP_DECIMALS[stepIndex] > decimals) decimals = STEP_DECIMALS[stepIndex];
     snprintf(dest, size, "%c%7.*f%c", open, decimals, value, close);
 }
 

@@ -82,7 +82,6 @@ lv_obj_t* bocchiTab = lv_tabview_add_tab(tabview, " ");
 // Instead of lv_obj_t *motor_temps_textarea = lv_textarea_create(devTab);
 lv_obj_t *motor_temps_textarea = lv_textarea_create(devTab);
 lv_obj_t *odom_textarea = lv_textarea_create(devTab);
-lv_obj_t *other_textarea = lv_textarea_create(devTab);
 
 lv_obj_t *qual_textarea = lv_textarea_create(qualTab);
 lv_obj_t *AI_textarea = lv_textarea_create(AITab);
@@ -372,11 +371,9 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
 
         // Define layout dimensions for L-shaped split screen
         const int width = 480;
-        const int height = 272;
 
         const int left_width = width / 2; // Left side width for Motor Temps
         const int right_width = width - left_width;
-        const int top_height = height / 2; // Top height for Odometry
 
         // Create "Motor Temps" text area
         lv_obj_set_size(motor_temps_textarea, left_width - 30, 177);
@@ -404,20 +401,12 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         lv_textarea_set_password_mode(odom_textarea, false);
         lv_obj_add_state(odom_textarea, LV_STATE_DISABLED);
 
-        // shrunk from 100px to make room for the PID editor below it. the gains
-        // it used to print are now shown, and edited, by pidtuner
-        lv_obj_set_size(other_textarea, left_width, 46);
-        lv_obj_align(other_textarea, LV_ALIGN_TOP_LEFT, 203, 65);
-        lv_textarea_add_text(other_textarea, "Alliance: \n");
-        lv_textarea_add_text(other_textarea, "Lady Position: ");
-
-        lv_textarea_set_cursor_click_pos(other_textarea, false);
-        lv_textarea_set_password_mode(other_textarea, false);
-        lv_obj_add_state(other_textarea, LV_STATE_DISABLED);
-
-        // PID editor fills the strip between the alliance readout and the
-        // bottom of the tab: y 115..207 of the ~222px content area
-        pidtuner::init(devTab, 203, 115, left_width, 92);
+        // PID editor sits directly under the odometry readout. The tab page is
+        // ~195px tall (240px drawable, less the tab bar), which in these
+        // -12-offset align coordinates is usable down to about y=183. At
+        // y 65..157 all five lines fit with room to spare -- at the old y=115
+        // the box ran ~24px off the bottom and hid the STEP and AUTO rows
+        pidtuner::init(devTab, 203, 65, left_width, 92);
 
         lv_obj_t *img = lv_img_create(bocchiTab);
         lv_img_set_src(img, &dorito); // Link to source image
@@ -591,33 +580,6 @@ int odomUpdate() {
 }
 
 int customUpdate() {
-    lv_textarea_set_text(other_textarea, ""); // Clear
-
-    char buffer[64]; // Buffer to hold formatted strings
-
-    // Logic to Update Alliance
-
-    // char alliance = 'N';
-    // if (auton >= 1 && auton <= 100){
-    //     alliance = 'R';
-    // } else if (auton >= -100 && auton <= -1) {
-    //     alliance = 'B';
-    // } else if (auton >= 101 && auton <= 201) {
-    //     alliance = 'S'; // @note: alliance for skills is RED
-    // }
-
-    // char alliance = colorsort.alliance;
-
-    char alliance = 'N'; // TODO - TEMPORARY
-
-    snprintf(buffer, sizeof(buffer), "Alliance: %c\n", alliance);
-    lv_textarea_add_text(other_textarea, buffer);
-
-    snprintf(buffer, sizeof(buffer), "Lady Rotation: %.2f", 9.9);
-    lv_textarea_add_text(other_textarea, buffer);
-
-    // the drive/turn gains moved into the PID editor, which reads them off the
-    // live chassis PIDs rather than the ControllerSettings copies
     pidtuner::render();
 
     return 0;
