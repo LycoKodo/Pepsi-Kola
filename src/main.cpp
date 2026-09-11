@@ -106,12 +106,16 @@ void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me br
 void competition_initialize() {}
 
 void autonomous() {
-    lemlib::selector::autonStarted = true;
+    chassis.moveToPoint(0, 24, 2000, {}, false);
 
-    // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills (CLAUDE.md)
-    switch (lemlib::selector::auton) {
-        default: auton1ring(); break;
-    }
+    chassis.moveToPoint(0, 0, 2000, {.forwards=false}, false);
+
+    // lemlib::selector::autonStarted = true;
+
+    // // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills (CLAUDE.md)
+    // switch (lemlib::selector::auton) {
+    //     default: auton1ring(); break;
+    // }
 }
 
 void opcontrol() {

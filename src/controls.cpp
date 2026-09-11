@@ -15,6 +15,7 @@
 void drivetrain_control() {
     bool arcadeMode = true;   // default: ARCADE
     bool latch = false;
+    bool testLatch = false;   // TEMP: A+B test motion
 
     while (true) {
         // 1. Read toggle combo
@@ -41,6 +42,23 @@ void drivetrain_control() {
             latch = true;  // prevent retrigger while held
         } else if (!combo_pressed) {
             latch = false; // allow next press to toggle
+        }
+
+        // TEMP test motion: A + B drives to (0, 24) and back. runs in this
+        // task, not teleop_loop, so the arcade/tank writes below are blocked for
+        // the whole motion instead of fighting it. off the D-pad on purpose, so
+        // it works on the Developer tab without nudging a gain. still yields to
+        // the auto-tuner, whose relay drives the motors itself
+        bool test_pressed =
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_A) &&
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+
+        if (test_pressed && !testLatch && !autotune::isRunning()) {
+            testLatch = true;  // one run per press, even if still held after
+            chassis.moveToPoint(0, 24, 2000, {}, false);
+            chassis.moveToPoint(0, 0, 2000, {.forwards=false}, false);
+        } else if (!test_pressed) {
+            testLatch = false;
         }
 
         // 3. Read joysticks
