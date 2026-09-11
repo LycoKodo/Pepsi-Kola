@@ -176,6 +176,14 @@ void test_malformed() {
     check(devcmd::parse("turn -360").args[0] == -360.f, "turn at min");
 }
 
+void test_stream_int_overflow() {
+    // 4294967306 narrows to 10 on LP64 without a range check — inside period bounds.
+    expect_invalid_msg("stream pose 4294967306 100", "invalid number", "period int overflow");
+    expect_invalid_msg("stream pose 10 4294967297", "invalid number", "duration int overflow");
+    expect_invalid_msg("stream pose -4294967246 100", "invalid number", "period int underflow");
+    expect_invalid_msg("stream pose 10 -4294967295", "invalid number", "duration int underflow");
+}
+
 } // namespace
 
 int main() {
@@ -183,6 +191,7 @@ int main() {
     test_set_combinations();
     test_motion_and_stream();
     test_malformed();
+    test_stream_int_overflow();
 
     if (failures != 0) {
         std::fprintf(stderr, "%d test(s) failed\n", failures);

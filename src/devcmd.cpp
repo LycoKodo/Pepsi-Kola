@@ -1,5 +1,7 @@
 #include "devcmd.hpp"
 
+#include <cerrno>
+#include <climits>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -101,8 +103,13 @@ bool parse_int(std::string_view tok, int& out) {
     std::memcpy(buf, tok.data(), tok.size());
     buf[tok.size()] = '\0';
     char* end = nullptr;
+    errno = 0;
     const long val = std::strtol(buf, &end, 10);
     if (end == buf || *end != '\0')
+        return false;
+    if (errno == ERANGE)
+        return false;
+    if (val < INT_MIN || val > INT_MAX)
         return false;
     out = static_cast<int>(val);
     return true;
