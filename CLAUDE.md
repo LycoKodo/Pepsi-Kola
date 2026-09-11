@@ -97,6 +97,10 @@ positions checked against the offset rule above.
 communicate. Keep them non-blocking — note that the L1/R1 handlers deliberately spin-wait on
 button release to make lift and score distinct presses.
 
+`drivetrain_control` stops writing the drive while `autotune::isRelayActive()` — the relay drives
+the motors itself, and `chassis.arcade` writes them on every call, even `move(0)` at centered
+sticks. Anything else that needs to own the drivetrain during opcontrol needs the same yield.
+
 `teleop_loop` carries one piece of state, `is_heaven_up`. Any code path that moves the `heaven`
 pneumatic must update it or the lift/score toggle desynchronizes from the hardware.
 

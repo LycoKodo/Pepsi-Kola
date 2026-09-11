@@ -48,8 +48,14 @@ void drivetrain_control() {
         int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
 
-        // 4. Drive based on current mode
-        if (arcadeMode) {
+        // 4. Drive based on current mode, unless the auto-tuner's relay has the
+        // drivetrain. chassis.arcade writes the motors on every call, even 0 at
+        // centered sticks, so both tasks would write the drive every 10ms and
+        // the relay's effective amplitude -- and the gains computed from it --
+        // would come out wrong
+        if (autotune::isRelayActive()) {
+            // hands off
+        } else if (arcadeMode) {
             chassis.arcade(leftY, rightX);
         } else {
             chassis.tank(leftY, rightY);

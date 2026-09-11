@@ -33,6 +33,15 @@ void start();
 /** @brief Whether the wizard overlay is showing and owns the D-pad */
 bool isRunning();
 
+/**
+ * @brief Whether the relay is driving the drivetrain right now
+ *
+ * Narrower than isRunning(): false on the wizard's other pages, so the driver
+ * can still drive the robot into position during PLACEMENT. drivetrain_control
+ * checks this and stops writing the drive motors while it is true.
+ */
+bool isRelayActive();
+
 /** @brief Poll the D-pad and advance the wizard. Safe to call every loop */
 void handleInput();
 

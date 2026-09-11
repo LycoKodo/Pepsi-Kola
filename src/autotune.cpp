@@ -84,6 +84,15 @@ pros::Mutex resultMutex;
 /** @brief Set by the UI to ask the relay task to stop early */
 bool abortRequested = false;
 
+/**
+ * @brief True from the start of a run until relayLoop has stopped the drive
+ *
+ * Set before the relay task exists and cleared only by relayLoop itself, after
+ * its final stopDrive(), so there is never a window where the relay is still
+ * writing the motors but drivetrain_control has been told it may resume.
+ */
+bool relayActive = false;
+
 // ---------------------------------------------------------------------------
 // Measurement
 // ---------------------------------------------------------------------------
@@ -228,6 +237,7 @@ void relayLoop(void*) {
     }
 
     stopDrive();
+    relayActive = false;
     result.flips = flips;
 
     if (result.ok) {
@@ -291,6 +301,7 @@ void beginRun() {
     abortRequested = false;
     publish(Measurement {});
     step = RUNNING;
+    relayActive = true;
     if (relayTask != nullptr) {
         delete relayTask;
         relayTask = nullptr;
@@ -374,6 +385,8 @@ void start() {
 }
 
 bool isRunning() { return wizardOpen; }
+
+bool isRelayActive() { return relayActive; }
 
 void handleInput() {
     if (!wizardOpen) return;

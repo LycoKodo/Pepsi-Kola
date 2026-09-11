@@ -435,7 +435,7 @@ the auton name table.
 
 Touching `include/lemlib/pid.hpp` and `chassis.hpp` rebuilds roughly 40 files. That is expected.
 
-### Phase 0 — ships before the bridge, independently
+### Phase 0 — ships before the bridge, independently (done: see git log for `isRelayActive`)
 
 The `drivetrain_control` half of the `controls.cpp` change fixes an **existing bug** in
 `eb6b083`, and should land first on its own. Today the auto-tuner's relay task and
