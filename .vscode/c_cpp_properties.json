@@ -2,33 +2,15 @@
   "configurations": [
     {
       "name": "PROS Project",
-      "includePath": [
-        "${workspaceFolder}/**",
-        "/Users/arona/Documents/GitHub/1831D-TimmyTammies/include",
-        "/Users/skyfan/Documents/1831D-TimmyTammies/include",
-        "/Users/timerburgerking/Documents/GitHub/1831D-TimmyTammies/include",
-        "/home/alex/GitHub/1831D-TimmyTammies/include",
-        "/Users/angus/Documents/GitHub/1831D-TimmyTammies/include",
-        "/Users/arona/Desktop/Pepsi-Kola/include"
-      ],
-      "defines": [
-        "_DEBUG",
-        "UNICODE",
-        "_UNICODE"
-      ],
-      "compilerPath": "/Users/arona/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/arm-none-eabi-g++",
+      "includePath": ["${workspaceFolder}/**"],
+      "defines": ["_DEBUG", "UNICODE", "_UNICODE"],
+      "compilerPath": "${userHome}/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/arm-none-eabi-g++",
       "cStandard": "gnu11",
       "cppStandard": "gnu++20",
       "intelliSenseMode": "gcc-arm",
-      "macFrameworkPath": [
-        "/System/Library/Frameworks"
-      ],
       "browse": {
-        "path": [
-          "/Users/arona/Desktop/Pepsi-Kola"
-        ],
-        "limitSymbolsToIncludedHeaders": true,
-        "databaseFilename": ""
+        "path": ["${workspaceFolder}"],
+        "limitSymbolsToIncludedHeaders": true
       }
     }
   ],

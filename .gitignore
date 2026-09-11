@@ -1,3 +1,31 @@
+# ---------------------------------------
+# PROS build output
+# ---------------------------------------
 bin/
-.cache/
 .d/
+*.o
+*.elf
+*.bin
+*.a.timestamp
+
+# ---------------------------------------
+# Editor / language-server caches
+# ---------------------------------------
+.cache/
+.clangd/
+.ccls-cache/
+
+# compile_commands.json bakes in one machine's absolute toolchain paths,
+# so it must not be shared. Regenerate locally with:
+#   pros build-compile-commands
+compile_commands.json
+
+# ---------------------------------------
+# OS junk
+# ---------------------------------------
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini

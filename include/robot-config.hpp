@@ -10,8 +10,6 @@
 #include "pros/rtos.h"
 #include "pros/rtos.hpp"
 
-#include "colorsort.hpp"
-
 // ---------------------------------------
 // Drivetrain & Chassis
 // ---------------------------------------
@@ -38,17 +36,6 @@ extern pros::adi::DigitalOut heaven;
 // Sensors (Miscellaneous)
 // ---------------------------------------
 extern pros::Imu imu;
-extern pros::Optical color_sort_optical;
-extern macros::ColorSort colorsort;
-
-// ---------------------------------------
-// Macro (Wall Stake Mech)
-// ---------------------------------------
-
-extern pros::MotorGroup lady;
-extern lemlib::PID ladypid;
-extern pros::Rotation lady_rotation;
-extern lemlib::SmartMotor ladySmart;
 
 // ---------------------------------------
 // Odometry

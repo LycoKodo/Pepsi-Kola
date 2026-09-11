@@ -50,10 +50,8 @@ void drivetrain_control() {
 
         // 4. Drive based on current mode
         if (arcadeMode) {
-            printf("Control: Arcade\n");
             chassis.arcade(leftY, rightX);
         } else {
-            printf("Control: Tank\n");
             chassis.tank(leftY, rightY);
         }
 
@@ -62,55 +60,6 @@ void drivetrain_control() {
 }
 
 
-
-// void teleop_loop() {
-//     while(true) {
-//         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) { // long goal 
-//             aligner.set_value(1);
-//             tongue.set_value(0);
-//             front_intake.move(127);
-//             middle_intake.move(127);
-//             top_intake.move(127);
-//             back_intake.move(127);
-//         }
-//         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // intake to bucket
-//             front_intake.move(127);
-//             middle_intake.move(-127);
-//             top_intake.move(-127);
-//             back_intake.move(127);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // middle goal
-//             aligner.set_value(0);
-//             front_intake.move(127);
-//             middle_intake.move(127);
-//             top_intake.move(-127);
-//             back_intake.move(127);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // outtake
-//             front_intake.move(-127);
-//             middle_intake.move(127);
-//             top_intake.move(127);
-//             back_intake.move(-127);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) { // Endgame down
-//             endgame.set_value(1);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) { // Endgame up
-//             endgame.set_value(0);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Aligner
-//             aligner.set_value(1);
-//             tongue.set_value(0);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) { // Tongue
-//             aligner.set_value(0);
-//             tongue.set_value(1);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) { // Disable both
-//             aligner.set_value(0);
-//             tongue.set_value(0);
-//         } else {
-//             front_intake.brake();
-//             middle_intake.brake();
-//             top_intake.brake();
-//             back_intake.brake();
-//         }
-//         pros::delay(10);
-//     }
-// }
 
 void teleop_loop() {
     // STATE VARIABLE: Tracks if the lift/heaven is currently UP (true) or DOWN (false)

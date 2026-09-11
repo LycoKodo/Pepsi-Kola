@@ -13,7 +13,6 @@
 #include "pros/rtos.hpp"
 #include <sys/wait.h>
 
-#include "colorsort.hpp"
 // ---------------------------------------
 // Drivetrain & Chassis
 // ---------------------------------------
@@ -44,12 +43,6 @@ lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-// pros::Motor top_intake(6, pros::MotorGearset::blue);
-// pros::Motor front_intake(9, pros::MotorGearset::blue);
-// pros::Motor middle_intake(4, pros::MotorGearset::blue);
-// pros::Motor back_intake(2, pros::MotorGearset::blue);
-
-
 //Gavin's Robot Config for Intake
 pros::MotorGroup intake({17, 9, 19}, pros::MotorGearset::green);
 pros::Motor ramp(9, pros::MotorGearset::blue);
@@ -68,16 +61,9 @@ pros::adi::DigitalOut tongue(6);
 pros::adi::DigitalOut descore(8);
 pros::adi::DigitalOut odomLift(7);
 
-// pros::adi::DigitalOut doinker (7);
-// pros::adi::DigitalOut endgame (1);
-
 // ---------------------------------------
 // Sensors (Miscellaneous)
 // ---------------------------------------
-
-// pros::Optical color_sort_optical(15); // TODO - Change port
-
-// macros::ColorSort colorsort = macros::ColorSort();
 
 // ---------------------------------------
 // Odometry
