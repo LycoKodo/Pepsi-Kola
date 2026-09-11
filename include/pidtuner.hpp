@@ -12,14 +12,16 @@
  * Values live in RAM only. They reset to the constants in robot-config.cpp on
  * every reboot, so a tune that works has to be transcribed back into the source.
  *
- * Controls (Developer tab only):
- *   UP    - move to the next field
- *   LEFT  - decrease the selected field by one step
- *   RIGHT - increase the selected field by one step
+ * Controls (Developer tab only). The D-pad moves around the on-screen grid:
+ *   RIGHT - move the cursor to the next field
+ *   LEFT  - move the cursor to the previous field
+ *   UP    - increase the selected field by one step
+ *   DOWN  - decrease the selected field by one step
  *
- * The cycle is LAT P > LAT I > LAT D > ANG P > ANG I > ANG D > STEP, where STEP
- * is the increment LEFT/RIGHT apply, so a coarse sweep and a fine trim are both
- * reachable without extra buttons.
+ * Fields run in reading order, LAT P > LAT I > LAT D > ANG P > ANG I > ANG D >
+ * STEP > AUTO, and wrap at both ends. STEP is the increment UP/DOWN apply, so a
+ * coarse sweep and a fine trim are both reachable without extra buttons. UP on
+ * AUTO opens the auto-tuner wizard; DOWN there does nothing.
  */
 
 #include "liblvgl/lvgl.h"

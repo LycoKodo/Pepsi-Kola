@@ -67,12 +67,12 @@ float clampGain(float value) { return value < 0.0f ? 0.0f : value; }
 /**
  * @brief Apply one step to the selected field
  *
- * @param dir +1 for RIGHT, -1 for LEFT
+ * @param dir +1 for UP, -1 for DOWN
  */
 void adjust(int dir) {
     if (selected == AUTO) {
-        // RIGHT launches the relay auto-tuner. LEFT is deliberately inert so a
-        // stray press cannot start the robot moving
+        // UP opens the relay auto-tuner wizard. DOWN is deliberately inert, so
+        // tapping DOWN to trim a value cannot open it by accident
         if (dir > 0) autotune::start();
         return;
     }
@@ -147,6 +147,7 @@ void setActive(bool state) {
     // drop any half-held button so re-entering the tab does not jump a field
     if (active) {
         master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP);
+        master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN);
         master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT);
         master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_RIGHT);
     }
@@ -157,11 +158,18 @@ bool isActive() { return active; }
 void handleInput() {
     if (!active) return;
 
-    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
+    // the editor is drawn as a grid, so the D-pad moves around it like one:
+    // LEFT/RIGHT walk the cursor through the fields in reading order, UP/DOWN
+    // change the value under it. the old mapping (UP = next field, LEFT/RIGHT
+    // = adjust) meant a press aimed at moving the cursor edited a gain instead
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
         selected = (selected + 1) % FIELD_COUNT;
     }
-    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_RIGHT)) { adjust(+1); }
-    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) { adjust(-1); }
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
+        selected = (selected + FIELD_COUNT - 1) % FIELD_COUNT;
+    }
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) { adjust(+1); }
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) { adjust(-1); }
 }
 
 void render() {
@@ -187,7 +195,7 @@ void render() {
              "LAT%s%s%s\n"
              "ANG%s%s%s\n"
              "STEP%c%6.3f%c  %s\n"
-             "%cAUTO-TUNE%c  UP=next  L/R=adj",
+             "%cAUTO-TUNE%c  L/R=move U/D=adj",
              latP, latI, latD,
              angP, angI, angD,
              stepOpen, STEPS[stepIndex], stepClose,
