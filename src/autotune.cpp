@@ -312,7 +312,13 @@ void closeWizard() {
     stopDrive();
 
     if (overlay != nullptr) {
-        lv_obj_del(overlay);
+        // async, not lv_obj_del. PROS drives LVGL from its own display task
+        // with no lock, and this runs on tabWatcher. deleting here could free
+        // the overlay mid-draw, and the redraw it requests can land while a
+        // refresh is in progress, which LVGL then clears -- leaving the
+        // wizard's pixels on screen with the Developer tab painting through.
+        // lv_obj_del_async defers the delete into the display task itself
+        lv_obj_del_async(overlay);
         overlay = nullptr;
         body = nullptr;
     }
@@ -375,6 +381,15 @@ void handleInput() {
     const bool up = master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP);
     const bool left = master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT);
     const bool right = master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_RIGHT);
+    const bool down = master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN);
+
+    // DOWN leaves the wizard from any page. before this, pages past INTRO had
+    // no way out short of finishing a run. mid-run it aborts first: closeWizard
+    // joins the relay task and stops the drive before tearing the overlay down
+    if (down) {
+        closeWizard();
+        return;
+    }
 
     if (!up && !left && !right) return;
 
@@ -453,7 +468,7 @@ void render() {
                      "goes unstable (Ku) and how fast it rings (Tu). Those two\n"
                      "numbers are enough to compute kP, kI and kD.\n\n"
                      "Clear the area. Keep a hand near the field switch.\n\n"
-                     "RIGHT = continue        LEFT = cancel");
+                     "RIGHT = continue   LEFT = cancel   DOWN = exit");
             break;
 
         case AXIS_SELECT:
@@ -466,7 +481,7 @@ void render() {
                      "LATERAL rocks the robot forward and back along the heading\n"
                      "it currently faces. Needs roughly 6ft of clear lane and\n"
                      "leans on your odometry being trustworthy.\n\n"
-                     "LEFT = angular   RIGHT = lateral   UP = confirm",
+                     "LEFT = angular   RIGHT = lateral   UP = confirm   DOWN = exit",
                      axisName);
             break;
 
@@ -481,7 +496,7 @@ void render() {
                          "whether it is swinging evenly.\n\n"
                          "Battery matters. These gains scale with voltage, so\n"
                          "tune on a charged battery or you retune every session.\n\n"
-                         "RIGHT = continue        LEFT = back",
+                         "RIGHT = continue   LEFT = back   DOWN = exit",
                          axisName);
             } else {
                 snprintf(buffer, sizeof(buffer),
@@ -493,7 +508,7 @@ void render() {
                          "cannot hold a heading will not give a clean drive\n"
                          "oscillation either.\n\n"
                          "Battery matters. Tune on a charged battery.\n\n"
-                         "RIGHT = continue        LEFT = back",
+                         "RIGHT = continue   LEFT = back   DOWN = exit",
                          axisName);
             }
             break;
@@ -508,7 +523,7 @@ void render() {
                      "Too low and static friction wins: the robot judders and\n"
                      "the reading is garbage. Too high and it swings violently.\n\n"
                      "60 is a sane start. Raise it if nothing moves.\n\n"
-                     "LEFT/RIGHT = adjust by 5        UP = confirm",
+                     "LEFT/RIGHT = adjust by 5   UP = confirm   DOWN = exit",
                      amplitude);
             break;
 
@@ -522,7 +537,7 @@ void render() {
                      "It stops on its own once it has counted enough swings, or\n"
                      "if it drifts too far, or if you abort.\n\n"
                      "Hands clear.\n\n"
-                     "RIGHT = START        LEFT = back",
+                     "RIGHT = START   LEFT = back   DOWN = exit",
                      axisName, amplitude);
             break;
 
@@ -535,7 +550,7 @@ void render() {
                      "first few swings are thrown away as transient.\n\n"
                      "If it is barely moving, abort and raise the amplitude.\n"
                      "If it is thrashing, abort and lower it.\n\n"
-                     "LEFT = ABORT",
+                     "LEFT = ABORT   DOWN = abort and exit",
                      axisName, result.flips, TARGET_FLIPS);
             break;
         }
@@ -558,7 +573,7 @@ void render() {
                      "lands soft, which is what a drivetrain wants. ZN is the\n"
                      "textbook rule and deliberately overshoots about 25%%.\n\n"
                      "Applying only changes RAM. Copy it into robot-config.cpp.\n\n"
-                     "LEFT = SAFE   RIGHT = ZN   UP = apply and close",
+                     "LEFT = SAFE   RIGHT = ZN   UP = apply   DOWN = discard",
                      axisName, result.ku, result.tu, result.amplitudeMeasured,
                      preset == SAFE ? "SAFE" : "ZIEGLER-NICHOLS", kP, kI, kD, pid.getKP(), pid.getKI(), pid.getKD());
             break;
@@ -575,7 +590,7 @@ void render() {
                      "Runaway means it never came back to the setpoint. Lower\n"
                      "the amplitude, and on lateral check your odometry.\n\n"
                      "Nothing was changed.\n\n"
-                     "RIGHT = try again        LEFT = close",
+                     "RIGHT = try again   LEFT = close   DOWN = exit",
                      result.failure, result.flips);
             break;
         }
