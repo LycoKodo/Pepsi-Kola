@@ -46,7 +46,7 @@ test-host:
 	@mkdir -p /tmp/pepsi-kola-host-tests
 	c++ -std=c++20 -Wall -Wextra -Werror -Iinclude src/devcmd.cpp tools/test-devcmd.cpp -o /tmp/pepsi-kola-host-tests/test-devcmd
 	/tmp/pepsi-kola-host-tests/test-devcmd
-	test ! -f tools/test_brain.py || python3 tools/test_brain.py
+	python3 tools/test_brain.py
 
 ################################################################################
 ################################################################################

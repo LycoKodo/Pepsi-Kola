@@ -1,0 +1,47 @@
+#!/bin/sh
+
+script_dir=${0%/*}
+if [ "$script_dir" = "$0" ]; then
+    script_dir=.
+fi
+
+try_python() {
+    candidate=$1
+    shift
+    [ -n "$candidate" ] || return 1
+    [ -x "$candidate" ] || return 1
+    "$candidate" -c 'import serial' >/dev/null 2>&1 || return 1
+    exec "$candidate" "$script_dir/brain.py" "$@"
+}
+
+if [ -n "${V5_PYTHON:-}" ]; then
+    try_python "$V5_PYTHON" "$@"
+fi
+
+old_ifs=$IFS
+IFS=:
+for directory in ${PATH:-}; do
+    [ -n "$directory" ] || directory=.
+    try_python "$directory/python3" "$@"
+done
+IFS=$old_ifs
+
+pros_path=$(command -v pros 2>/dev/null || true)
+if [ -n "$pros_path" ] && IFS= read -r shebang < "$pros_path"; then
+    case $shebang in
+        '#!'*)
+            interpreter=${shebang#\#!}
+            case $interpreter in
+                '/usr/bin/env '*)
+                    interpreter_name=${interpreter#'/usr/bin/env '}
+                    interpreter=$(command -v "$interpreter_name" 2>/dev/null || true)
+                    ;;
+            esac
+            try_python "$interpreter" "$@"
+            ;;
+    esac
+fi
+
+echo "No Python 3 interpreter with pyserial was found." >&2
+echo "Install it with: python3 -m pip install pyserial" >&2
+exit 3
