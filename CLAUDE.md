@@ -42,15 +42,15 @@ after editing a header is enough — but note that touching a widely-included he
 externs them. Every auton and every control loop reaches these globals directly — there is no
 dependency injection, no subsystem classes. Changing a port is a one-line edit there.
 
-Two robots share this file via commented-out blocks ("Gavin's Robot" / "Quinn's Robot"). Swapping
-robots means uncommenting one block and commenting the other, in several places. Verify all of
-them are consistent before building for a different chassis.
+The current robot: a 4-motor drive (left 6, 7 reversed; right 8, 9), blue cartridges geared to
+450 rpm on 2.75" omnis; an IMU on port 2 and no tracking wheels, so LemLib measures distance off
+the drive motor encoders; and `intakeTop` 16, `intakeBottom` 15, `cascade` 10 + 21 (21 reversed),
+`rollerTurn` 5, `rollerMain` 4, all green. The ports came from the team's VEXcode config. The
+drivetrain's track width is still a placeholder until it is measured.
 
-**Ports 9, 17, and 19 are currently declared twice** — once inside the `intake` MotorGroup and
-once as the individual `ramp`/`top1`/`top2` motors, with a *conflicting direction on port 17 and
-a conflicting gearset on port 9*. Teleop drives the individual motors; many autons drive the
-`intake` group. They disagree. Do not add new call sites against `intake` — use
-`ramp`/`top1`/`top2`, and treat consolidating the two onto one representation as a pending fix.
+Declare each physical motor exactly once. Last season's config put the same ports in both a
+`MotorGroup` and individual `Motor`s with conflicting directions and gearsets, and the two
+drove the hardware differently depending on which name the calling code happened to use.
 
 ### LemLib is vendored, not a black box
 
@@ -93,16 +93,13 @@ positions checked against the offset rule above.
 
 `opcontrol()` starts `drivetrain_control` and `teleop_loop` (`src/controls.cpp`) as separate
 `pros::Task`s, both looping at 10ms. The first owns the joysticks and the arcade/tank toggle
-(all four shoulder buttons at once); the second owns the intake and pneumatics. They never
-communicate. Keep them non-blocking — note that the L1/R1 handlers deliberately spin-wait on
-button release to make lift and score distinct presses.
+(all four shoulder buttons at once); the second owns the mechanisms. They never communicate.
+Keep them non-blocking. `teleop_loop` has no mechanism bindings yet — last season's were
+retired along with its robot.
 
 `drivetrain_control` stops writing the drive while `autotune::isRelayActive()` — the relay drives
 the motors itself, and `chassis.arcade` writes them on every call, even `move(0)` at centered
 sticks. Anything else that needs to own the drivetrain during opcontrol needs the same yield.
-
-`teleop_loop` carries one piece of state, `is_heaven_up`. Any code path that moves the `heaven`
-pneumatic must update it or the lift/score toggle desynchronizes from the hardware.
 
 ### The Developer tab owns the D-pad
 
@@ -126,6 +123,6 @@ terminal for debugging. Note that `printf` in a 10ms loop floods `pros terminal`
 - Autons call LemLib motions with `async = false` (the final argument) so they run in sequence.
   Passing `true` without a matching `chassis.waitUntilDone()` is almost always a bug.
 - Every auton starts with `chassis.setPose(...)` and `chassis.setBrakeMode(...)`.
-- `include/colorsort.hpp` / `src/colorsort.cpp` are a dormant skeleton from a previous season —
-  the optical sensor is commented out and `get_hue()` is stubbed to a constant. Nothing
-  instantiates it. Either wire it up properly or leave it alone; don't half-use it.
+- Last season's autons, teleop bindings and colour sorter were deleted when the new robot's
+  config went in. They are in git history (before the commit that added the VEXcode ports) if a
+  routine is worth porting. `auton1ring()` is the only routine left: the empty fallback.

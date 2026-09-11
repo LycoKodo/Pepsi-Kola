@@ -22,28 +22,16 @@ extern lemlib::Drivetrain drivetrain;
 // ---------------------------------------
 extern pros::Controller master;
 
-extern pros::MotorGroup intake;
-extern pros::Motor ramp;
-extern pros::Motor top1;
-extern pros::Motor top2;
-
-extern pros::adi::DigitalOut tongue;
-extern pros::adi::DigitalOut odomLift;
-extern pros::adi::DigitalOut descore;
-extern pros::adi::DigitalOut heaven;
-
-// ---------------------------------------
-// Sensors (Miscellaneous)
-// ---------------------------------------
-extern pros::Imu imu;
+extern pros::Motor intakeTop;
+extern pros::Motor intakeBottom;
+extern pros::MotorGroup cascade;
+extern pros::Motor rollerTurn;
+extern pros::Motor rollerMain;
 
 // ---------------------------------------
 // Odometry
 // ---------------------------------------
-extern pros::Rotation horizontal_encoder;
-extern pros::Rotation vertical_encoder;
-extern lemlib::TrackingWheel horizontal_tracking_wheel;
-extern lemlib::TrackingWheel vertical_tracking_wheel;
+extern pros::Imu imu;
 extern lemlib::OdomSensors sensors;
 
 // ---------------------------------------

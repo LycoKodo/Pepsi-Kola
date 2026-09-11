@@ -68,126 +68,16 @@ void drivetrain_control() {
 
 
 void teleop_loop() {
-    // STATE VARIABLE: Tracks if the lift/heaven is currently UP (true) or DOWN (false)
-    // Adjust 'false' to 'true' if your robot starts the match with the lift up.
-    bool is_heaven_up = false; 
-    int i = 0;
-
+    // new robot: intakeTop, intakeBottom, cascade, rollerTurn and rollerMain are
+    // configured but not bound to buttons yet. put the bindings in this loop.
+    //
+    // A/B/X/Y and L1/L2/R1/R2 are free, but holding all four shoulder buttons
+    // together is drivetrain_control's arcade/tank toggle, so a binding there
+    // fires alongside it. The D-pad is free too, but the Developer tab's PID
+    // editor reads it: guard any D-pad binding with
+    //   !pidtuner::isActive() && !autotune::isRunning()
+    // so it cannot fire while someone is editing gains
     while (true) {
-        
-        // --- L1 Logic (Score Long / Raise) ---
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-
-            descore.set_value(0); // Ensure descorer is retracted when scoring long
-
-            if (!is_heaven_up) {
-                // If robot is currently LOWERED:
-                // Only move robot UP, do NOT spin intake
-                is_heaven_up = true;
-                heaven.set_value(true);
-                tongue.set_value(0);
-                // Ensure motors are stopped while lifting
-                ramp.brake();
-                top1.brake();
-                top2.brake();
-
-                while (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-                    pros::delay(10);
-                }
-            } else {
-                // If robot is ALREADY UP:
-                // ONLY spin intake (Score Long)
-                ramp.move(127);
-                top1.move(-60); // Scoring direction
-                top2.move(127);  // Scoring direction
-            }
-        }
-        // --- R1 Logic (Score Mid / Lower) ---
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-
-            descore.set_value(1); // Ensure descorer is retracted when scoring mid
-
-            if (is_heaven_up) {
-                // If robot is currently UP:
-                // Only move robot DOWN, do NOT spin intake
-                is_heaven_up = false;
-                heaven.set_value(false);
-
-                // Ensure motors are stopped while lowering
-                ramp.brake();
-                top1.brake();
-                top2.brake();
- 
-                while (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-                    pros::delay(10);
-                }
-            } else {
-                // If robot is ALREADY DOWN:
-                // ONLY spin intake (Score Mid)
-                ramp.move(127);
-                top1.move(-55);
-                top2.move(127);
-            }
-        }
-        // --- L2 Logic (Intake) ---
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            // Intake to Ramp, Top Forward, Bottom Reverse
-            ramp.move(127);
-            top1.move(-127);
-            top2.move(-127);
-        } 
-        // --- R2 Logic (Outtake) ---
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-            ramp.move(-127);
-            top1.move(127);
-            top2.move(-127);
-        }
-
-        // --- D-pad ---
-        // suppressed while the Developer tab is open, where the D-pad is driving
-        // the PID editor instead. any other tab and these behave as normal
-        else if (!pidtuner::isActive() && !autotune::isRunning() && master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
-            descore.set_value(1);
-        } 
-
-        // DOWN ARROW Logic (Macro Aligner for Mid)
-        else if (!pidtuner::isActive() && !autotune::isRunning() && master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-            descore.set_value(0);
-        } 
-        // Left for odom lift up
-        else if (!pidtuner::isActive() && !autotune::isRunning() && master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
-            odomLift.set_value(0);
-        }
-        // right for odom lift down
-        else if (!pidtuner::isActive() && !autotune::isRunning() && master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
-            odomLift.set_value(1);
-        }
-        // --- Idle State ---
-        else {
-            ramp.brake();
-            top1.brake();
-            top2.brake();
-        }
-        
-        // --- Pneumatics (Wings/Tongue) ---
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-            descore.set_value(0); // Ensure descorer is retracted when scoring long
-            tongue.set_value(1);
-            // Original code set heaven false here. 
-            // We must update the state variable to match!
-            heaven.set_value(false);
-            is_heaven_up = false; 
-        }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
-            tongue.set_value(0);
-        }
-
         pros::delay(10);
     }
 }
-
-// TODO - 
-// If you press L1 and robot is lowered (heaven is false), it only moves robot up without intake | else if robot is already up, it ONLY spins intake
-// If you press R1 and robot is Up (heaven is false), it only moves robot DOWN (heaven false) without intake | else if robot is already down, it ONLY spins intake
-
-// if up arrow pressed, lower robot (hevaen), spinning ramp 127, and top1 top2 at scoring direction, but at 50%

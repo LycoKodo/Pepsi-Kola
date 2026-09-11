@@ -64,9 +64,6 @@
 LV_IMG_DECLARE(image); //TKSRC Logo
 void initialize() {
 
-    odomLift.set_value(1);
-    pros::delay(1000);
-
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------
@@ -89,54 +86,17 @@ void initialize() {
     // LVGL INIT
     // -----------------------
 
-    static const char* qualBtnmMap[] = {
-        "MAX-R", // auton 1
-        "MAX-L", // auton 2
-        "LONG-L", // auton 3
-        "\n", 
-        "[EH] LONG-R", // auton 4
-        "MID-L", // auton 5
-        "[!] MID-R", // auton 6
-        nullptr
-    };
-    static const char* qualBtnmDesc[] = {
-        "9 Blocks in LG, Clears Loader", // auton 1
-        "9 Blocks in LG, Clears Loader", // auton 2
-        "[SAFE] 4 in LG, Clears Loader", // auton 3
-        "[SAFE] 4 in LG, Clears Loader", // auton 4
-        "[SAFE] 4 in Mid", // auton 5
-        "[NOTE!] LIKELY won't be able to score lower goal, mirrored version of mid L", // auton 6
-        nullptr // keep it a null ptr
-    };
+    // one placeholder per tab until this season's routines exist. selecting it
+    // runs auton1ring(), which does nothing. an empty map would leave LVGL's
+    // button matrix with zero buttons, which the selector has never been run with
+    static const char* qualBtnmMap[] = {"NONE", nullptr};
+    static const char* qualBtnmDesc[] = {"No qual routines yet", nullptr};
 
-    static const char* AIBtnmMap[] = {
-        "COMB-L", // AI 1
-        "COMB-R(T)", // AI 2
-        "9 COMB L", // AI 3
-        "\n",
-        "NULL", // AI 4
-        "9 Long L", // AI 5
-        "9 Long R(T)", // AI 6
-        nullptr
-    };
-    static const char* AIBtnmDesc[] = {
-        "", // AI 1
-        "", // AI 2
-        "", // AI 3
-        "", // AI 4
-        "", // AI 5
-        "", // AI 6
-        nullptr
-    };
+    static const char* AIBtnmMap[] = {"NONE", nullptr};
+    static const char* AIBtnmDesc[] = {"No AI routines yet", nullptr};
 
-    static const char* skillsBtnmMap[] = {
-        "Spinnn", "H&P", "WORKING!", "\n",  
-        "SAFE!", "TEST ONLY", "FINALE", nullptr
-    };
-    static const char* skillsBtnmDesc[] = {
-        "spin intake", "I hope this works", "Skills 1",  
-        "Skills 2", "!!TEST ONLY!!", "Optimal route with 79 pts, TS BETTER WORK", nullptr
-    };
+    static const char* skillsBtnmMap[] = {"NONE", nullptr};
+    static const char* skillsBtnmDesc[] = {"No skills routines yet", nullptr};
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
 }
@@ -145,54 +105,12 @@ void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me br
 
 void competition_initialize() {}
 
-void autonomous() {  
-    printf("Selecting Auton\n");
-    // chassis.setPose(0, 0, 0); 
-    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-
-    // chassis.turnToHeading(90, 1200, {}, false);
-    // // @NOTE - UNCOMMENT THE FOLLOWING TO  ENABLE AUTON SELECTOR
-    
-    int auton = lemlib::selector::auton;
-
+void autonomous() {
     lemlib::selector::autonStarted = true;
-    
-    if (auton >= 1 && auton <= 100) {
-        switch (auton) {
-            case 1: qual1(); break;
-            case 2: qual2(); break;
-            case 3: qual3(); break;
-            case 4: qual4(); break;
-            case 5: qual5(); break;
-            case 6: qual6(); break;
-            // add more red cases as needed up to 100
-        }
-    }
-    else if (auton >= -100 && auton <= -1) {
-        switch (auton) {
-            case -1: AI1(); break;
-            case -2: AI2(); break;
-            case -3: AI3(); break;
-            case -4: AI4(); break;
-            case -5: AI5(); break;
-            case -6: AI6(); break;
-            // add more blue cases as needed up to -100
-        }
-    }
-    else if (auton >= 101 && auton <= 201) {
-        switch (auton) {
-            case 101: skills1(); break;
-            case 102: skills2(); break;
-            case 103: skills3(); break;
-            case 104: skills4(); break;
-            case 105: skills5(); break;
-            case 106: skills6(); break;
-            // add more skills cases as needed up to 106
-        }
-    }
-    else {
-        // Default auton
-        auton1ring();
+
+    // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills (CLAUDE.md)
+    switch (lemlib::selector::auton) {
+        default: auton1ring(); break;
     }
 }
 
@@ -200,7 +118,6 @@ void opcontrol() {
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
     chassis.setPose(0,0,0);
-    odomLift.set_value(0);
     
     
     pros::Task driveTask(drivetrain_control);
