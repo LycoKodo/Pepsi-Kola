@@ -77,6 +77,9 @@ void initialize() {
     // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
 
+    // VEXcode when_started: capture mechanism home positions and brake modes
+    mechanisms_init();
+
     // -----------------------
     // Initialise Sensors
     // -----------------------
@@ -86,11 +89,11 @@ void initialize() {
     // LVGL INIT
     // -----------------------
 
-    // one placeholder per tab until this season's routines exist. selecting it
-    // runs auton1ring(), which does nothing. an empty map would leave LVGL's
-    // button matrix with zero buttons, which the selector has never been run with
-    static const char* qualBtnmMap[] = {"NONE", nullptr};
-    static const char* qualBtnmDesc[] = {"No qual routines yet", nullptr};
+    // qual button 0 maps to auton 1 (selector.cpp: `auton = i > 3 ? i : i + 1`).
+    // the AI and skills tabs have no routines yet, but an empty map would leave
+    // LVGL's button matrix with zero buttons, which the selector has never run with
+    static const char* qualBtnmMap[] = {"VEXCODE", nullptr};
+    static const char* qualBtnmDesc[] = {"Ported VEXcode auton: 5 wall pushes, turn -90, score", nullptr};
 
     static const char* AIBtnmMap[] = {"NONE", nullptr};
     static const char* AIBtnmDesc[] = {"No AI routines yet", nullptr};
@@ -106,16 +109,13 @@ void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me br
 void competition_initialize() {}
 
 void autonomous() {
-    chassis.moveToPoint(0, 24, 2000, {}, false);
+    lemlib::selector::autonStarted = true;
 
-    chassis.moveToPoint(0, 0, 2000, {.forwards=false}, false);
-
-    // lemlib::selector::autonStarted = true;
-
-    // // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills (CLAUDE.md)
-    // switch (lemlib::selector::auton) {
-    //     default: auton1ring(); break;
-    // }
+    // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills
+    switch (lemlib::selector::auton) {
+        case 1: autonVexcode(); break;
+        default: auton1ring(); break;
+    }
 }
 
 void opcontrol() {

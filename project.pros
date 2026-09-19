@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Prometheus V0.1",
+    "project_name": "[TEST] Prometheus",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -298,9 +298,9 @@
       }
     },
     "upload_options": {
-      "description": "Main ~~Scattfold~~ Schlattfold",
-      "icon": "X",
-      "slot": 1
+      "description": "yes",
+      "icon": "pros",
+      "slot": 8
     },
     "use_early_access": false
   }

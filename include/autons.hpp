@@ -6,4 +6,6 @@
 
 int auton1ring(); // default: runs when no routine is selected. does nothing
 
+int autonVexcode(); // qual 1: the routine ported from the VEXcode program
+
 #endif // AUTONS_HPP

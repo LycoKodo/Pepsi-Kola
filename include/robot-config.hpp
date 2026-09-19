@@ -4,6 +4,7 @@
 #include "main.h"
 #include "lemlib/api.hpp"
 #include "lemlib/chassis/chassis.hpp"
+#include "pros/adi.hpp"
 #include "pros/device.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
@@ -27,6 +28,9 @@ extern pros::Motor intakeBottom;
 extern pros::MotorGroup cascade;
 extern pros::Motor rollerTurn;
 extern pros::Motor rollerMain;
+extern pros::adi::DigitalOut toggleLift;
+extern pros::adi::DigitalOut intakeLift;
+extern pros::adi::DigitalOut sideToggle;
 
 // ---------------------------------------
 // Odometry

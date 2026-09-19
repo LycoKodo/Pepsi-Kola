@@ -1,13 +1,16 @@
+#include "lemlib/chassis/trackingWheel.hpp"
 #include "lemlib/smartMotor.hpp"
 #include "main.h"
 #include "lemlib/api.hpp"
 #include "lemlib/chassis/chassis.hpp"
+#include "pros/adi.hpp"
 #include "pros/device.hpp"
 #include "pros/imu.hpp"
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
+#include "pros/rotation.hpp"
 #include "pros/rtos.h"
 #include "pros/rtos.hpp"
 
@@ -25,9 +28,11 @@ pros::MotorGroup rightMotors({8, 9}, pros::MotorGearset::blue);
 
 lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
                               &rightMotors, // right motor group
-                              11.54, // TODO - measure on the new robot: centre of left wheels to centre of right wheels, in inches
-                              lemlib::Omniwheel::NEW_275, // 2.75" omnis
-                              450, // wheel rpm: 600rpm motors geared down to 450
+                              12.598, // 320mm track width from the VEXcode SmartDrive config
+                              lemlib::Omniwheel::NEW_275, // 219.44mm wheel travel / pi = 2.75"
+                              450, // wheel rpm. NOTE: the VEXcode config says externalGearRatio 1,
+                                   // which would make this 600. Left at the team's 450 -- measure a
+                                   // known distance and correct whichever is wrong
                               2 // horizontal drift: 2 for all-omni, 8 if the drive has traction wheels
 );
 
@@ -37,23 +42,31 @@ lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-// ports, cartridges and directions from the VEXcode config (TestingProgram1)
-pros::Motor intakeTop(16, pros::MotorGearset::green);
-pros::Motor intakeBottom(15, pros::MotorGearset::green);
-pros::MotorGroup cascade({10, -21}, pros::MotorGearset::green);
-pros::Motor rollerTurn(5, pros::MotorGearset::green);
+// ports, cartridges and directions from the VEXcode config. RATIO_18_1 is the
+// green cartridge; a leading '-' is VEXcode's `True` reversed flag
+pros::Motor intakeTop(-15, pros::MotorGearset::green);
+pros::Motor intakeBottom(1, pros::MotorGearset::green);
+pros::MotorGroup cascade({10, -14}, pros::MotorGearset::green);
+pros::Motor rollerTurn(-5, pros::MotorGearset::green);
 pros::Motor rollerMain(4, pros::MotorGearset::green);
+
+// three-wire solenoids. only intakeLift is bound to a button -- toggleLift and
+// sideToggle are declared in the VEXcode config but never actuated by it
+pros::adi::DigitalOut toggleLift('A', LOW);
+pros::adi::DigitalOut intakeLift('B', LOW);
+pros::adi::DigitalOut sideToggle('C', LOW);
 
 // ---------------------------------------
 // Odometry
 // ---------------------------------------
 
-pros::Imu imu(2);
+pros::Imu imu(12);
 
-// no tracking wheels yet. with both vertical slots empty LemLib tracks
-// distance off the drive motor encoders, so pose drifts more than it would
-// with dedicated wheels -- add them here when they are built
-lemlib::OdomSensors sensors(nullptr, // vertical tracking wheel
+pros::Rotation verticalEncoder(11);
+
+lemlib::TrackingWheel vertical_tracking_wheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, +1.00);
+
+lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2
                             nullptr, // horizontal tracking wheel
                             nullptr, // horizontal tracking wheel 2

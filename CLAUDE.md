@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-VEX V5 competition robot code for team 1831D (2025-26 Push Back), built on PROS 4.1.0 with
+VEX V5 competition robot code for team 1831E (2026-27 Override), built on PROS 4.1.0 with
 LemLib 0.5.2 and LVGL 8.3.8. C++20, cross-compiled for ARM Cortex-A9.
 
 There is no test suite and there cannot be a meaningful one — every code path ends at
