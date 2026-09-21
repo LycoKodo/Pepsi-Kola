@@ -56,23 +56,23 @@ int autonVexcode() {
     pros::delay(500);
     driveFor(19.69, 102, 2000);   // 500mm forward
     pros::delay(500);
-    driveFor(-15.75, 102, 1500);  // 400mm reverse
+    driveFor(-16.93, 102, 1500);  // 430mm reverse
 
-    // VEXcode issued turn_to_heading(-90) four times with 1.2s settles between,
+    // VEXcode issued turn_to_heading(90) four times with 1.2s settles between,
     // because drive_for/turn_to_heading return before the robot has stopped
     // moving. LemLib's turnToHeading runs to its own exit conditions, so one
     // call replaces all four
-    chassis.turnToHeading(-90, 2500, {.maxSpeed = 51}, false);
+    chassis.turnToHeading(90, 2500, {.maxSpeed = 51}, false);
     pros::delay(500);
 
     // swing the roller out, creeping the main roller forward to hold the ball
     rollerMain.move_velocity(40); // set_velocity(20, PERCENT)
-    rollerTurn.move_absolute(getRollerTurnHome() + 345, 200);
+    rollerTurn.move_absolute(getRollerTurnHome() + 351, 200);
 
     // back into the goal at 40% drive speed, then nudge off it
     driveFor(-19.69, 51, 2500);   // 500mm reverse
     driveFor(-3.15, 51, 1000);    // 80mm reverse
-    driveFor(1.57, 51, 1000);     // 40mm forward
+    driveFor(0.79, 51, 1000);     // 20mm forward
 
     // score: main roller to full reverse for a second and a half
     rollerMain.brake();

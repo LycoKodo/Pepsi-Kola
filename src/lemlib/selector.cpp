@@ -17,6 +17,7 @@
 #include "robot-config.hpp"
 #include "pidtuner.hpp"
 #include "autotune.hpp"
+#include "mclview.hpp"
 #include "lemlib/selector.hpp"
 
 LV_IMG_DECLARE(dorito); //TKSRC Logo
@@ -77,7 +78,13 @@ lv_obj_t* devTab = lv_tabview_add_tab(tabview, "Developer");
 lv_obj_t* qualTab = lv_tabview_add_tab(tabview, "Qual");
 lv_obj_t* AITab = lv_tabview_add_tab(tabview, "AI");
 lv_obj_t* skillsTab = lv_tabview_add_tab(tabview, "Skills");
+lv_obj_t* mclTab = lv_tabview_add_tab(tabview, "MCL");
 lv_obj_t* bocchiTab = lv_tabview_add_tab(tabview, " ");
+
+// MCL goes on the end so the 0..3 indices the button matrices and the D-pad
+// arbitration below are written against do not shift
+constexpr int DEV_TAB = 0;
+constexpr int MCL_TAB = 4;
 
 // Instead of lv_obj_t *motor_temps_textarea = lv_textarea_create(devTab);
 lv_obj_t *motor_temps_textarea = lv_textarea_create(devTab);
@@ -204,6 +211,7 @@ void skillsBtnmAction(lv_event_t* e) {
 
 void tabWatcher(void* param) {
     int rumbleTicks = 0;
+    bool autonTabSnapped = false;
     try {
         while (true) {
             int activeTab = lv_tabview_get_tab_act(tabview);
@@ -237,9 +245,11 @@ void tabWatcher(void* param) {
                 } else if (activeTab == 3 && currentSKillsButton < UINT16_MAX) {
                     deselect_all_buttons(skillsBtnm);
                     lv_btnmatrix_set_btn_ctrl(skillsBtnm, currentSKillsButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 0) {
+                } else if (activeTab == DEV_TAB) {
                     motorUpdate();
                     odomUpdate();
+                } else if (activeTab == MCL_TAB) {
+                    mclview::render();
                 }
 
                 // once every 2s, not every 10ms: spamming rumble saturates the
@@ -255,11 +265,23 @@ void tabWatcher(void* param) {
 
             // Auton has started
             if (autonStarted) {
-                lv_tabview_set_act(tabview, 0, LV_ANIM_OFF);
-                motorUpdate();
-                odomUpdate();
-                customUpdate();
-                // printf("Current Auton %i", auton);
+                // snap to the MCL view once, then stop forcing a tab: the whole
+                // point of the view is being able to swap between it and the
+                // Developer readout by touch while the routine is running. The
+                // selection itself is read once by autonomous(), so nothing
+                // downstream cares which tab is showing by then
+                if (!autonTabSnapped) {
+                    lv_tabview_set_act(tabview, MCL_TAB, LV_ANIM_OFF);
+                    autonTabSnapped = true;
+                }
+                const int runTab = lv_tabview_get_tab_act(tabview);
+                if (runTab == MCL_TAB) {
+                    mclview::render();
+                } else if (runTab == DEV_TAB) {
+                    motorUpdate();
+                    odomUpdate();
+                    customUpdate();
+                }
                 pros::delay(10);
             }
         }
@@ -407,6 +429,8 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         // y 65..157 all five lines fit with room to spare -- at the old y=115
         // the box ran ~24px off the bottom and hid the STEP and AUTO rows
         pidtuner::init(devTab, 203, 65, left_width, 92);
+
+        mclview::init(mclTab);
 
         lv_obj_t *img = lv_img_create(bocchiTab);
         lv_img_set_src(img, &dorito); // Link to source image
@@ -587,7 +611,9 @@ int customUpdate() {
 
 int textUpdate() {
     int activeTab = lv_tabview_get_tab_act(tabview);
-    if (activeTab == 0) {
+    if (activeTab == MCL_TAB) {
+        mclview::render();
+    } else if (activeTab == 0) {
         motorUpdate();
         odomUpdate();
         customUpdate();

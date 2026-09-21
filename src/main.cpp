@@ -12,6 +12,7 @@
 #include "robot-config.hpp"
 #include "controls.hpp"
 #include "autons.hpp"
+#include "mcl.hpp"
 
 // THIS CODE IS POWERED BY A PROJECT MANAGER AND TWO DORITO FANS POWERED BY 
 /*
@@ -80,6 +81,12 @@ void initialize() {
     // VEXcode when_started: capture mechanism home positions and brake modes
     mechanisms_init();
 
+    // Seed the particle filter on the calibrated pose and let it run from here
+    // on, through auton and driver control alike. It only observes until
+    // mcl::setCorrectionEnabled(true) -- see include/mcl.hpp
+    mcl::init();
+    mcl::start();
+
     // -----------------------
     // Initialise Sensors
     // -----------------------
@@ -93,7 +100,7 @@ void initialize() {
     // the AI and skills tabs have no routines yet, but an empty map would leave
     // LVGL's button matrix with zero buttons, which the selector has never run with
     static const char* qualBtnmMap[] = {"VEXCODE", nullptr};
-    static const char* qualBtnmDesc[] = {"Ported VEXcode auton: 5 wall pushes, turn -90, score", nullptr};
+    static const char* qualBtnmDesc[] = {"Ported VEXcode auton: 5 wall pushes, turn 90, score", nullptr};
 
     static const char* AIBtnmMap[] = {"NONE", nullptr};
     static const char* AIBtnmDesc[] = {"No AI routines yet", nullptr};

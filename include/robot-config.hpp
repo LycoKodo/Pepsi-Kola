@@ -6,6 +6,7 @@
 #include "lemlib/chassis/chassis.hpp"
 #include "pros/adi.hpp"
 #include "pros/device.hpp"
+#include "pros/distance.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
 #include "pros/rtos.h"
@@ -37,6 +38,13 @@ extern pros::adi::DigitalOut sideToggle;
 // ---------------------------------------
 extern pros::Imu imu;
 extern lemlib::OdomSensors sensors;
+
+// MCL distance sensors, one per robot face. See src/mcl.cpp for the mounting
+// offsets that pair with these
+extern pros::Distance distFront;
+extern pros::Distance distRight;
+extern pros::Distance distBack;
+extern pros::Distance distLeft;
 
 // ---------------------------------------
 // PID Controller

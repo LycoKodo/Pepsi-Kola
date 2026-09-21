@@ -5,6 +5,7 @@
 #include "lemlib/chassis/chassis.hpp"
 #include "pros/adi.hpp"
 #include "pros/device.hpp"
+#include "pros/distance.hpp"
 #include "pros/imu.hpp"
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
@@ -50,8 +51,8 @@ pros::MotorGroup cascade({10, -14}, pros::MotorGearset::green);
 pros::Motor rollerTurn(-5, pros::MotorGearset::green);
 pros::Motor rollerMain(4, pros::MotorGearset::green);
 
-// three-wire solenoids. only intakeLift is bound to a button -- toggleLift and
-// sideToggle are declared in the VEXcode config but never actuated by it
+// three-wire solenoids. only sideToggle is bound to a button (D-pad LEFT) --
+// toggleLift and intakeLift are declared in the VEXcode config but never actuated
 pros::adi::DigitalOut toggleLift('A', LOW);
 pros::adi::DigitalOut intakeLift('B', LOW);
 pros::adi::DigitalOut sideToggle('C', LOW);
@@ -65,6 +66,21 @@ pros::Imu imu(12);
 pros::Rotation verticalEncoder(11);
 
 lemlib::TrackingWheel vertical_tracking_wheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, +1.00);
+
+// ---------------------------------------
+// Monte Carlo Localisation
+// ---------------------------------------
+
+// Four distance sensors, one per face, on ports nothing else claims. In use
+// elsewhere: 1, 4, 5, 6, 7, 8, 9, 10, 11 (rotation), 12 (IMU), 14, 15 -- so
+// 2, 3, 13 and 16..21 are free and these take the top of that block.
+//
+// Which physical face each one is on has to match SENSOR_MOUNTS in src/mcl.cpp,
+// and those offsets are placeholders until they are measured on the robot
+pros::Distance distFront(16);
+pros::Distance distRight(17);
+pros::Distance distBack(18);
+pros::Distance distLeft(19);
 
 lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2

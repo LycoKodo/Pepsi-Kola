@@ -2,16 +2,29 @@
   "configurations": [
     {
       "name": "PROS Project",
-      "includePath": ["${workspaceFolder}/**"],
-      "defines": ["_DEBUG", "UNICODE", "_UNICODE"],
-      "compilerPath": "${userHome}/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/arm-none-eabi-g++",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/Users/fang_ha/Documents/GitHub/Pepsi-Kola-Alex/include"
+      ],
+      "defines": [
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE"
+      ],
+      "compilerPath": "/Users/fang_ha/Library/Application Support/Code/User/globalStorage/sigbots.pros/install/pros-toolchain-macos/bin/arm-none-eabi-g++",
       "cStandard": "gnu11",
       "cppStandard": "gnu++20",
       "intelliSenseMode": "gcc-arm",
       "browse": {
-        "path": ["${workspaceFolder}"],
-        "limitSymbolsToIncludedHeaders": true
-      }
+        "path": [
+          "/Users/fang_ha/Documents/GitHub/Pepsi-Kola-Alex"
+        ],
+        "limitSymbolsToIncludedHeaders": true,
+        "databaseFilename": ""
+      },
+      "macFrameworkPath": [
+        "/System/Library/Frameworks"
+      ]
     }
   ],
   "version": 4
