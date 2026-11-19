@@ -53,8 +53,11 @@ class Side:
             if abs(self.v) < 0.5:
                 self.v = 0.0
             return
-        if abs(self.v) < 0.5 and abs(volts) <= self.vs:
-            self.v = 0.0
+        if abs(volts) <= self.vs and abs(self.v) < 12.0:
+            # stiction: slow and not pushed past breakaway -> it grinds to a halt
+            self.v -= self.v * dt / 0.03
+            if abs(self.v) < 0.5:
+                self.v = 0.0
             return
         d = self.v if abs(self.v) >= 0.5 else volts
         eff = volts - math.copysign(self.vk, d)
@@ -208,34 +211,38 @@ NOISE = [
 SCENARIOS = [
     ("drive good",            dict(mode="DRIVE", target=24, kP=12, kD=60), "GOOD", None, [], None),
     ("drive overshoot",       dict(mode="DRIVE", target=24, kP=12, kD=25), "OVERSHOOT", ("kD", "up"), [], None),
-    ("drive overshoot kD=0",  dict(mode="DRIVE", target=24, kP=8, kD=0), "OVERSHOOT", ("kD", "set"), [], None),
-    ("drive oscillating kP",  dict(mode="DRIVE", target=24, kP=40, kD=14, slew=127, timeout=6000),
+    ("drive overshoot kD=0",  dict(mode="DRIVE", target=24, kP=20, kD=0), "OVERSHOOT", ("kD", "set"), [], None),
+    ("drive oscillating kP",  dict(mode="DRIVE", target=24, kP=60, kD=10, slew=127, delay_ticks=2, timeout=6000),
      "OSCILLATING", ("kP", "down"), [], None),
-    ("drive oscillating kD",  dict(mode="DRIVE", target=24, kP=12, kD=420, noise=0.03, delay_ticks=2,
-                                   timeout=6000),
-     "OSCILLATING", ("kD", "down"), [], None),
     ("drive ended early",     dict(mode="DRIVE", target=24, kP=12, kD=260), "ENDED_EARLY", ("kD", "down"), [], None),
-    ("drive stops short",     dict(mode="DRIVE", target=24, kP=2.0, kD=6, windup=3, friction_scale=2.4,
-                                   large=(3.0, 500)),
+    ("drive stops short",     dict(mode="DRIVE", target=24, kP=8, kD=40, friction_scale=1.5),
      "STOPS_SHORT", ("kP", "up"), [], None),
-    ("drive slow",            dict(mode="DRIVE", target=36, kP=6, kD=100, large=(3.0, 2500), timeout=6000),
+    ("drive slow",            dict(mode="DRIVE", target=36, kP=24, kD=900, large=(3.0, 3000), timeout=6000),
      "SLOW", ("kD", "down"), [], None),
     ("drive timeout moving",  dict(mode="DRIVE", target=72, kP=12, kD=60, timeout=1200),
      "TIMEOUT", ("timeout", "up"), [], None),
-    ("drive timeout short",   dict(mode="DRIVE", target=24, kP=1.5, kD=4, friction_scale=2.4, large=(1.0, 500),
-                                   timeout=2500),
+    ("drive timeout creeping", dict(mode="DRIVE", target=24, kP=1.5, kD=4, friction_scale=2.4, timeout=2500),
+     "TIMEOUT", ("kP", "up"), [], None),
+    ("drive timeout stopped", dict(mode="DRIVE", target=24, kP=3, kD=10, friction_scale=3.0, timeout=2500),
      "TIMEOUT", ("kP", "up"), [], None),
     ("drive aborted",         dict(mode="DRIVE", target=24, kP=12, kD=60, abort_at=480), "ABORTED", None, [], None),
     ("drive low battery",     dict(mode="DRIVE", target=-24, kP=12, kD=60, batt_pct=41), "GOOD", None,
      ["battery"], None),
-    ("drive drift",           dict(mode="DRIVE", target=36, kP=12, kD=60, asym=0.16, kA=0.6), "GOOD", None,
+    ("drive drift",           dict(mode="DRIVE", target=36, kP=12, kD=60, asym=0.08, kA=1.0), "GOOD", None,
      ["heading", "faster"], None),
-    ("turn good",             dict(mode="TURN", target=90, kP=3.0, kD=18, small=(1.0, 200), large=(3.0, 500)),
-     "GOOD", None, [], None),
-    ("turn overshoot",        dict(mode="TURN", target=-90, kP=3.0, kD=4, small=(1.0, 200), large=(3.0, 500)),
+    ("turn good",             dict(mode="TURN", target=90, kP=4, kD=25, small=(1.0, 200)), "GOOD", None, [], None),
+    ("turn overshoot",        dict(mode="TURN", target=-90, kP=5, kD=8, small=(1.0, 200)),
      "OVERSHOOT", ("kD", "up"), [], None),
-    ("turn wander",           dict(mode="TURN", target=180, kP=3.0, kD=18, small=(1.0, 200), large=(3.0, 500),
-                                   asym=0.25), "GOOD", None, ["centre wandered"], None),
+    ("turn chatter",          dict(mode="TURN", target=90, kP=5, kD=200, small=(0.5, 200), noise=0.05,
+                                   delay_ticks=2, slew=127, timeout=3000), "OSCILLATING", ("kD", "down"), [], None),
+    # Chatter with only 2 big crossings: must NOT be called OVERSHOOT (raising kD would make it worse).
+    ("turn chatter 2 swings", dict(mode="TURN", target=90, kP=5, kD=200, small=(1.0, 200), noise=0.05,
+                                   delay_ticks=2, slew=127, timeout=3000), "OSCILLATING", ("kD", "down"), [], None),
+    # Chatter that never arrives: must NOT be told "raise the timeout".
+    ("turn chatter timeout",  dict(mode="TURN", target=90, kP=5, kD=350, small=(1.0, 200), noise=0.05,
+                                   delay_ticks=2, slew=127, timeout=3000), "TIMEOUT", ("kD", "down"), [], None),
+    ("turn wander",           dict(mode="TURN", target=180, kP=4, kD=25, small=(1.0, 200), asym=0.25),
+     "GOOD", None, ["centre wandered"], None),
     ("drive truncated",       dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "truncate"),
     ("drive dropped row",     dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "drop_row"),
     ("drive bad checksum",    dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "corrupt"),
@@ -243,8 +250,8 @@ SCENARIOS = [
     ("drive buffer full",     dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "buffer"),
     ("drive END mismatch",    dict(mode="DRIVE", target=24, kP=12, kD=60), "GOOD", None,
      ["END line disagrees"], "end_mismatch"),
-    ("drive never ended",     dict(mode="DRIVE", target=24, kP=1.5, kD=4, friction_scale=2.4, large=(1.0, 500),
-                                   timeout=2500), "TIMEOUT", ("kP", "up"), [], "never_ended"),
+    ("drive never ended",     dict(mode="DRIVE", target=24, kP=3, kD=10, friction_scale=3.0, timeout=2500),
+     "TIMEOUT", ("kP", "up"), [], "never_ended"),
 ]
 
 

@@ -46,7 +46,7 @@ TIMEOUT_MARGIN_MS = 60          # end_ms within this of the timeout = the timeou
 STOPS_SHORT_MIN_MV = 150        # below this the controller wasn't really pushing
 BLOCKED_MV = 6000               # stalled with more than this applied = probably physically blocked
 SLOW_TAIL_FRACTION = 0.10       # SLOW compares the time to cover the first 90% of the distance...
-SLOW_TAIL_RATIO = 1.5           # ...with the last 10% -> tolerance; tail > ratio x head = SLOW
+SLOW_TAIL_RATIO = 0.75          # ...with the last 10% -> tolerance; tail > ratio x head = SLOW
 TIMEOUT_SAT_FRAC = 0.6          # timed out while saturated this much = the move is physically too long
 LOW_BATTERY_PCT = 50
 HEADING_DEV_DEG = 2.0           # DRIVE: max heading deviation worth flagging
