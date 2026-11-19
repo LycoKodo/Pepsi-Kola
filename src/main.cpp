@@ -94,9 +94,8 @@ void initialize() {
     // LVGL INIT
     // -----------------------
 
-    // The routine number comes from the button's position in its tab, counting
-    // buttons only (row breaks "\n" do not count): qual 1, 2, 3...  AI -1, -2...
-    // skills 101, 102...  Descriptions line up with buttons one for one.
+    // Routine numbers: qual 1, 2, 3...  AI -1, -2...  skills 101, 102...
+    // (see the button handlers in src/lemlib/selector.cpp for how a button maps to a number).
     // No routines exist for the new robot yet. Every tab needs at least one
     // button (LVGL crashes on an empty map), so each has a placeholder that
     // runAuton() treats as "nothing selected"

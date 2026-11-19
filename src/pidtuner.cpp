@@ -22,6 +22,12 @@ constexpr float DRIVE_TOLERANCE = 1.0; // inches
 constexpr float TURN_TOLERANCE = 1.5; // degrees
 constexpr int CHART_POINTS = 100;
 constexpr int CHART_SCALE = 10; // chart values are int16, so plot error * 10
+// After each test the whole run is printed to the terminal in one go ("[PIDLOG]" block, read by
+// tools/pidlog.py). Sent in small chunks with a pause between them so the serial link keeps up.
+// If the laptop tool reports missing rows (likely over the controller's radio), raise the delay
+constexpr int LOG_EVERY = 2; // print every 2nd sample: one row per 20 ms
+constexpr int DUMP_ROWS_PER_CHUNK = 8;
+constexpr int DUMP_CHUNK_DELAY_MS = 10;
 // Driver control runs the drive in COAST, which would let a test move roll on past the target
 // where an auton would not. Tests run in BRAKE (what the measured tuning routes used when these
 // gains were tuned) and put the driver's mode back afterwards
@@ -63,6 +69,9 @@ TestParams params;
 Result result;
 float samples[MAX_SAMPLES];
 int sampleCount = 0;
+// logged next to each error sample (see the "cols=" list in dumpLog)
+std::int16_t logDev[MAX_SAMPLES], logVL[MAX_SAMPLES], logVR[MAX_SAMPLES], logUL[MAX_SAMPLES], logUR[MAX_SAMPLES];
+std::atomic<bool> dumping = false; // the last run is still being printed; a new test would overwrite it
 
 // ---------------------------------------
 // UI state (LVGL context only)
@@ -122,11 +131,79 @@ lemlib::ControllerSettings& settingsFor(Mode m) { return m == DRIVE ? linearCont
 
 float signOf(float x) { return x < 0 ? -1 : 1; }
 
+std::int16_t toInt16(double v) {
+    if (!std::isfinite(v)) return 0;
+    return static_cast<std::int16_t>(std::clamp(std::lround(v), -32767L, 32767L));
+}
+
+// everything the log header needs, captured when the test starts (gains can be edited again
+// while the log is still printing)
+struct LogHeader {
+    int run;
+    float kP, kI, kD;
+    int battMv, battPct;
+};
+
+// inches of robot travel per second, per motor rpm
+float ipsPerRpm() {
+    float cartridge = 200;
+    switch (leftMotors.get_gearing()) {
+        case pros::MotorGears::red: cartridge = 100; break;
+        case pros::MotorGears::blue: cartridge = 600; break;
+        default: break;
+    }
+    return drivetrain.rpm / cartridge * M_PI * drivetrain.wheelDiameter / 60;
+}
+
+// Prints the run as one block: a BEGIN line, one "~" row per logged sample, an END line.
+// Rows are integers: t ms, error x100, dev x100 (DRIVE: heading off the start heading, deg;
+// TURN: how far the robot's centre wandered, in), left/right motor rpm, left/right motor mV.
+// END carries the row count and a checksum (sum of every integer, wrapped to 32 bits) so the
+// reader can tell if lines were lost
+void dumpLog(const TestParams& p, const LogHeader& h, int n, int endMs, const char* how) {
+    const lemlib::ControllerSettings& s = settingsFor(p.mode);
+    printf("[PIDLOG] BEGIN v=1 run=%d mode=%s target=%.1f unit=%s kP=%.3f kI=%.4f kD=%.3f windup=%.2f slew=%.1f "
+           "small=%.2f/%d large=%.2f/%d timeout=%d batt_mV=%d batt_pct=%d dt_ms=%d ips_per_rpm=%.4f track=%.2f "
+           "cols=t,err,dev,vL,vR,uL,uR\n",
+           h.run, p.mode == DRIVE ? "DRIVE" : "TURN", p.target, p.mode == DRIVE ? "in" : "deg", h.kP, h.kI, h.kD,
+           s.windupRange, s.slew, s.smallError, (int)s.smallErrorTimeout, s.largeError, (int)s.largeErrorTimeout,
+           p.mode == DRIVE ? DRIVE_TIMEOUT_MS : TURN_TIMEOUT_MS, h.battMv, h.battPct, SAMPLE_MS * LOG_EVERY,
+           ipsPerRpm(), drivetrain.trackWidth);
+
+    std::uint32_t sum = 0;
+    int rows = 0;
+    char chunk[512]; // 8 rows of at most 45 characters
+    int len = 0;
+    for (int i = 0; i < n; i += LOG_EVERY) {
+        const int row[7] = {i * SAMPLE_MS, (int)std::lround(samples[i] * 100), logDev[i], logVL[i], logVR[i],
+                            logUL[i], logUR[i]};
+        for (int value : row) sum += static_cast<std::uint32_t>(value);
+        len += snprintf(chunk + len, sizeof(chunk) - len, "~%d,%d,%d,%d,%d,%d,%d\n", row[0], row[1], row[2], row[3],
+                        row[4], row[5], row[6]);
+        if (++rows % DUMP_ROWS_PER_CHUNK == 0) {
+            fwrite(chunk, 1, len, stdout);
+            fflush(stdout);
+            len = 0;
+            pros::delay(DUMP_CHUNK_DELAY_MS);
+        }
+    }
+    if (len > 0) fwrite(chunk, 1, len, stdout);
+
+    printf("[PIDLOG] END run=%d rows=%d sum=%lu end_ms=%d result=%s final=%.2f over=%.2f settle_ms=%d\n", h.run, rows,
+           (unsigned long)sum, endMs, how, result.finalError, result.overshoot, result.settleMs);
+    fflush(stdout);
+}
+
 // ---------------------------------------
 // Test run (own task, no LVGL calls in here)
 // ---------------------------------------
 void testTask() {
+    static int runNumber = 0;
     const TestParams p = params;
+    const lemlib::PID& gains = pidFor(p.mode);
+    // battery at rest, before the motors load it
+    const LogHeader header = {++runNumber, gains.getKP(), gains.getKI(), gains.getKD(),
+                              (int)pros::battery::get_voltage(), (int)std::lround(pros::battery::get_capacity())};
 
     // LemLib has no brake mode getter: read it off the drive motors (setBrakeMode sets both sides).
     // If the motor can't be read (unplugged), go back to COAST, driver control's mode
@@ -154,6 +231,7 @@ void testTask() {
 
     // positive error = short of the target, negative = past it
     const char* abortReason = nullptr;
+    bool abortedByStop = false;
     int n = 0;
     int endSample = -1;
     std::uint32_t now = pros::millis();
@@ -163,13 +241,20 @@ void testTask() {
         if (p.mode == DRIVE) {
             float progress = (pose.x - start.x) * std::sin(theta0) + (pose.y - start.y) * std::cos(theta0);
             err = dist - progress * dir;
+            logDev[n] = toInt16((pose.theta - start.theta) * 100);
         } else {
             err = (targetHeading - pose.theta) * dir;
+            logDev[n] = toInt16(std::hypot(pose.x - start.x, pose.y - start.y) * 100);
         }
+        logVL[n] = toInt16(leftMotors.get_actual_velocity());
+        logVR[n] = toInt16(rightMotors.get_actual_velocity());
+        logUL[n] = toInt16(leftMotors.get_voltage());
+        logUR[n] = toInt16(rightMotors.get_voltage());
         samples[n++] = err;
 
         if (abortReason == nullptr && (stopRequested || sticksMoved())) {
-            abortReason = stopRequested ? "stopped" : "stick moved";
+            abortedByStop = stopRequested;
+            abortReason = abortedByStop ? "stopped" : "stick moved";
             chassis.cancelAllMotions();
         }
 
@@ -182,6 +267,8 @@ void testTask() {
         }
         pros::Task::delay_until(&now, SAMPLE_MS);
     }
+    // when LemLib ended the move itself; -1 if it was still going when the buffer filled
+    const int endMs = endSample < 0 ? -1 : (endSample - 1) * SAMPLE_MS;
     if (chassis.isInMotion()) chassis.cancelAllMotions(); // ran out of buffer
     // every way out of the loop above (finished, stopped, stick moved, out of buffer) comes through
     // here, with the motion over: give the drive back in the mode it had
@@ -212,9 +299,17 @@ void testTask() {
            p.mode == DRIVE ? "in" : "deg", result.finalError, result.overshoot, settle,
            abortReason ? " ABORTED: " : "", abortReason ? abortReason : "");
 
+    const char* how = "ok";
+    if (abortReason != nullptr) how = abortedByStop ? "aborted:stop" : "aborted:stick";
+    else if (endMs < 0) how = "buffer";
+
+    // hand the screen and the drive back first, then send the log; no new test until it is out
+    dumping = true;
     resultCount++;
     stopRequested = false;
     running = false;
+    dumpLog(p, header, n, endMs, how);
+    dumping = false;
 }
 
 // ---------------------------------------
@@ -375,7 +470,8 @@ void onRun(lv_event_t*) {
         return;
     }
     const char* refuse = nullptr;
-    if (pros::competition::is_disabled()) refuse = "robot is disabled";
+    if (dumping) refuse = "sending log, try again";
+    else if (pros::competition::is_disabled()) refuse = "robot is disabled";
     else if (pros::competition::is_autonomous()) refuse = "auton is running";
     else if (sticksMoved()) refuse = "let go of the sticks";
     if (refuse) {
