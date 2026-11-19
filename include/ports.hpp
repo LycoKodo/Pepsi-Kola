@@ -13,19 +13,21 @@
  *
  * NEW ROBOT: drive left 1, 2 and right 11, 12, lift (cascade) on 8 and 9, intake
  * (toggle A) on 10, IMU on 13, toggle B on 17 (spins when the optical sensor on
- * 18 sees yellow or the other alliance's colour). Ports 6 and 19 below are
- * PLACEHOLDERS for the horizontal odom (not plugged in) and distance sensor until
- * their real ports on the new robot are known. The rest are the old robot's.
+ * 18 sees yellow or the other alliance's colour), horizontal odom on 3. Port 19
+ * below is a PLACEHOLDER for the distance sensor until its real port on the new
+ * robot is known. The rest are the old robot's.
  *
  *   SMART PORTS                                  3-WIRE (brain ADI)
  *   ----------------------------------------     ------------------------
  *    1  drive left A      motor, blue,  rev
  *    2  drive left B      motor, blue,  rev
+ *    3  horizontal odom   rotation sensor  (was placeholder 6)
  *    4  rollerMain        motor, green           A  toggleLift   (unused)
  *    5  rollerTurn        motor, green, rev      B  intakeLift   (unused)
- *    6  horizontal odom   rotation sensor  (PLACEHOLDER; off) C  sideToggle   (no button now)
- *                                                    H  pistonH      claw: L1 (see controls.cpp)
- *    8  cascade A         motor, green       (was 10)
+ *                                                C  sideToggle   (no button now)
+ *                                                H  pistonH      claw: L1 (see controls.cpp)
+ *    7  gps               GPS sensor       (not used in code yet; for the planned Kalman filter)
+ *    8  cascade A        motor, green       (was 10)
  *    9  cascade B         motor, green, rev  (was 14)
  *   10  toggle A          motor, green, rev  (was intakeBottom, port 1)
  *   11  drive right A     motor, blue
@@ -68,10 +70,11 @@ constexpr std::int8_t X_MOTOR_B = 16;
 // sensors
 constexpr std::uint8_t VERTICAL_ODOM = 20; // new robot (was 11)
 constexpr std::uint8_t IMU = 13;
-constexpr std::uint8_t HORIZONTAL_ODOM = 6;  // PLACEHOLDER: not plugged in on the new robot, and switched off in robot-config.cpp
+constexpr std::uint8_t HORIZONTAL_ODOM = 3;  // new robot: rolls sideways, 2" omni (was placeholder 6, switched off). Checked: pushing right raises X
 constexpr std::uint8_t DISTANCE = 19; // PLACEHOLDER (was 17, now toggle B)
 constexpr std::uint8_t OPTICAL = 18;  // colour sensor for TOGGLE_B
 constexpr std::uint8_t CLAW_DISTANCE = 15; // the claw's distance sensor
+constexpr std::uint8_t GPS = 7; // GPS sensor, plugged in; not read by the code yet (for the planned Kalman filter)
 
 // 3-wire ports on the brain
 constexpr char TOGGLE_LIFT = 'A';
@@ -87,11 +90,11 @@ constexpr char PISTON_H = 'H'; // the claw: L1 opens it, closes on CLAW_DISTANCE
 // ---------------------------------------------------------------------------
 constexpr int number(int port) { return port < 0 ? -port : port; }
 
-constexpr std::array<int, 18> SMART = {
+constexpr std::array<int, 19> SMART = {
     number(LEFT_A), number(LEFT_B), number(RIGHT_A), number(RIGHT_B),
     number(TOGGLE_A), number(TOGGLE_B), number(ROLLER_MAIN), number(ROLLER_TURN),
     number(CASCADE_A), number(CASCADE_B), number(X_MOTOR_A), number(X_MOTOR_B),
-    VERTICAL_ODOM, IMU, HORIZONTAL_ODOM, DISTANCE, OPTICAL, CLAW_DISTANCE,
+    VERTICAL_ODOM, IMU, HORIZONTAL_ODOM, DISTANCE, OPTICAL, CLAW_DISTANCE, GPS,
 };
 
 constexpr bool allValidAndUnique() {

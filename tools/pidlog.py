@@ -42,6 +42,10 @@ CHATTER_FLIP_MAX_MS = 80        # voltage "chatter": median time between voltage
 CHATTER_MIN_FLIPS = 6           # ...with at least this many flips during the move. Chatter alone counts as
                                 # OSCILLATING (derivative amplifying noise), even if the error swings are small.
 VOLT_FLIP_DEADBAND_MV = 300     # voltage within +-this is treated as zero when counting sign flips
+STALE_ERR_FRAC = 0.35           # stale position: while moving, this share of samples repeat the previous error.
+                                # Then the D term (error - previous error) alternates between 0 and double, and the
+                                # voltage chatters every sample. A sensor-timing problem, so chatter does not count
+                                # as OSCILLATING and no kD change is suggested. Seen on the robot (DRIVE, 54%).
 TIMEOUT_MARGIN_MS = 60          # end_ms within this of the timeout = the timeout ended the move
 STOPS_SHORT_MIN_MV = 150        # below this the controller wasn't really pushing
 BLOCKED_MV = 6000               # stalled with more than this applied = probably physically blocked
@@ -413,6 +417,12 @@ def analyse(run):
     m["chatter"] = (m["volt_flips"] >= CHATTER_MIN_FLIPS and m["volt_flip_median_ms"] is not None
                     and m["volt_flip_median_ms"] <= CHATTER_FLIP_MAX_MS)
 
+    # Stale position: count, over the samples where the robot is moving, how often the error is exactly the
+    # previous sample's. A sensor refreshing slower than the 10 ms loop shows up as a staircase.
+    moving = [k for k in move[1:] if vabs[k] >= STALL_RPM]
+    m["err_stale_frac"] = (sum(1 for k in moving if err[k] == err[k - 1]) / len(moving)) if len(moving) >= 10 else 0.0
+    m["stale_chatter"] = m["chatter"] and m["err_stale_frac"] >= STALE_ERR_FRAC
+
     if mode == "TURN":
         if ips and track:
             m["peak_speed"] = max(abs(vL[i] - vR[i]) for i in move) * ips / track * 180.0 / math.pi
@@ -542,6 +552,12 @@ def classify(run, m):
                          "slipping, not an angular-gain problem" % m["wander_max"])
         for s in m.get("end_line_mismatch", []):
             flags.append("END line disagrees with the rows: " + s)
+        if m.get("stale_chatter"):
+            flags.append("voltage chatter from a stale position: while moving, %.0f%% of the 10 ms samples repeated "
+                         "the previous error, so the D term alternates between 0 and double and the voltage flipped "
+                         "sign %d times, every ~%d ms. A sensor-timing problem, not a gain problem: lowering kD "
+                         "would only weaken the braking" % (m["err_stale_frac"] * 100, m["volt_flips"],
+                                                           m["volt_flip_median_ms"]))
     for n in run.notes:
         flags.append("note: " + n)
 
@@ -565,7 +581,7 @@ def classify(run, m):
     final, eae = m["final"], m["err_at_end"]
     over = m["overshoot"]
     short = abs(eae) > tol and abs(final) > tol
-    osc_fast = m["chatter"]
+    osc_fast = m["chatter"] and not m.get("stale_chatter")  # stale-position chatter is flagged above instead
     oscillating = m["big_crossings"] >= OSC_MIN_BIG_CROSSINGS or osc_fast
 
     def osc_advice(prefix=""):

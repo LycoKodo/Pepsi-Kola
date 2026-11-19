@@ -70,13 +70,14 @@ pros::Rotation horizontalEncoder(ports::HORIZONTAL_ODOM);
 // 2" omnis. Offset = distance from the tracking centre, in inches, signed the
 // LemLib way: vertical wheel + right / - left, horizontal wheel + front / - back
 lemlib::TrackingWheel verticalWheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, 0.9);     // 0.9" right
+// NOT MEASURED on the new robot: 2.55" in front is the old robot's offset. A wrong offset shows up as X
+// drifting while the robot turns on the spot; measure from the centre of rotation and set it here
 lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, lemlib::Omniwheel::NEW_2, 2.55); // 2.55" in front
 
 lemlib::OdomSensors sensors(&verticalWheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2
-                            nullptr, // horizontal tracking wheel: OFF, not plugged in on the new robot.
-                                     // An empty port reads garbage, which would wreck odometry.
-                                     // Plug it in, set its port in ports.hpp, then put &horizontalWheel back
+                            &horizontalWheel, // horizontal tracking wheel, port 3 (was off: an empty port
+                                              // reads garbage, which would wreck odometry)
                             nullptr, // horizontal tracking wheel 2
                             &imu     // inertial sensor
 );
@@ -88,7 +89,7 @@ lemlib::OdomSensors sensors(&verticalWheel, // vertical tracking wheel
 // The gains below are what the brain's PID tab starts from on every boot (its edits are not saved).
 // Tuned on the new robot with 24 in and 6-48 in out-and-back drives: avg err -0.32", max overshoot 0.7"
 lemlib::ControllerSettings linearController(  12.5, // proportional gain (kP). Rocks twice at 20.5, so 60% of it
-                                              0, // integral gain (kI)
+                                              0.1, // integral gain (kI) (was 0; 0.1 found better on the PID tab, 2026-11-19)
                                               100, // derivative gain (kD) (was 170)
                                               // integral window, inches: the integral only builds while the
                                               // error is INSIDE this range (LemLib's own comment says the
@@ -105,8 +106,9 @@ lemlib::ControllerSettings linearController(  12.5, // proportional gain (kP). R
 // Turning. The PID tab's TURN mode edits kP/kI/kD here. (A separate set for turns under 45 deg was tried and
 // dropped; a second retune tried kP 8.4 / kD 78-95)
 lemlib::ControllerSettings angularController(4.8, // proportional gain (kP). Wobbles at 7.5 (was 15.8)
-                                             0.15, // integral gain (kI): pushes the last few degrees in
-                                             36, // derivative gain (kD) (38 and 40 undershot a little; 35 was tried; 90 on the old robot)
+                                             0.25, // integral gain (kI): pushes the last few degrees in (was 0.15: stopped 0.5-1.3 deg short)
+                                             42, // derivative gain (kD) (was 36: overshot 1.8-5.2 deg at 90; 38 and 40 undershot a little; 35 was tried; 90 on the old robot)
+                                             // 2026-11-19 PID tab, 90 deg: +90 ended 0.9 short / -90 0.4 short, no overshoot, settled 0.6-0.8 s
                                              5, // integral window, degrees: kI only builds within 5 deg
                                              1, // small error range, in degrees 1
                                              200, // small error range timeout, in milliseconds (200)

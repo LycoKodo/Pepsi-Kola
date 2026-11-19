@@ -243,7 +243,10 @@ void tabWatcher(void* param) {
                     odomUpdate();
                 }
 
-                if (auton == 999) {
+                // "No auton picked" reminder: rumbled every 10 ms until a selector button was tapped.
+                // Paused 2026-11-19 for PID tuning; set RUMBLE_UNTIL_PICKED to true to bring it back
+                constexpr bool RUMBLE_UNTIL_PICKED = false;
+                if (RUMBLE_UNTIL_PICKED && auton == 999) {
                     master.rumble(".");
                 }
                 textUpdate();
