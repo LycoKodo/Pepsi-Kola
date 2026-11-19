@@ -25,7 +25,7 @@ constexpr int CHART_SCALE = 10; // chart values are int16, so plot error * 10
 
 enum Mode { DRIVE = 0, TURN = 1 };
 
-const float STEPS[] = {0.001, 0.01, 0.1, 1, 10};
+const float STEPS[] = {0.0001, 0.001, 0.01, 0.1, 1, 10}; // 0.0001 is there for kI
 constexpr int STEP_COUNT = sizeof(STEPS) / sizeof(STEPS[0]);
 
 // target settings per mode: default, step, min, max
@@ -64,7 +64,7 @@ int sampleCount = 0;
 // UI state (LVGL context only)
 // ---------------------------------------
 Mode mode = DRIVE;
-int stepIndex = 2;
+int stepIndex = 3; // 0.1
 int target[] = {TARGET_DEFAULT[DRIVE], TARGET_DEFAULT[TURN]};
 bool reverseNext[] = {false, false};
 
@@ -429,9 +429,9 @@ void init(lv_obj_t* tabview) {
         lv_btnmatrix_set_btn_width(matrix, first + 2, 5);
         lv_btnmatrix_set_btn_width(matrix, first + 3, 4);
     }
-    lv_btnmatrix_set_btn_width(matrix, CELL_DRIVE, 5);
-    lv_btnmatrix_set_btn_width(matrix, CELL_TURN, 5);
-    lv_btnmatrix_set_btn_width(matrix, CELL_STEP, 7);
+    lv_btnmatrix_set_btn_width(matrix, CELL_DRIVE, 4);
+    lv_btnmatrix_set_btn_width(matrix, CELL_TURN, 4);
+    lv_btnmatrix_set_btn_width(matrix, CELL_STEP, 7); // widest: has to fit "step 0.0001"
     // only +/- should repeat while held
     for (int cell = CELL_DRIVE; cell <= CELL_STEP; cell++)
         lv_btnmatrix_set_btn_ctrl(matrix, cell, LV_BTNMATRIX_CTRL_NO_REPEAT);
@@ -486,6 +486,11 @@ void init(lv_obj_t* tabview) {
     showCells();
     showRunButton();
     lv_timer_create(refresh, 50, nullptr);
+
+    // the brain only gives LVGL 32 KB; if this gets near 100% the screen can hang
+    lv_mem_monitor_t mem;
+    lv_mem_monitor(&mem);
+    printf("[PID] LVGL heap %d%% used, biggest free block %d bytes\n", (int)mem.used_pct, (int)mem.free_biggest_size);
 }
 
 } // namespace pidtuner
