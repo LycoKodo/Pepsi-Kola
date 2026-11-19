@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Prometheus V0.1",
+    "project_name": "Yoake V0.1",
     "target": "v5",
     "templates": {
       "LemLib": {
