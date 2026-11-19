@@ -9,7 +9,6 @@
 #include <sys/wait.h>
 
 #include "robot-config.hpp"
-#include "pidtuner.hpp"
 
 void drivetrain_control() {
     bool arcadeMode = true;   // default: ARCADE
@@ -187,23 +186,21 @@ void teleop_loop() {
             top2.move(-127);
         }
 
-        // --- D-pad ---
-        // suppressed while the Developer tab is open, where the D-pad is driving
-        // the PID editor instead. any other tab and these behave as normal
-        else if (!pidtuner::isActive() && master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
+        // --- UP ARROW Logic (New Request) ---
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
             descore.set_value(1);
         } 
 
         // DOWN ARROW Logic (Macro Aligner for Mid)
-        else if (!pidtuner::isActive() && master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
             descore.set_value(0);
         } 
         // Left for odom lift up
-        else if (!pidtuner::isActive() && master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
             odomLift.set_value(0);
         }
         // right for odom lift down
-        else if (!pidtuner::isActive() && master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
             odomLift.set_value(1);
         }
         // --- Idle State ---

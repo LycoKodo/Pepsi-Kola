@@ -44,26 +44,6 @@ class PID {
         float update(float error);
 
         /**
-         * @brief Overwrite the PID gains at runtime
-         *
-         * Used by the on-brain PID editor so constants can be tuned without
-         * rebuilding and re-downloading the program. Changes take effect on the
-         * next call to update(), including during a motion already in progress.
-         *
-         * @param kP proportional gain
-         * @param kI integral gain
-         * @param kD derivative gain
-         */
-        void setGains(float kP, float kI, float kD);
-
-        /** @brief Get the current proportional gain */
-        float getKP() const;
-        /** @brief Get the current integral gain */
-        float getKI() const;
-        /** @brief Get the current derivative gain */
-        float getKD() const;
-
-        /**
          * @brief reset integral, derivative, and prevTime
          *
          * @b Example
@@ -82,10 +62,9 @@ class PID {
         void reset();
     protected:
         // gains
-        // not const: the on-brain PID editor rewrites these via setGains()
-        float kP;
-        float kI;
-        float kD;
+        const float kP;
+        const float kI;
+        const float kD;
 
         // optimizations
         const float windupRange;
