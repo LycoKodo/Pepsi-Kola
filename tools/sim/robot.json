@@ -1,0 +1,31 @@
+{
+  "_about": "Plant parameters for tools/sim (world.cpp). Starting guesses from the hand fit; fit.py rewrites the fitted ones.",
+  "C": 41.09516,
+  "KV": 0.17117,
+  "F": 13.72811,
+  "DV_ACCEL": 2.11339,
+  "DV_BRAKE": 7.12678,
+  "TRACK_EFF": 15.0,
+  "LATENCY_MS": 2.70671,
+  "C_DRIVE_L": 1.0,
+  "C_DRIVE_R": 1.0,
+  "C_BRAKE_L": 1.0,
+  "C_BRAKE_R": 1.0,
+  "V_MAX": 12.0,
+  "VERT_OFFSET": 0.9,
+  "HORIZ_OFFSET": 2.55,
+  "TRACK_WHEEL_D": 2.125,
+  "DRIVE_WHEEL_D": 2.75,
+  "DRIVE_RPM": 450,
+  "_fit": {
+    "runs": [
+      788,
+      5793,
+      6073,
+      6766
+    ],
+    "rot_ms": 20,
+    "cost": 1.0698,
+    "log": "data/tune_2026-11-19.log"
+  }
+}

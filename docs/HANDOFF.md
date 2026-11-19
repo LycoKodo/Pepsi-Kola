@@ -5,6 +5,60 @@ over with the user directly. `CLAUDE.md` has the durable repo knowledge;
 `docs/TUNING_RUNBOOK.md` has the step-by-step for a tuning session. This file is
 the rest: what was done, what is known, what is undecided, and what was planned.
 
+## Update: first robot session, 2026-11-19 (read this first)
+
+This section is newer than everything below it and wins where they disagree.
+
+**Verified on the robot**
+- Boots; `[PID] LVGL heap 49% used, biggest free block 16756 bytes` (not the 79% estimate).
+- Left-side motor speed and voltage are sign-corrected (both sides positive on a straight drive).
+- Horizontal tracking wheel is plugged in on port 3 and enabled; pushing the robot right raises X.
+  Pushing 27 in forward moved X by 0.15 in; a full hand spin returned X, Y to the start. The wheel
+  offsets (0.9 in, 2.55 in) are still the old robot's numbers and were not measured with a ruler.
+- GPS sensor is on port 7 (recorded in `ports.hpp`, not read by any code yet).
+- Uploads: the two screen images are in the cold package, a normal upload is about 32 KB.
+- Log transfer: fine over the cable to the brain; through the controller's radio most runs lose
+  rows (`Could not decode bytes` in the terminal) and the reader marks them DAMAGED. The brain's
+  one-line `[PID] ...` summary still arrives.
+
+**Gains saved in `robot-config.cpp` (tuned with the OLD library behaviour, see below)**
+- Drive 12.5 / 0.1 / 100: 12 and 24 in within 0.25 in; 48 in overshot 0.6 to 2.0 in.
+- Turn 4.8 / 0.25 / 42: 45, 90 and 165 deg all ended within about 1 deg, overshoot 0.6 deg or less.
+  The + way ends about 0.5 deg shorter than the - way every time.
+
+**The LemLib finding and fix (NOT yet run on the robot)**
+- Recorded runs showed full drive voltage until 7.4 in from the target at any speed, then a step
+  to braking; kD 115 was no better than 100. Cause: the rotation sensors refresh every 20 ms, the
+  loops run every 10 ms, so `PID::update`'s one-sample derivative read 0, double, 0, double, and
+  `moveToPoint`'s slew limit (active only outside its 7.5 in settle zone) flattened it.
+- Fix, both in the library, no new parameters: `TrackingWheel::reset()` sets rotation sensors to
+  5 ms; `PID::update` takes the derivative over two samples.
+- LemLib now builds from `src/lemlib` into the cold package (see `CLAUDE.md`).
+- `tools/sim/` is a host testbench that runs the real LemLib code against a robot model fitted to
+  this day's logs (`tools/sim/README.md`). It reproduces the 48 in overshoot (1.48 in, robot 1.46)
+  and with the fix gives 0.04 to 0.21 in from 12 to 72 in; turns change by under 0.1 deg. Graphs:
+  `docs/sim/`. It does not model yaw, left/right asymmetry or the smaller overshoot in reverse.
+- First thing to do with the robot: upload over the cable (cold package changed), run DRIVE 24 and
+  48 in each way and one TURN 90 pair. Expect the reader's "stale position" flag to be gone and
+  48 in to overshoot well under 0.5 in; if not, try kD 115. The drive gains may want a retune.
+
+**Still open**
+- During hard braking from a 48 in drive the robot yawed 3 to 6 deg; LemLib does not steer inside
+  7.5 in. Not addressed. The fix should make braking gentler, which may shrink it.
+- Tracking-wheel speed reads about 1.2x the speed computed from motor rpm with the configured
+  2.75 in wheels at 450 rpm. One of those constants is probably wrong (harmless to LemLib while
+  the tracking wheel and IMU are used). Tape test still wanted: push until Y reads 48, measure.
+- Claw: with the claw open the sensor read 72 to 77 mm and every L1 press "caught" 0.3 s later
+  (`CLAW_CATCH_MM` is 100). Nobody has said what was in the claw.
+- `moveToPose`: speed cap `sqrt(horizontalDrift * radius * 9.8)` with drift 2 limits a 50 in
+  radius arc to about 25% power and can stall short of the target; it only exits within 0.5 in.
+  Read from the code, not tested. Raising `horizontalDrift` to about 8 is the first thing to try.
+- Dormant LemLib bugs: `angleError` sanitises `target` twice and never `position` (forced-direction
+  turns can over-rotate past 360 deg); async motions capture arguments by reference.
+- The "no auton picked" controller rumble is switched off by a flag in `selector.cpp`.
+- How the user works at the robot: they run `pros mu` and `pros terminal --output tune.log`
+  themselves in their own terminal; do not open terminals or hold the serial port.
+
 ## What was done
 
 1. **Reset.** The repo was returned to the start-of-season state. An earlier
