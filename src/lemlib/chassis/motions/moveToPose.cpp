@@ -78,7 +78,7 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
                                 (carrot.x - target.x) * cos(target.theta) + params.earlyExitRange;
         const bool sameSide = robotSide == carrotSide;
         // exit if close
-        if (!sameSide && prevSameSide && close && params.minSpeed != 0 && distTarget < 1.5) break; // NOTE - for timmy who likes minspeed
+        if (!sameSide && prevSameSide && close && params.minSpeed != 0) break;
         prevSameSide = sameSide;
 
         // calculate error
@@ -133,7 +133,6 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
         prevAngularOut = angularOut;
         prevLateralOut = lateralOut;
 
-        printf("lateralOut: %f, angularOut: %f", lateralOut, angularOut);
         infoSink()->debug("lateralOut: {} angularOut: {}", lateralOut, angularOut);
 
         // ratio the speeds to respect the max speed
@@ -146,7 +145,7 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
         }
 
         // move the drivetrain
-        drivetrain.leftMotors->move(leftPower*0.9);
+        drivetrain.leftMotors->move(leftPower);
         drivetrain.rightMotors->move(rightPower);
 
         // delay to save resources

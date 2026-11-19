@@ -60,6 +60,7 @@
 
 LV_IMG_DECLARE(image); //TKSRC Logo
 void initialize() {
+    std::printf("[build] Yoake V0.1, small-upload test 1\n"); // shows which upload is running; bump the number to check a new one
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------

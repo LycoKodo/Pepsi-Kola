@@ -3,3 +3,7 @@ bin/
 .d/
 __pycache__/
 .DS_Store
+firmware/libcoldimages.a
+firmware/liblemlib.a
+pidlog_out/
+tune*.log

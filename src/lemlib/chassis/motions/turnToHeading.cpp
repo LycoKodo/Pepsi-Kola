@@ -33,29 +33,9 @@ void lemlib::Chassis::turnToHeading(float theta, int timeout, TurnToHeadingParam
     angularPID.reset();
 
     // main loop
-    // @note - split up the while thing for debug messages
-    while (true) {
-        printf("TurnToHeading Loop\n");
+    while (!timer.isDone() && !angularLargeExit.getExit() && !angularSmallExit.getExit() && this->motionRunning) {
         // update variables
         Pose pose = getPose();
-
-        if (timer.isDone()) {
-            // Get robot pos
-            printf("TIMEOUT, POSE: %f | %f | %f\n", pose.x, pose.y, pose.theta);
-            break;
-        }
-        if (angularLargeExit.getExit()) {
-            printf("Exited: angularLargeExit triggered\n");
-            break;
-        }
-        if (angularSmallExit.getExit()) {
-            printf("Exited: angularSmallExit triggered\n");
-            break;
-        }
-        if (!this->motionRunning) {
-            printf("Exited: motion no longer running\n");
-            break;
-        }
 
         // update completion vars
         distTraveled = fabs(angleError(pose.theta, startTheta, false));

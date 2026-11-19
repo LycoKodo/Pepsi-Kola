@@ -61,7 +61,6 @@ class PID {
          */
         void reset();
 
-        // inline on purpose: the prebuilt firmware/LemLib.a wins over out-of-line code in src/lemlib
         void setGains(float kP, float kI, float kD) {
             this->kP = kP;
             this->kI = kI;
@@ -74,7 +73,7 @@ class PID {
 
         float getKD() const { return kD; }
     protected:
-        // gains (not const so they can be tuned at runtime; layout must match the prebuilt library)
+        // gains (not const so they can be tuned at runtime)
         float kP;
         float kI;
         float kD;
@@ -85,5 +84,6 @@ class PID {
 
         float integral = 0;
         float prevError = 0;
+        float prevPrevError = 0; // the error two updates ago: the derivative is taken over two samples (pid.cpp)
 };
 } // namespace lemlib

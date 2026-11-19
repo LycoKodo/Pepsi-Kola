@@ -29,7 +29,13 @@ lemlib::TrackingWheel::TrackingWheel(pros::MotorGroup* motors, float wheelDiamet
 
 void lemlib::TrackingWheel::reset() {
     if (this->encoder != nullptr) this->encoder->reset();
-    if (this->rotation != nullptr) this->rotation->reset_position();
+    if (this->rotation != nullptr) {
+        this->rotation->reset_position();
+        // refresh every 5 ms (the sensor's fastest) instead of its default 20 ms, so the 10 ms odometry
+        // loop gets a new reading every time. Done here because reset() runs from Chassis::calibrate(),
+        // after PROS has started; a constructor of a global object would be too early
+        this->rotation->set_data_rate(5);
+    }
     if (this->motors != nullptr) this->motors->tare_position_all();
 }
 

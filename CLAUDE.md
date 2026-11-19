@@ -35,21 +35,27 @@ prints SSL/analytics warnings after every command. Both are harmless.
 | Auton selector and Developer tab (team-written, lives under lemlib/) | `src/lemlib/selector.cpp` |
 | PID tab: live gain editing, test moves, run logging | `src/pidtuner.cpp` |
 | Laptop tools | `tools/pidlog.py`, `tools/pidlog_selftest.py` |
+| Screen images (boot logo, selector picture), linked into the COLD package so normal uploads stay ~32 KB; see the bottom of `Makefile` | `cold/image.c`, `cold/dorito.c` |
 
 ## Traps that have already cost time
 
-**The prebuilt LemLib wins at link time.** `firmware/LemLib.a` is linked alongside
-`src/lemlib`. For every function present in both, the linker uses the prebuilt
-one, so edits to out-of-line functions in `src/lemlib/**/*.cpp` never run
-(checked in the linked binary: the symbols resolve to the cold image and the
-edited code's strings are absent). `selector.cpp` and `smartMotor.cpp` are not in
-the archive and are live. Change LemLib behaviour only through headers (inline
-code), or in team files: that is why `PID::setGains` is inline in
-`include/lemlib/pid.hpp` and the turn rules live in `TeamChassis`. Do not change
-the layout of a LemLib class the prebuilt code reads. Deleting `firmware/LemLib.a`
-makes `src/lemlib` live and builds cleanly, but it also switches on old edits in
-there that have never run (a `leftPower*0.9` in `moveToPose` and `arcade`, debug
-prints in the motion loops). The user has not decided on this yet.
+**LemLib runs from source, in the cold package (since 2026-11-19).** Until then
+the prebuilt `firmware/LemLib.a` was linked alongside `src/lemlib` and won for
+every function in both, so edits in `src/lemlib` never ran. It is no longer
+linked (kept, unused, as `firmware/prebuilt/LemLib.a.unused`). The bottom of
+`Makefile` compiles `src/lemlib/**` into `firmware/liblemlib.a` and links it into
+the cold package; `selector.cpp` and `smartMotor.cpp` are team code and stay in
+the hot program. Consequences: an edit under `src/lemlib` or `include/lemlib` now
+takes effect, and the next upload re-sends the 3.7 MB cold package (do it over the
+cable to the brain; normal uploads are about 32 KB). When the switch was made,
+the team edits that had never run were removed from the paths that run (debug
+prints in `moveToPoint`/`turnToHeading`, `leftPower*0.9` and `distTarget < 1.5`
+in `moveToPose`, the "AAA" controller print in `calibrate`); `arcade`'s
+`leftPower*0.9`, `curvature`'s `turn *= 0.95` and `variableCurvature` are still
+there and would run if called (the driver loop uses `chassis.tank`). Two library
+changes were made the same day: `TrackingWheel::reset()` sets rotation sensors to
+a 5 ms refresh, and `PID::update` takes its derivative over two samples. Test
+library changes in `tools/sim/` before the robot.
 
 **The screen has 32 KB and no lock.** LVGL's heap on the brain is 32 KB and the
 selector plus the PID tab use most of it (estimated 79%; the real figure prints at
