@@ -13,6 +13,7 @@
 #include "controls.hpp"
 #include "autons.hpp"
 #include "colorsort.hpp"
+#include "pidtuner.hpp"
 
 // THIS CODE IS POWERED BY A PROJECT MANAGER AND TWO DORITO FANS POWERED BY 
 /*
@@ -140,6 +141,7 @@ void initialize() {
     };
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
+    pidtuner::init(lemlib::selector::tabview); // PID tuning tab, added after the selector's tabs
 }
 
 void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me bro fr)

@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 
 #include "robot-config.hpp"
+#include "pidtuner.hpp"
 
 void drivetrain_control() {
     bool arcadeMode = true;   // default: ARCADE
@@ -46,8 +47,10 @@ void drivetrain_control() {
         int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
 
-        // 4. Drive based on current mode
-        if (arcadeMode) {
+        // 4. Drive based on current mode (hands off while the PID tab is running a test move)
+        if (pidtuner::isRunning()) {
+            // test motion owns the drivetrain
+        } else if (arcadeMode) {
             printf("Control: Arcade\n");
             chassis.arcade(leftY, rightX);
         } else {

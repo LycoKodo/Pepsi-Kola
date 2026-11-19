@@ -60,11 +60,24 @@ class PID {
          * @endcode
          */
         void reset();
+
+        // inline on purpose: the prebuilt firmware/LemLib.a wins over out-of-line code in src/lemlib
+        void setGains(float kP, float kI, float kD) {
+            this->kP = kP;
+            this->kI = kI;
+            this->kD = kD;
+        }
+
+        float getKP() const { return kP; }
+
+        float getKI() const { return kI; }
+
+        float getKD() const { return kD; }
     protected:
-        // gains
-        const float kP;
-        const float kI;
-        const float kD;
+        // gains (not const so they can be tuned at runtime; layout must match the prebuilt library)
+        float kP;
+        float kI;
+        float kD;
 
         // optimizations
         const float windupRange;
