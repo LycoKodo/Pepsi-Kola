@@ -56,7 +56,6 @@ LR_CRUISE_FRAC = 0.3            # cruise samples = speed above this fraction of 
 TURN_WANDER_IN = 1.0            # TURN: centre wandering further than this is worth flagging
 END_MISMATCH_FRAC_TOL = 0.5     # END-line final/over disagree if off by more than this x tolerance...
 END_MISMATCH_MIN = 0.05         # ...and by at least this much in absolute terms
-END_SETTLE_MISMATCH_MS = 150    # END-line settle_ms disagrees if off by more than this
 GAP_FACTOR = 1.5                # a time step above 1.5 x dt_ms is reported as a gap
 
 # Suggested-change sizes.
@@ -291,7 +290,9 @@ def finalize(run):
             run.notes.append("END has no sum=, checksum not checked")
         res = e.get("result", "")
         if res == "buffer":
-            run.damage.append("result=buffer: the firmware's log buffer filled, so rows are missing")
+            # not damage: every recorded row was sent, the move just outlasted the recording
+            run.notes.append("result=buffer: the move was still running when the robot's 5 s recording "
+                             "ran out, so the end of it is not in the log")
     if gap_txt:
         run.notes.append(gap_txt.lstrip("; "))
     if not run.rows:
@@ -469,9 +470,8 @@ def analyse(run):
     eo = fnum(e, "over")
     if eo is not None and abs(eo - m["overshoot"]) > lim:
         mism.append("over=%.2f but rows show %.2f" % (eo, m["overshoot"]))
-    es = fnum(e, "settle_ms")
-    if es is not None and es >= 0 and m["settle_ms"] is not None and abs(es - m["settle_ms"]) > END_SETTLE_MISMATCH_MS:
-        mism.append("settle_ms=%d but rows show %d" % (es, m["settle_ms"]))
+    # END's settle_ms is not compared: the brain's on-screen readout uses its own, wider tolerance
+    # (1 in / 1.5 deg), so it legitimately differs from the settle time computed here
     m["end_line_mismatch"] = mism
     m["_series"] = {"t": t, "err": err, "dev": dev, "vL": vL, "vR": vR, "uL": uL, "uR": uR}
     return m
@@ -592,10 +592,14 @@ def classify(run, m):
              "not enough push to beat friction near the end." % (abs(final), u, ue / 1000))
         sug = change("kP", kP, STOPS_SHORT_KP_FACTOR, "for more push near the target")
         alt = None
-        if kI == 0 and (m["windup"] or 0) > 0 and kP:
+        w = m["windup"] or 0
+        if kI == 0 and w > abs(final) and kP:
             alt = setval("kI", 0.0, KI_START_FRACTION * kP,
-                         "(starting value; integral accumulates inside windup=%s)" % gnum(m["windup"]))["text"]
+                         "(starting value; integral accumulates inside windup=%s)" % gnum(w))["text"]
             alt = "or add a small integral: " + alt
+        elif kI == 0 and w > 0 and kP:
+            alt = ("kI alone would not help: it stopped %.2f %s away, outside windup=%s where the integral "
+                   "accumulates; fix kP first" % (abs(final), u, gnum(w)))
         elif kI == 0:
             alt = "kI would not help yet: windup=0 means the integral never accumulates"
         return d, sug, alt
@@ -639,9 +643,14 @@ def classify(run, m):
             frac = min(1.0, max(0.0, (ratio - 1) / (OVERSHOOT_FULL_SCALE - 1)))
             pct = OVERSHOOT_KD_MIN_PCT + frac * (OVERSHOOT_KD_MAX_PCT - OVERSHOOT_KD_MIN_PCT)
             s = change("kD", kD, 1 + pct / 100.0, "to brake harder on the approach")
-        st = ("settled at %.2f s" % (m["settle_ms"] / 1000)) if m["settle_ms"] is not None else "did not settle"
-        d = ("Overshot the target by %.2f %s (%.1fx the tolerance) and came back; %d crossing(s), %s."
-             % (over, u, ratio, m["big_crossings"], st))
+        if m["settle_ms"] is not None:
+            st = "came back and settled at %.2f s" % (m["settle_ms"] / 1000)
+        elif final < -tol:
+            st = "stayed %.2f %s past it" % (-final, u)
+        else:
+            st = "came back but ended %.2f %s short" % (final, u)
+        d = ("Overshot the target by %.2f %s (%.1fx the tolerance), %s; %d crossing(s) beyond tolerance."
+             % (over, u, ratio, st, m["big_crossings"]))
         return done("OVERSHOOT", d, s, None)
 
     if short and not m["stalled_end"]:
@@ -678,9 +687,12 @@ def classify(run, m):
     st = ("settled in %.2f s" % (m["settle_ms"] / 1000)) if m["settle_ms"] is not None else "ended"
     d = ("Reached the target with %.2f %s final error, %.2f %s overshoot, %s. Looks well tuned for this distance."
          % (abs(final), u, over, u, st))
-    s = {"param": None, "old": None, "new": None, "pct": None,
-         "text": "keep these gains; confirm at a shorter (%s %s) and a longer (%s %s) target"
-                 % (gnum(shorter), u, gnum(longer), u)}
+    if longer > tgt:
+        txt = "keep these gains; confirm at a shorter (%s %s) and a longer (%s %s) target" % (
+            gnum(shorter), u, gnum(longer), u)
+    else:
+        txt = "keep these gains; confirm at shorter targets (%s and %s %s)" % (gnum(shorter), gnum(nice(tgt / 4)), u)
+    s = {"param": None, "old": None, "new": None, "pct": None, "text": txt}
     return done("GOOD", d, s, None)
 
 
@@ -936,8 +948,12 @@ def plot_overview(plt, mode, items, path):
         ax_z.plot(ts, s["err"], **kw)
         if m.get("end_ms") is not None and m["end_ms"] >= 0:
             i = max(j for j, t in enumerate(s["t"]) if t <= m["end_ms"]) if s["t"][0] <= m["end_ms"] else 0
-            ax_z.plot([ts[i]], [max(-z, min(z, s["err"][i]))], marker="o", ms=7, color=kw["color"],
-                      mec=C_SURFACE, mew=1.5, ls="none", zorder=5)
+            if abs(s["err"][i]) <= z:   # off-scale end points are visible in the top panel instead
+                ax_z.plot([ts[i]], [s["err"][i]], marker="o", ms=7, color=kw["color"],
+                          mec=C_SURFACE, mew=1.5, ls="none", zorder=5)
+            else:
+                ax_f.plot([ts[i]], [s["err"][i]], marker="o", ms=7, color=kw["color"],
+                          mec=C_SURFACE, mew=1.5, ls="none", zorder=5)
     ax_z.set_ylim(-z, z)
     ax_f.set_xlim(0, tmax)
     ax_f.set_ylabel("error (%s)" % unit_lbl)

@@ -25,7 +25,7 @@ constexpr int CHART_SCALE = 10; // chart values are int16, so plot error * 10
 // After each test the whole run is printed to the terminal in one go ("[PIDLOG]" block, read by
 // tools/pidlog.py). Sent in small chunks with a pause between them so the serial link keeps up.
 // If the laptop tool reports missing rows (likely over the controller's radio), raise the delay
-constexpr int LOG_EVERY = 2; // print every 2nd sample: one row per 20 ms
+constexpr int LOG_EVERY = 1; // print every sample: one row per 10 ms, the rate LemLib's loop runs at
 constexpr int DUMP_ROWS_PER_CHUNK = 8;
 constexpr int DUMP_CHUNK_DELAY_MS = 10;
 // Driver control runs the drive in COAST, which would let a test move roll on past the target

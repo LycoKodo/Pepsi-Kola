@@ -247,7 +247,7 @@ SCENARIOS = [
     ("drive dropped row",     dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "drop_row"),
     ("drive bad checksum",    dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "corrupt"),
     ("drive malformed row",   dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "malformed"),
-    ("drive buffer full",     dict(mode="DRIVE", target=24, kP=12, kD=60), "DAMAGED", None, [], "buffer"),
+    ("drive buffer full",     dict(mode="DRIVE", target=24, kP=12, kD=60), "TIMEOUT", ("kP", "up"), [], "buffer"),
     ("drive END mismatch",    dict(mode="DRIVE", target=24, kP=12, kD=60), "GOOD", None,
      ["END line disagrees"], "end_mismatch"),
     ("drive never ended",     dict(mode="DRIVE", target=24, kP=3, kD=10, friction_scale=3.0, timeout=2500),
@@ -275,6 +275,7 @@ def build_capture(path, seed=7):
             end["rows"] = len(rows)
             end["sum"] = sum(sum(r) for r in rows) % (1 << 32)
             end["result"] = "buffer"
+            end["end_ms"] = -1  # the firmware sends -1: the move never ended inside the recording
         elif tamper == "end_mismatch":
             end["over"] = "1.75"
         elif tamper == "never_ended":
@@ -375,8 +376,8 @@ def main():
         if tamper == "malformed":
             check(any("malformed" in d for d in r["damage"]), "%s: malformed row not reported" % tag)
         if tamper == "buffer":
-            check(any("buffer" in d for d in r["damage"]), "%s: buffer result not reported" % tag)
-        if tamper in (None, "end_mismatch", "never_ended"):
+            check(any("buffer" in d for d in r["notes"]), "%s: buffer result not reported" % tag)
+        if tamper in (None, "end_mismatch", "never_ended", "buffer"):
             check(not r["damage"], "%s: clean run reported damaged: %s" % (tag, r["damage"]))
     check(data["stats"]["orphan_rows"] == 1, "stray data row outside a run not counted")
     check(data["stats"]["orphan_ends"] == 1, "stray END outside a run not counted")
