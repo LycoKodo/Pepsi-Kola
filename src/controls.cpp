@@ -283,8 +283,6 @@ void rollerAControls() {
     }
 }
 
-// LEFT is Y's hold-for-pickup with the roller at ROLLER_LEFT (and stows it if it's already
-// there); RIGHT triggers the raise-right macro.
 } // namespace
 
 void driverControl() {

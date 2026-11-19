@@ -2,3 +2,4 @@ bin/
 .cache/
 .d/
 __pycache__/
+.DS_Store

@@ -56,7 +56,7 @@ pros::MotorGroup xMotors({ports::X_MOTOR_A, ports::X_MOTOR_B}, pros::MotorGearse
                          pros::MotorUnits::degrees); // ports 14 and 16, spin while X is held
 pros::Distance distanceSensor(ports::DISTANCE);
 pros::Optical opticalSensor(ports::OPTICAL);
-pros::Distance clawSensor(ports::CLAW_DISTANCE); // L1: closes the claw when something is within 2 cm
+pros::Distance clawSensor(ports::CLAW_DISTANCE); // L1: closes the claw when something is within 10 cm (CLAW_CATCH_MM, controls.cpp)
 
 // ---------------------------------------
 // Odometry

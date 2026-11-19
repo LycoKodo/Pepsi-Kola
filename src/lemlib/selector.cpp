@@ -1,6 +1,5 @@
 #include <iostream>
 #include <stdexcept>
-#include <sys/_intsup.h>
 #include "api.h"
 #include "liblvgl/core/lv_event.h"
 #include "liblvgl/core/lv_obj.h"
@@ -18,7 +17,7 @@
 #include "subsystems.hpp"
 #include "lemlib/selector.hpp"
 
-LV_IMG_DECLARE(dorito); //TKSRC Logo
+LV_IMG_DECLARE(dorito); // picture on the blank last tab (src/dorito.c); the TKSRC logo is `image`, in main.cpp
 
 /**
  * @brief THIS IS A TODO LIST
@@ -427,7 +426,7 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         lv_img_set_src(img, &dorito); // Link to source image
         lv_obj_align(img, LV_ALIGN_CENTER, 0, 0); // Align image in the tab
 
-        // Set the image scale to 90% (zoom factor is in 256ths, so 90% = 0.9 * 256 = 230)
+        // Image scale: the zoom factor is in 256ths, so 200 = about 78%
         lv_img_set_zoom(img, 200);
 
         tabWatcher_task = new pros::Task(tabWatcher, nullptr, "tabWatcher");

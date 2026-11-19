@@ -29,8 +29,8 @@ constexpr double CASCADE_L4 = 1390; // the old R2 top step; R2 doesn't go here a
 constexpr double CASCADE_MAX = 1390;        // highest R1 / the autons send the cascade (R2's L4; UP has no limit)
 constexpr double CASCADE_MIN = 0;           // the bottom, for macros and autons (manual DOWN has no limit)
 constexpr double CASCADE_LOAD = 90;         // loading height: B finds the bottom, then goes up to here (150 and 30 were tried)
-constexpr double CASCADE_RIGHT = 240;
-constexpr double CASCADE_UP_DEG = 100;      // above this the cascade counts as "up" for rollerStaysPut()       // D-pad RIGHT sends the cascade here
+constexpr double CASCADE_RIGHT = 240;       // the RaiseRight macro's cascade height (no button now; was D-pad RIGHT)
+constexpr double CASCADE_UP_DEG = 100;      // above this the cascade counts as "up" for rollerStaysPut()
 constexpr double ROLLER_STOWED = 0;
 constexpr double ROLLER_DEPLOYED = 142;     // rollerTurn deploy unit; the autons use ROLLER_DEPLOYED * 2
 constexpr double ROLLER_DEPLOYED_AUTON = 140.4;
@@ -85,7 +85,7 @@ void intakeStop();
  *
  * For the deploy spin, which otherwise runs until something else stops it, and overheats
  * the motor when there's nothing to take in. intake() and intakeStop() cancel the timer,
- * so a later L1/L2 or outtake is never cut short by it
+ * so a later intake or outtake is never cut short by it
  */
 void rollerMainFor(int percent, int ms);
 
@@ -109,9 +109,10 @@ void toggleSide();
 /**
  * @brief Spin toggleB (port 17) at full speed while the optical sensor (port 18) sees, within ~5 cm, yellow or
  * the other alliance's colour: yellow/blue on red alliance, yellow/red on blue alliance. Anything else
- * stops it dead. While L1 or L2 is held it goes back to zero degrees (the nearest full turn) and
- * holds there, until 0.75 s after letting go. Each time toggleB starts spinning, toggleA (port 10)
- * goes back to zero degrees. Checks every 5 ms. Runs on its own task: call once, in initialize()
+ * stops it dead. While D-pad LEFT or RIGHT (intake / outtake) is held it goes back to zero degrees
+ * (the nearest full turn) and holds there, until 0.75 s after letting go. Each time toggleB starts
+ * spinning, toggleA (port 10) goes back to zero degrees. Checks every 5 ms. Runs on its own task:
+ * call once, in initialize()
  */
 void startColourToggle();
 

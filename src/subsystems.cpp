@@ -173,7 +173,7 @@ void startColourToggle() {
             if (want != spinning) { // only command on a change
                 if (want) {
                     toggleB.move_velocity(rpm(SPEED_PCT));
-                    // toggleA (port 10) back to zero degrees, the nearest full turn, as L1/L2 does for toggleB.
+                    // toggleA (port 10) back to zero degrees, the nearest full turn, as LEFT/RIGHT does for toggleB.
                     // NOTE: this stops toggleA if intake() was running it (a macro or an auton)
                     toggleA.move_absolute(std::round(toggleA.get_position() / 360.0) * 360.0, rpm(SPEED_PCT));
                 } else {

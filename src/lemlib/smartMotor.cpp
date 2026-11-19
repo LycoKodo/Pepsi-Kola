@@ -74,7 +74,7 @@ float SmartMotor::getRotation() {
 int SmartMotor::movePID(float target, float timeout, float acceptableRange, bool async) {
     if (async) {
         // Start an asynchronous task to run the PID loop.
-        pros::Task asynctask([=]() {
+        pros::Task asynctask([=, this]() {
             this->movePID(target, timeout, false); // Call the synchronous version
         });
         pros::delay(10); // Delay to give the task time to start
