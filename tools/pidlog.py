@@ -108,6 +108,7 @@ class Run:
         self.damage = []            # reasons this run is DAMAGED
         self.notes = []             # non-fatal remarks
         self.close_reason = None
+        self.gaps = []              # (t_before_gap, step_ms)
 
     @property
     def run_id(self):
@@ -262,6 +263,7 @@ def finalize(run):
     if backwards:
         run.damage.append("time goes backwards %d time(s) (rows out of order or mixed runs)" % backwards)
     gap_txt = ""
+    run.gaps = gaps
     if gaps:
         gap_txt = "; time gaps at " + ", ".join("t=%d ms (+%d)" % g for g in gaps[:4])
         if len(gaps) > 4:
@@ -359,7 +361,12 @@ def analyse(run):
     dt = fnum(h, "dt_ms") or (median([b - a for a, b in zip(t, t[1:])]) if len(t) > 1 else 20)
     m["dt_ms"] = dt
 
-    move_end = end_ms if end_ms is not None and end_ms >= 0 else t[-1]
+    if end_ms is not None and end_ms >= 0:
+        move_end = end_ms
+    else:
+        # never ended (or no END): the move lasted as long as the controller was commanding
+        cmd_idx = [i for i in range(len(t)) if abs(ucmd[i]) > VOLT_FLIP_DEADBAND_MV]
+        move_end = t[cmd_idx[-1]] if cmd_idx else t[-1]
     move = [i for i in range(len(t)) if t[i] <= move_end] or list(range(len(t)))
     i_end = move[-1]
     m["move_end_ms"] = move_end
@@ -684,6 +691,8 @@ def end_str(m):
     if m.get("result") is None:
         return "no END"
     r = m["result"]
+    if m.get("end_ms") is not None and m["end_ms"] < 0:
+        return "%s/never ended" % r
     if m.get("timed_out"):
         return "%s/timeout" % r
     return "%s@%ss" % (r, fmt(m["end_ms"] / 1000, 2)) if m.get("end_ms") is not None and m["end_ms"] >= 0 else r
@@ -790,7 +799,7 @@ def plot_run(plt, run, m, v, path):
     ts = [x / 1000 for x in s["t"]]
     unit_lbl = "in" if m["mode"] == "DRIVE" else "deg"
     fig, axes = plt.subplots(3, 1, sharex=True, figsize=(10.5, 8.6),
-                             gridspec_kw={"height_ratios": [1.5, 1, 1], "hspace": 0.12})
+                             gridspec_kw={"height_ratios": [1.5, 1, 1], "hspace": 0.16})
     fig.patch.set_facecolor(C_SURFACE)
     for ax in axes:
         style_axes(ax)
@@ -803,11 +812,16 @@ def plot_run(plt, run, m, v, path):
         if end_s is not None:
             ax.axvline(end_s, color=C_INK, lw=1.0, ls="--", zorder=2)
             ax.axvspan(end_s, ts[-1], color=C_GRID, alpha=0.35, lw=0, zorder=0)
-    ax_v.plot(ts, s["vL"], color=SERIES[0], lw=1.5, label="left")
-    ax_v.plot(ts, s["vR"], color=SERIES[1], lw=1.5, ls="--", label="right")
+    hL, = ax_v.plot(ts, s["vL"], color=SERIES[0], lw=1.5, label="left")
+    hR, = ax_v.plot(ts, s["vR"], color=SERIES[1], lw=1.5, ls="--", label="right")
     ax_v.axhline(0, color=C_INK2, lw=0.8)
+    for g0, step in run.gaps:
+        for ax in axes:
+            ax.axvspan(g0 / 1000, (g0 + step) / 1000, color=C_CRIT, alpha=0.25, lw=0)
+    if run.gaps:
+        ax_v.annotate("red = missing rows", xy=(run.gaps[0][0] / 1000, 1.0), xycoords=("data", "axes fraction"),
+                      xytext=(4, -10), textcoords="offset points", fontsize=8, color=C_CRIT)
     ax_v.set_ylabel("motor speed (rpm)")
-    ax_v.legend(loc="upper right", frameon=False, fontsize=9, ncol=2)
     ax_u.plot(ts, [x / 1000 for x in s["uL"]], color=SERIES[0], lw=1.5, label="left")
     ax_u.plot(ts, [x / 1000 for x in s["uR"]], color=SERIES[1], lw=1.5, ls="--", label="right")
     ax_u.axhline(0, color=C_INK2, lw=0.8)
@@ -817,26 +831,31 @@ def plot_run(plt, run, m, v, path):
     ax_u.set_yticks([-12, -6, 0, 6, 12])
     ax_u.set_ylabel("motor voltage (V)")
     ax_u.set_xlabel("time since move start (s)")
-    ax_u.legend(loc="upper right", frameon=False, fontsize=9, ncol=2)
+    fig.legend([hL, hR], ["left side", "right side"], loc="upper right", bbox_to_anchor=(0.985, 0.95),
+               ncol=2, frameon=False, fontsize=9, handlelength=2.5)
     ax_e.set_xlim(ts[0], ts[-1] if ts[-1] > ts[0] else ts[0] + 1)
 
     # Key labels directly on the error panel.
     if end_s is not None:
-        ax_e.annotate("move ended %.2f s" % end_s, xy=(end_s, 1.0), xycoords=("data", "axes fraction"),
-                      xytext=(4, -12), textcoords="offset points", fontsize=8.5, color=C_INK)
+        lab = "LemLib ended the move at %.2f s" % end_s
+        right_room = (ts[-1] - end_s) / max(ts[-1] - ts[0], 1e-6)
+        ax_u.annotate(lab, xy=(end_s, 0.04), xycoords=("data", "axes fraction"),
+                      xytext=(-5 if right_room < 0.3 else 5, 0), textcoords="offset points",
+                      ha="right" if right_room < 0.3 else "left", fontsize=8.5, color=C_INK,
+                      bbox=dict(boxstyle="round,pad=0.2", fc=C_SURFACE, ec="none", alpha=0.9))
     elif m.get("result") is not None:
-        ax_e.annotate("move never ended", xy=(0.99, 0.96), xycoords="axes fraction", ha="right",
-                      fontsize=8.5, color=C_INK)
-    ax_u.annotate("saturation |u| ≥ %.0f V" % (SAT_MV / 1000), xy=(0.005, SAT_MV / 1000),
-                  xycoords=("axes fraction", "data"), xytext=(0, 3), textcoords="offset points",
-                  fontsize=8, color=C_MUTED)
+        ax_u.annotate("LemLib never ended the move (end_ms=-1)", xy=(0.99, 0.04), xycoords="axes fraction",
+                      ha="right", fontsize=8.5, color=C_INK,
+                      bbox=dict(boxstyle="round,pad=0.2", fc=C_SURFACE, ec="none", alpha=0.9))
+    ax_u.annotate("dotted = ±%.0f V saturation" % (SAT_MV / 1000), xy=(1.0, 1.0), xycoords="axes fraction",
+                  xytext=(0, 2), textcoords="offset points", ha="right", va="bottom", fontsize=8, color=C_MUTED)
 
     # Zoomed inset of the end-game, placed where it hides no data.
     z = zoom_range(m)
     ylo, yhi = ax_e.get_ylim()
+    placed = None
     if yhi - ylo > 3 * z:
-        placed = None
-        for box in ([0.47, 0.40, 0.51, 0.56], [0.30, 0.40, 0.45, 0.56], [0.47, 0.05, 0.51, 0.45]):
+        for box in ([0.47, 0.36, 0.51, 0.52], [0.30, 0.36, 0.45, 0.52], [0.47, 0.05, 0.51, 0.45]):
             if box_empty(ax_e, ts, s["err"], box):
                 placed = box
                 break
@@ -859,7 +878,7 @@ def plot_run(plt, run, m, v, path):
                 ("   dashed = large exit ±%s" % gnum(m["large"])) if m.get("large") and m["large"] <= z else ""),
                 fontsize=8, color=C_INK2, loc="left")
             ax_e.indicate_inset_zoom(ins, edgecolor=C_MUTED, alpha=0.6)
-    else:
+    if not (yhi - ylo > 3 * z and placed):
         ax_e.text(0.995, 0.03, "grey band = tolerance ±%s %s" % (gnum(m["tol"]), unit_lbl),
                   transform=ax_e.transAxes, ha="right", fontsize=8, color=C_INK2)
 
@@ -930,7 +949,8 @@ def plot_overview(plt, mode, items, path):
               transform=ax_z.transAxes, ha="right", fontsize=8, color=C_INK2)
     fig.text(0.08, 0.975, "%s: error of the last %d run(s)" % (mode, len(items)),
              fontsize=12, color=C_INK, weight="bold", va="top")
-    fig.text(0.08, 0.947, "top: whole move   bottom: zoomed to ±%.2f %s around the target" % (z, unit_lbl),
+    fig.text(0.08, 0.947, "top: whole move   bottom: zoomed to ±%.2f %s around the target   "
+             "(damaged and aborted runs left out)" % (z, unit_lbl),
              fontsize=9.5, color=C_INK2, va="top")
     fig.subplots_adjust(left=0.09, right=0.985, top=0.915, bottom=0.08)
     fig.savefig(path, dpi=PLOT_DPI, facecolor=C_SURFACE)
@@ -998,7 +1018,8 @@ def main(argv=None):
             except Exception as exc:
                 print("warning: plot for run %s failed: %s" % (m["run"], exc), file=sys.stderr)
         for mode in ("DRIVE", "TURN"):
-            items = [r for r in results if r[1]["mode"] == mode and r[1]["rows"]][-max(1, args.last):]
+            items = [r for r in results if r[1]["mode"] == mode and r[1]["rows"]
+                     and r[2]["verdict"] not in ("DAMAGED", "ABORTED")][-max(1, args.last):]
             if items:
                 p = os.path.join(args.out, "overview_%s.png" % mode.lower())
                 try:
