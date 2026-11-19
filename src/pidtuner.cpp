@@ -128,8 +128,12 @@ float signOf(float x) { return x < 0 ? -1 : 1; }
 void testTask() {
     const TestParams p = params;
 
-    // LemLib has no brake mode getter: read it off the drive motors (setBrakeMode sets both sides)
-    const pros::motor_brake_mode_e_t savedBrakeMode = leftMotors.get_brake_mode();
+    // LemLib has no brake mode getter: read it off the drive motors (setBrakeMode sets both sides).
+    // If the motor can't be read (unplugged), go back to COAST, driver control's mode
+    const pros::MotorBrake current = leftMotors.get_brake_mode();
+    const pros::motor_brake_mode_e_t savedBrakeMode = current == pros::MotorBrake::invalid
+                                                          ? pros::E_MOTOR_BRAKE_COAST
+                                                          : static_cast<pros::motor_brake_mode_e_t>(current);
     chassis.setBrakeMode(TEST_BRAKE_MODE);
 
     const lemlib::Pose start = chassis.getPose();

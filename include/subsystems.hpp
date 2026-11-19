@@ -42,7 +42,7 @@ constexpr double ROLLER_Y = ROLLER_HIGH + 50;   // rollerTurn on Y
 constexpr double ROLLER_LEFT = 380;            // rollerTurn on D-pad LEFT
 constexpr int Y_PICKUP_MM = 140;                // holding Y: something this close to the distance sensor runs PickUp
 constexpr int LEFT_PICKUP_MM = 180;
-// R1 (unloadMotion(), also in james67)
+// R1 (unloadMotion(), also for autons)
 constexpr double R1_CASCADE_UP = 75;      // degrees up from where the cascade is (was 300 up after a 200 drop)
 constexpr double R1_ROLLER_TO = ROLLER_Y; // Y's position, 550 deg (was 775)
 constexpr int R1_OUTTAKE_FIRST_MS = 300;  // outtake alone this long first             // same for holding LEFT
@@ -175,7 +175,7 @@ void yFinish(double cascadeTo, bool waitForLift = false, int sensorWaitMs = 0);
  * @brief What R1 does (not its after-L4 version): outtake R1_OUTTAKE_FIRST_MS, then keep
  * outtaking while the cascade goes up R1_CASCADE_UP (no higher than CASCADE_MAX, never down)
  * and the roller to R1_ROLLER_TO, both at once. Stops the outtake when both arrive, or when
- * aborted. Waits. `cascadeUp` 0 = the cascade stays put (james67's pin 1 score). `firstMs` 0 =
+ * aborted. Waits. `cascadeUp` 0 = the cascade stays put (an auton scoring on a pin without lifting). `firstMs` 0 =
  * no outtake-alone wait: the roller starts straight away
  */
 void unloadMotion(const std::function<bool()>& abort = nullptr, double cascadeUp = R1_CASCADE_UP,
