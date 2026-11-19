@@ -1,237 +1,363 @@
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+
 #include "main.h"
 #include "lemlib/api.hpp"
 #include "lemlib/chassis/chassis.hpp"
-#include "pros/device.hpp"
-#include "pros/misc.h"
-#include "pros/motors.h"
-#include "pros/rtos.h"
-#include "pros/rtos.hpp"
-#include <sys/wait.h>
 
-#include "robot-config.hpp"
+#include "lemlib/selector.hpp"
+
+#include "autons.hpp"
+#include "controls.hpp"
+#include "macros.hpp"
 #include "pidtuner.hpp"
+#include "robot-config.hpp"
+#include "subsystems.hpp"
 
-void drivetrain_control() {
-    bool arcadeMode = true;   // default: ARCADE
-    bool latch = false;
+using namespace subsystems;
+
+namespace {
+
+// When the drive switches from coast to brake, as in the Blocks project's
+// "when driver control: wait 90s, set drive stopping to brake" (driver period
+// is 105s, so this is the last 15s, for parking/holding position)
+constexpr int BRAKE_AFTER_MS = 90000;
+
+// Edge detection kept here rather than get_digital_new_press(): PROS tracks
+// "new press" per controller, so any second reader of the buttons would steal
+// presses from this loop
+struct Button {
+    pros::controller_digital_e_t id;
+    bool now = false;
+    bool before = false;
+
+    void update() {
+        before = now;
+        now = master.get_digital(id);
+    }
+    bool pressed() const { return now && !before; }
+    bool released() const { return !now && before; }
+};
+
+Button L1{pros::E_CONTROLLER_DIGITAL_L1}, L2{pros::E_CONTROLLER_DIGITAL_L2};
+Button R1{pros::E_CONTROLLER_DIGITAL_R1}, R2{pros::E_CONTROLLER_DIGITAL_R2};
+Button A{pros::E_CONTROLLER_DIGITAL_A}, B{pros::E_CONTROLLER_DIGITAL_B};
+Button X{pros::E_CONTROLLER_DIGITAL_X}, Y{pros::E_CONTROLLER_DIGITAL_Y};
+Button UP{pros::E_CONTROLLER_DIGITAL_UP}, DOWN{pros::E_CONTROLLER_DIGITAL_DOWN};
+Button LEFT{pros::E_CONTROLLER_DIGITAL_LEFT}, RIGHT{pros::E_CONTROLLER_DIGITAL_RIGHT};
+
+Button* const ALL[] = {&L1, &L2, &R1, &R2, &A, &B, &X, &Y, &UP, &DOWN, &LEFT, &RIGHT};
+
+// Anti-tip: the higher the lift, the lower the drive's top speed. Full speed up to
+// ANTI_TIP_FROM_DEG (R2's level 3), then evenly down to ANTI_TIP_MIN_SCALE at ANTI_TIP_TO_DEG
+// (level 5) and above. It scales the sticks, so steering and slow driving feel the same
+constexpr double ANTI_TIP_FROM_DEG = CASCADE_ALLIANCE[2]; // 900: level 3
+constexpr double ANTI_TIP_TO_DEG = CASCADE_ALLIANCE[4];   // 1200: level 5
+constexpr double ANTI_TIP_MIN_SCALE = 0.5;                // top speed with the lift that high or higher
+
+double antiTipScale() {
+    const double lift = cascade.get_position();
+    if (!std::isfinite(lift) || lift <= ANTI_TIP_FROM_DEG) return 1.0;
+    const double t = std::min(1.0, (lift - ANTI_TIP_FROM_DEG) / (ANTI_TIP_TO_DEG - ANTI_TIP_FROM_DEG));
+    return 1.0 - t * (1.0 - ANTI_TIP_MIN_SCALE);
+}
+
+// tank drive: left stick = left side, right stick = right side (Blocks used split arcade)
+void drive() {
+    const int leftY = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+    const int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+
+    // the PID tab's test move drives the motors itself; chassis.tank writes
+    // them on every call, even 0 at centred sticks, so it must stay hands off
+    if (pidtuner::isRunning()) return;
+
+    // anti-tip: lower top speed with the lift up
+    const double scale = antiTipScale();
+    chassis.tank(static_cast<int>(leftY * scale), static_cast<int>(rightY * scale));
+}
+
+void intakeControls(bool dpadFree) {
+    // D-pad RIGHT intakes, LEFT outtakes (moved from L1/L2). Hold to run, stop on release. Writes
+    // nothing while they are untouched, so it does not stomp a macro that is using rollerMain
+    if (dpadFree && RIGHT.now) {
+        intake(100);
+    } else if (dpadFree && LEFT.now) {
+        intake(-100);
+    } else if (RIGHT.released() || LEFT.released()) {
+        intakeStop();
+    }
+}
+
+// The claw. Hold L1: the claw opens and motors 14 and 16 spin in. Once the claw's sensor sees
+// something within CLAW_CATCH_MM (10 cm), the claw closes and the motors keep intaking for
+// CLAW_INTAKE_AFTER_MS more, then stop (even with L1 still held, or let go meanwhile). Letting go of
+// L1 before it catches anything closes it and stops them straight away
+constexpr std::int32_t CLAW_CATCH_MM = 100; // distance sensor, mm (10 cm; 7, 4 and 2 cm were tried)
+constexpr std::uint32_t CLAW_IGNORE_MS = 300;     // after opening, ignore the sensor this long so the claw opens
+constexpr std::uint32_t CLAW_INTAKE_AFTER_MS = 2000; // after catching, keep intaking this long (5 s and 1 s were tried)
+enum class Claw { Idle, Grabbing, Caught } claw = Claw::Idle;
+std::uint32_t clawOpenedAt = 0;
+std::uint32_t xMotorsStopAt = 0; // millis() to stop motors 14 and 16 at; 0 = no timer
+
+
+void clawClose() {
+    setClaw(false);
+    xMotors.brake();
+}
+
+void clawControls() {
+    if (L1.pressed()) {
+        xMotorsStopAt = 0; // a new grab cancels a timer left from the last one
+        setClaw(true);
+        xMotors.move_velocity(rpm(100));
+        claw = Claw::Grabbing;
+        clawOpenedAt = pros::millis();
+        std::printf("[claw] open (sensor reads %d mm now, closes at %d mm)\n",
+                    static_cast<int>(clawSensor.get_distance()), static_cast<int>(CLAW_CATCH_MM));
+    }
+    if (claw == Claw::Grabbing && pros::millis() - clawOpenedAt >= CLAW_IGNORE_MS &&
+        clawSensor.get_distance() > 0 && clawSensor.get_distance() <= CLAW_CATCH_MM) {
+        std::printf("[claw] caught (%d mm): close, intake 2 s more\n", static_cast<int>(clawSensor.get_distance()));
+        setClaw(false); // caught something: close, but keep intaking a moment
+        xMotorsStopAt = pros::millis() + CLAW_INTAKE_AFTER_MS;
+        claw = Claw::Caught;
+    }
+    if (xMotorsStopAt != 0 && pros::millis() >= xMotorsStopAt) {
+        xMotors.brake();
+        xMotorsStopAt = 0;
+    }
+    if (L1.released()) {
+        if (claw == Claw::Grabbing) clawClose(); // let go before it caught anything
+        claw = Claw::Idle;
+    }
+
+}
+
+// Y sends the roller to its position through here. When it cancels a macro that is
+// moving the roller (a stow mid-push), that macro stops the motor on its way out, which would
+// wipe out a move sent the same tick; so the move waits until the macro has let go (a few ms).
+// A move still waiting after 300 ms is dropped rather than fight whatever started since
+constexpr std::uint32_t ROLLER_PENDING_MS = 300;
+double pendingRoller = 0;
+std::uint32_t pendingRollerAt = 0; // 0 = nothing waiting
+
+void sendRoller(double target) {
+    pendingRoller = target;
+    pendingRollerAt = std::max<std::uint32_t>(1, pros::millis());
+}
+
+void applyPendingRoller() {
+    if (pendingRollerAt == 0) return;
+    if (pros::millis() - pendingRollerAt > ROLLER_PENDING_MS) {
+        std::printf("[roller] move to %.0f dropped: a macro was still running\n", pendingRoller);
+        pendingRollerAt = 0;
+    } else if (!macros::isBusy()) {
+        rollerTurn.move_absolute(pendingRoller, rpm(ROLLER_SPEED_PCT));
+        pendingRollerAt = 0;
+    }
+}
+
+// "Already at Y": where the roller was last sent OR where it physically is (within
+// ROLLER_AT_DEG), so it still counts after something else last moved it close by, e.g.
+// R1's L4 score leaving it at 600
+constexpr double ROLLER_AT_DEG = 25;
+
+// Y and LEFT: a press sends the roller to the button's position and starts intaking; holding
+// on, once the roller is there, watches the distance sensor, and something within
+// the button's distance (Y_PICKUP_MM / LEFT_PICKUP_MM) runs PickUp (which keeps intaking), once per hold. Letting go first stops the intake
+struct PickupHold {
+    const char* name;
+    double rollerTo;
+    int pickupMm;
+    macros::Macro pickup; // what runs when the sensor fires
+    bool watching = false;
+    int closeTicks = 0;
+    std::uint32_t reportAt = 0; // 0 = nothing to report
+
+    // now: move the roller straight away (B's reset is running and won't touch it until it ends,
+    // which would make the usual wait-for-macros move time out)
+    void start(bool now = false) {
+        // debugging "doesn't go all the way up": where the roller starts, and (in update) where it got to
+        std::printf("[%s] press: roller at %.0f, going to %.0f\n", name, rollerTurn.get_position(), rollerTo);
+        reportAt = std::max<std::uint32_t>(1, pros::millis() + 1500);
+        if (now) rollerTurn.move_absolute(rollerTo, rpm(ROLLER_SPEED_PCT));
+        else sendRoller(rollerTo);
+        intake(100);
+        watching = true;
+        closeTicks = 0;
+    }
+
+    void update(bool held) {
+        if (reportAt != 0 && pros::millis() >= reportAt) {
+            reportAt = 0;
+            std::printf("[%s] 1.5 s later: roller at %.0f (target %.0f), %d mA of %d, %.0f C\n", name,
+                        rollerTurn.get_position(), rollerTurn.get_target_position(), rollerTurn.get_current_draw(),
+                        ROLLER_CURRENT_LIMIT_MA, rollerTurn.get_temperature());
+        }
+        if (watching && !held) {
+            watching = false;
+            intakeStop(); // let go before anything came close
+        }
+        // only once the roller has got there: before that, a sensor reading would start PickUp,
+        // which would swallow the roller move (it waits for macros to finish)
+        if (!watching || std::fabs(rollerTurn.get_position() - rollerTo) >= ROLLER_AT_DEG) return;
+        // 3 readings in a row (30 ms), so one noisy reading can't fire it. 0 = no reading
+        const int mm = distanceSensor.get_distance();
+        closeTicks = (mm > 0 && mm <= pickupMm) ? closeTicks + 1 : 0;
+        if (closeTicks >= 3) {
+            std::printf("[%s] distance %d mm: PickUp\n", name, mm); // once per hold
+            watching = false;
+            macros::request(pickup, true);
+        }
+    }
+};
+PickupHold yHold{"Y", ROLLER_Y, Y_PICKUP_MM, macros::Macro::PickUpY}; // ends at alliance L1, then L2
+PickupHold leftHold{"LEFT", ROLLER_LEFT, LEFT_PICKUP_MM, macros::Macro::PickUp};
+
+void cascadeControls(bool dpadFree) {
+    const bool up = dpadFree && UP.now;
+    const bool down = dpadFree && DOWN.now;
+    const bool grabbed = dpadFree && (UP.pressed() || DOWN.pressed());
+    const bool letGo = dpadFree && (UP.released() || DOWN.released());
+
+    // the driver grabbing the cascade always beats a macro
+    if (grabbed) macros::cancel();
+
+
+    // UP also does X's deploy: roller out to its deployed position, rollerMain in at 40%.
+    // With the cascade up and the roller already out (at X or higher), the roller holds where it is
+    if (dpadFree && UP.pressed()) {
+        rollerMainFor(40, ROLLER_SPIN_MS); // stops by itself after 2 s
+        if (!rollerStaysPut()) rollerTurn.move_absolute(ROLLER_DEPLOYED_DRIVER, rpm(ROLLER_SPEED_PCT));
+        macros::setXDeploysNext(false); // keeps X in step: its next press stows
+    }
+
+    if (up) {
+        cascade.move_velocity(rpm(100)); // no top limit: the driver stops it
+    } else if (down) {
+        cascade.move_velocity(-rpm(CASCADE_DOWN_PCT)); // no bottom limit either: the driver stops it
+    } else if (letGo) {
+        cascade.brake();
+    }
+}
+
+void macroControls(bool dpadFree) {
+    // R1: lift down onto the pin/cup, then open the claw (the Unload macro is off the buttons now)
+    if (R1.pressed()) macros::request(macros::Macro::PlaceRelease);
+    // R2 cuts in on a running R2 (so quick presses step straight up), but not on other macros
+    if (R2.pressed()) {
+        macros::request(macros::Macro::CycleHeight, macros::isRunning(macros::Macro::CycleHeight));
+    }
+    // L2 held: motors 14 and 16 intake (spin in, the way L1 grabs), and the press closes the claw.
+    // X held: they outtake (spin out), and the press opens the claw.
+    // (L2 was the claw toggle; Y, the old roller toggle / pickup, and X's roller toggle are off the buttons)
+    if (L2.pressed()) setClaw(false);
+    if (X.pressed()) setClaw(true);
+    if (L2.now) xMotors.move_velocity(rpm(100));
+    else if (X.now) xMotors.move_velocity(-rpm(100));
+    else if (L2.released() || X.released()) xMotors.brake();
+    // resets win over whatever is running: they are the "get me out of this" buttons
+    if (B.pressed() && !A.now) macros::request(macros::Macro::ResetAll, true); // A+B is the test run
+}
+
+// A held 1 s swaps R2's cascade heights (alliance goal <-> neutral goal) and rumbles once.
+// A tap does nothing (it used to toggle the roller to ROLLER_A_DRIVER). A+B is the test run
+bool aUsed = false; // this A press was part of A+B, or a 1 s hold
+std::uint32_t aDownAt = 0;
+constexpr std::uint32_t A_HOLD_MS = 1000;
+
+void rollerAControls() {
+    if (A.pressed()) {
+        aUsed = false;
+        aDownAt = pros::millis();
+    }
+    if (A.now && B.now) aUsed = true; // A+B, even when the test run is blocked by field control
+
+    // held 1 s (and not A+B): swap R2's heights between alliance and neutral goal, one rumble
+    if (A.now && !aUsed && pros::millis() - aDownAt >= A_HOLD_MS) {
+        aUsed = true;
+        macros::toggleNeutralHeights();
+        master.rumble(".");
+    }
+}
+
+// LEFT is Y's hold-for-pickup with the roller at ROLLER_LEFT (and stows it if it's already
+// there); RIGHT triggers the raise-right macro.
+} // namespace
+
+void driverControl() {
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
+    bool braking = false;
+    const std::uint32_t start = pros::millis();
+
+    // seed twice so now == before: a button already held when driver control
+    // starts must not count as a fresh press
+    for (Button* b : ALL) b->update();
+    for (Button* b : ALL) b->update();
 
     while (true) {
-        // 1. Read toggle combo
-        bool combo_pressed =
-            master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) &&
-            master.get_digital(pros::E_CONTROLLER_DIGITAL_L2) &&
-            master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) &&
-            master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+        for (Button* b : ALL) b->update();
 
-        // 2. On *new* press, flip mode + buzz pattern
-        if (combo_pressed && !latch) {
-            // flip mode
-            arcadeMode = !arcadeMode;
+        // true while nothing else claims the D-pad. Nothing does at the moment (the PID tab is
+        // edited on the touchscreen), but the D-pad handlers keep the parameter so one can again
+        const bool dpadFree = true;
 
-            // rumble feedback based on NEW mode
-            if (arcadeMode) {
-                // switched TO ARCADE → 1 buzz
-                master.rumble(".");      // short buzz
+        // TEST RUN: hold A, press B -> run the auton picked on the brain.
+        // Never with field control or a competition switch attached: there,
+        // autonomous() is how autons run. Blocks this loop until the routine ends
+        if (A.now && B.pressed() && !pros::competition::is_connected()) {
+            const int routine = lemlib::selector::auton;
+            char line[20];
+            if (routine == 999) {
+                // nothing picked on the brain: say so instead of silently doing nothing
+                master.set_text(0, 0, "NO ROUTINE PICKED ");
+                master.rumble("-");
             } else {
-                // switched TO TANK → 2 buzzes
-                master.rumble("..");     // two short buzzes
-            }
+                macros::cancel();
+                std::printf("[test] running routine %d\n", routine);
+                std::snprintf(line, sizeof(line), "RUN #%-13d", routine);
+                master.set_text(0, 0, line);
 
-            latch = true;  // prevent retrigger while held
-        } else if (!combo_pressed) {
-            latch = false; // allow next press to toggle
+                const std::uint32_t t0 = pros::millis();
+                runAuton(routine);
+                const std::uint32_t ms = pros::millis() - t0;
+                // skills routines (101..200) get the 60s skills period, the rest a match's 15s
+                const bool skills = routine >= 101 && routine <= 200;
+                const std::uint32_t limitMs = skills ? 60000 : 15000;
+
+                // stop the cascade and roller, but leave the intake as the routine left it
+                // (an auton that ends intaking keeps intaking; LEFT/RIGHT stop it)
+                cascade.brake();
+                rollerTurn.brake();
+                std::printf("[test] routine %d done in %.1fs%s\n", routine, ms / 1000.0,
+                            ms <= limitMs ? "" : skills ? "  (OVER the 60s skills period)" : "  (OVER the 15s autonomous period)");
+                pros::delay(60); // the controller drops updates under 50ms apart
+                std::snprintf(line, sizeof(line), "#%d %.1fs%-10s", routine, ms / 1000.0, ms <= limitMs ? "" : skills ? " >60s!" : " >15s!");
+                master.set_text(0, 0, line);
+            }
+            chassis.setBrakeMode(braking ? pros::E_MOTOR_BRAKE_BRAKE : pros::E_MOTOR_BRAKE_COAST);
+            for (Button* b : ALL) b->update(); // presses during the run are stale
+            for (Button* b : ALL) b->update();
+            aUsed = true; // holding A on after a test run must not swap the heights
+            continue;
         }
 
-        // 3. Read joysticks
-        int leftY  = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-        int rightX = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        int rightY = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+        drive();
+        intakeControls(dpadFree);
+        clawControls();
+        cascadeControls(dpadFree);
+        macroControls(dpadFree);
+        rollerAControls();
+        applyPendingRoller(); // after Y, so an unblocked move goes out the same tick
+        rollerMainTimeout(); // ends the X / UP deploy spin after ROLLER_SPIN_MS
 
-        // 4. Drive based on current mode (hands off while the PID tab is running a test move)
-        if (pidtuner::isRunning()) {
-            // test motion owns the drivetrain
-        } else if (arcadeMode) {
-            printf("Control: Arcade\n");
-            chassis.arcade(leftY, rightX);
-        } else {
-            printf("Control: Tank\n");
-            chassis.tank(leftY, rightY);
+        if (!braking && pros::millis() - start >= BRAKE_AFTER_MS) {
+            chassis.setBrakeMode(pros::E_MOTOR_BRAKE_BRAKE);
+            braking = true;
         }
 
         pros::delay(10);
     }
 }
-
-
-
-// void teleop_loop() {
-//     while(true) {
-//         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) { // long goal 
-//             aligner.set_value(1);
-//             tongue.set_value(0);
-//             front_intake.move(127);
-//             middle_intake.move(127);
-//             top_intake.move(127);
-//             back_intake.move(127);
-//         }
-//         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // intake to bucket
-//             front_intake.move(127);
-//             middle_intake.move(-127);
-//             top_intake.move(-127);
-//             back_intake.move(127);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // middle goal
-//             aligner.set_value(0);
-//             front_intake.move(127);
-//             middle_intake.move(127);
-//             top_intake.move(-127);
-//             back_intake.move(127);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // outtake
-//             front_intake.move(-127);
-//             middle_intake.move(127);
-//             top_intake.move(127);
-//             back_intake.move(-127);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) { // Endgame down
-//             endgame.set_value(1);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) { // Endgame up
-//             endgame.set_value(0);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Aligner
-//             aligner.set_value(1);
-//             tongue.set_value(0);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) { // Tongue
-//             aligner.set_value(0);
-//             tongue.set_value(1);
-//         } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) { // Disable both
-//             aligner.set_value(0);
-//             tongue.set_value(0);
-//         } else {
-//             front_intake.brake();
-//             middle_intake.brake();
-//             top_intake.brake();
-//             back_intake.brake();
-//         }
-//         pros::delay(10);
-//     }
-// }
-
-void teleop_loop() {
-    // STATE VARIABLE: Tracks if the lift/heaven is currently UP (true) or DOWN (false)
-    // Adjust 'false' to 'true' if your robot starts the match with the lift up.
-    bool is_heaven_up = false; 
-    int i = 0;
-
-    while (true) {
-        
-        // --- L1 Logic (Score Long / Raise) ---
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-
-            descore.set_value(0); // Ensure descorer is retracted when scoring long
-
-            if (!is_heaven_up) {
-                // If robot is currently LOWERED:
-                // Only move robot UP, do NOT spin intake
-                is_heaven_up = true;
-                heaven.set_value(true);
-                tongue.set_value(0);
-                // Ensure motors are stopped while lifting
-                ramp.brake();
-                top1.brake();
-                top2.brake();
-
-                while (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-                    pros::delay(10);
-                }
-            } else {
-                // If robot is ALREADY UP:
-                // ONLY spin intake (Score Long)
-                ramp.move(127);
-                top1.move(-60); // Scoring direction
-                top2.move(127);  // Scoring direction
-            }
-        }
-        // --- R1 Logic (Score Mid / Lower) ---
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-
-            descore.set_value(1); // Ensure descorer is retracted when scoring mid
-
-            if (is_heaven_up) {
-                // If robot is currently UP:
-                // Only move robot DOWN, do NOT spin intake
-                is_heaven_up = false;
-                heaven.set_value(false);
-
-                // Ensure motors are stopped while lowering
-                ramp.brake();
-                top1.brake();
-                top2.brake();
- 
-                while (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-                    pros::delay(10);
-                }
-            } else {
-                // If robot is ALREADY DOWN:
-                // ONLY spin intake (Score Mid)
-                ramp.move(127);
-                top1.move(-55);
-                top2.move(127);
-            }
-        }
-        // --- L2 Logic (Intake) ---
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            // Intake to Ramp, Top Forward, Bottom Reverse
-            ramp.move(127);
-            top1.move(-127);
-            top2.move(-127);
-        } 
-        // --- R2 Logic (Outtake) ---
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-            ramp.move(-127);
-            top1.move(127);
-            top2.move(-127);
-        }
-
-        // --- UP ARROW Logic (New Request) ---
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
-            descore.set_value(1);
-        } 
-
-        // DOWN ARROW Logic (Macro Aligner for Mid)
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-            descore.set_value(0);
-        } 
-        // Left for odom lift up
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) {
-            odomLift.set_value(0);
-        }
-        // right for odom lift down
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
-            odomLift.set_value(1);
-        }
-        // --- Idle State ---
-        else {
-            ramp.brake();
-            top1.brake();
-            top2.brake();
-        }
-        
-        // --- Pneumatics (Wings/Tongue) ---
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-            descore.set_value(0); // Ensure descorer is retracted when scoring long
-            tongue.set_value(1);
-            // Original code set heaven false here. 
-            // We must update the state variable to match!
-            heaven.set_value(false);
-            is_heaven_up = false; 
-        }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
-            tongue.set_value(0);
-        }
-
-        pros::delay(10);
-    }
-}
-
-// TODO - 
-// If you press L1 and robot is lowered (heaven is false), it only moves robot up without intake | else if robot is already up, it ONLY spins intake
-// If you press R1 and robot is Up (heaven is false), it only moves robot DOWN (heaven false) without intake | else if robot is already down, it ONLY spins intake
-
-// if up arrow pressed, lower robot (hevaen), spinning ramp 127, and top1 top2 at scoring direction, but at 50%

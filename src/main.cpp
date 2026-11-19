@@ -12,8 +12,9 @@
 #include "robot-config.hpp"
 #include "controls.hpp"
 #include "autons.hpp"
-#include "colorsort.hpp"
+#include "macros.hpp"
 #include "pidtuner.hpp"
+#include "subsystems.hpp"
 
 // THIS CODE IS POWERED BY A PROJECT MANAGER AND TWO DORITO FANS POWERED BY 
 /*
@@ -65,10 +66,6 @@
 
 LV_IMG_DECLARE(image); //TKSRC Logo
 void initialize() {
-
-    odomLift.set_value(1);
-    pros::delay(1000);
-
     // ------------------------------------------
     // Displaying TKSRC Logo (During calibration)
     // ------------------------------------------
@@ -83,129 +80,70 @@ void initialize() {
     chassis.calibrate(); // calibrate sensors
 
     // -----------------------
-    // Initialise Sensors
+    // Initialise Mechanisms
     // -----------------------
+    // mechanisms are zeroed where they sit now: power on with the cascade down
+    // and the roller stowed
+    subsystems::init();
+    subsystems::startColourToggle();
+    macros::init();
+
     lv_obj_del(img); // stop displaying TKSRC Logo as Calibration has ended
 
     // -----------------------
     // LVGL INIT
     // -----------------------
 
-    static const char* qualBtnmMap[] = {
-        "MAX-R", // auton 1
-        "MAX-L", // auton 2
-        "LONG-L", // auton 3
-        "\n", 
-        "[EH] LONG-R", // auton 4
-        "MID-L", // auton 5
-        "[!] MID-R", // auton 6
-        nullptr
-    };
-    static const char* qualBtnmDesc[] = {
-        "9 Blocks in LG, Clears Loader", // auton 1
-        "9 Blocks in LG, Clears Loader", // auton 2
-        "[SAFE] 4 in LG, Clears Loader", // auton 3
-        "[SAFE] 4 in LG, Clears Loader", // auton 4
-        "[SAFE] 4 in Mid", // auton 5
-        "[NOTE!] LIKELY won't be able to score lower goal, mirrored version of mid L", // auton 6
-        nullptr // keep it a null ptr
-    };
+    // The routine number comes from the button's position in its tab, counting
+    // buttons only (row breaks "\n" do not count): qual 1, 2, 3...  AI -1, -2...
+    // skills 101, 102...  Descriptions line up with buttons one for one.
+    // No routines exist for the new robot yet. Every tab needs at least one
+    // button (LVGL crashes on an empty map), so each has a placeholder that
+    // runAuton() treats as "nothing selected"
+    static const char* qualBtnmMap[] = {"NONE", nullptr};
+    static const char* qualBtnmDesc[] = {"No routines yet", nullptr};
 
-    static const char* AIBtnmMap[] = {
-        "COMB-L", // AI 1
-        "COMB-R(T)", // AI 2
-        "9 COMB L", // AI 3
-        "\n",
-        "NULL", // AI 4
-        "9 Long L", // AI 5
-        "9 Long R(T)", // AI 6
-        nullptr
-    };
-    static const char* AIBtnmDesc[] = {
-        "", // AI 1
-        "", // AI 2
-        "", // AI 3
-        "", // AI 4
-        "", // AI 5
-        "", // AI 6
-        nullptr
-    };
+    static const char* AIBtnmMap[] = {"NONE", nullptr};
+    static const char* AIBtnmDesc[] = {"No routines yet", nullptr};
 
-    static const char* skillsBtnmMap[] = {
-        "Spinnn", "H&P", "WORKING!", "\n",  
-        "SAFE!", "TEST ONLY", "FINALE", nullptr
-    };
-    static const char* skillsBtnmDesc[] = {
-        "spin intake", "I hope this works", "Skills 1",  
-        "Skills 2", "!!TEST ONLY!!", "Optimal route with 79 pts, TS BETTER WORK", nullptr
-    };
+    static const char* skillsBtnmMap[] = {"NONE", nullptr};
+    static const char* skillsBtnmDesc[] = {"No routines yet", nullptr};
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
     pidtuner::init(lemlib::selector::tabview); // PID tuning tab, added after the selector's tabs
 }
 
-void disabled() {} // @note -> Potentially for selecting clsrt (dont trust me bro fr)
+// a macro started at the end of one period must not carry on into the next.
+// Cancel it, give its task a moment to exit, then stop every mechanism so no
+// motor is left chasing a move_absolute target
+static void stopMechanisms() {
+    macros::cancel();
+    for (int t = 0; t < 100 && macros::isBusy(); t += 10) pros::delay(10);
+    subsystems::stopAll();
+}
+
+void disabled() { stopMechanisms(); }
 
 void competition_initialize() {}
 
-void autonomous() {  
-    printf("Selecting Auton\n");
-    // chassis.setPose(0, 0, 0); 
-    // chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-
-    // chassis.turnToHeading(90, 1200, {}, false);
-    // // @NOTE - UNCOMMENT THE FOLLOWING TO  ENABLE AUTON SELECTOR
-    
-    int auton = lemlib::selector::auton;
-
-    lemlib::selector::autonStarted = true;
-    
-    if (auton >= 1 && auton <= 100) {
-        switch (auton) {
-            case 1: qual1(); break;
-            case 2: qual2(); break;
-            case 3: qual3(); break;
-            case 4: qual4(); break;
-            case 5: qual5(); break;
-            case 6: qual6(); break;
-            // add more red cases as needed up to 100
-        }
-    }
-    else if (auton >= -100 && auton <= -1) {
-        switch (auton) {
-            case -1: AI1(); break;
-            case -2: AI2(); break;
-            case -3: AI3(); break;
-            case -4: AI4(); break;
-            case -5: AI5(); break;
-            case -6: AI6(); break;
-            // add more blue cases as needed up to -100
-        }
-    }
-    else if (auton >= 101 && auton <= 201) {
-        switch (auton) {
-            case 101: skills1(); break;
-            case 102: skills2(); break;
-            case 103: skills3(); break;
-            case 104: skills4(); break;
-            case 105: skills5(); break;
-            case 106: skills6(); break;
-            // add more skills cases as needed up to 106
-        }
-    }
-    else {
-        // Default auton
-        auton1ring();
+void runAuton(int routine) {
+    // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills, 999 none.
+    // No routines yet, so the placeholder buttons (1, -1, 101) land in default too
+    switch (routine) {
+        // nothing selected (999) or a placeholder: do nothing
+        default: std::printf("[auton] no routine selected (%d)\n", routine); break;
     }
 }
 
-void opcontrol() {
-    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+void autonomous() {
+    stopMechanisms();
+    lemlib::selector::autonStarted = true;
+    runAuton(lemlib::selector::auton);
+}
 
-    chassis.setPose(0,0,0);
-    odomLift.set_value(0);
-    
-    
-    pros::Task driveTask(drivetrain_control);
-    pros::Task teleopTask(teleop_loop);
+void opcontrol() {
+    // the loop runs right here, in the opcontrol task, rather than in tasks it
+    // spawns: PROS kills this task when the mode changes, but not its children,
+    // so spawned loops would keep driving into the next auton/disabled period
+    driverControl();
 }

@@ -15,6 +15,7 @@
 #include "pros/rtos.hpp"
 
 #include "robot-config.hpp"
+#include "subsystems.hpp"
 #include "lemlib/selector.hpp"
 
 LV_IMG_DECLARE(dorito); //TKSRC Logo
@@ -105,6 +106,23 @@ void deselect_all_buttons(lv_obj_t* btnm) {
     for (uint16_t i = 0; i < btn_count; i++) {
         lv_btnmatrix_clear_btn_ctrl(btnm, i, LV_BTNMATRIX_CTRL_CHECKED);
     }
+}
+
+// Alliance button on the Qual tab: tap to swap red <-> blue. Picks which colours the colour toggle
+// (port 17) spins on; the autons are the same for both. Runs on the display task, like every lv_ call
+lv_obj_t* allianceBtn = nullptr;
+lv_obj_t* allianceLabel = nullptr;
+
+void showAlliance() {
+    const bool blue = subsystems::isBlueAlliance();
+    lv_obj_set_style_bg_color(allianceBtn, lv_palette_main(blue ? LV_PALETTE_BLUE : LV_PALETTE_RED), 0);
+    lv_label_set_text(allianceLabel, blue ? "BLUE ALLIANCE" : "RED ALLIANCE");
+}
+
+void allianceBtnAction(lv_event_t*) {
+    subsystems::setBlueAlliance(!subsystems::isBlueAlliance());
+    showAlliance();
+    std::printf("[selector] %s alliance\n", subsystems::isBlueAlliance() ? "blue" : "red");
 }
 
 void qualBtnmAction(lv_event_t* e) {
@@ -311,8 +329,17 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         lv_btnmatrix_set_btn_ctrl_all(qualBtnm, LV_BTNMATRIX_CTRL_CHECKABLE);
         lv_obj_add_event_cb(qualBtnm, qualBtnmAction, LV_EVENT_VALUE_CHANGED, NULL);
 
-        lv_obj_set_size(qual_textarea, 180, 180);
-        lv_obj_align(qual_textarea, LV_ALIGN_LEFT_MID, 280, 0);
+        // the description, shortened to make room for the alliance button under it
+        lv_obj_set_size(qual_textarea, 180, 128);
+        lv_obj_align(qual_textarea, LV_ALIGN_LEFT_MID, 280, -26);
+
+        allianceBtn = lv_btn_create(qualTab);
+        lv_obj_set_size(allianceBtn, 180, 44);
+        lv_obj_align(allianceBtn, LV_ALIGN_LEFT_MID, 280, 66);
+        lv_obj_add_event_cb(allianceBtn, allianceBtnAction, LV_EVENT_CLICKED, NULL);
+        allianceLabel = lv_label_create(allianceBtn);
+        lv_obj_center(allianceLabel);
+        showAlliance();
 
         lv_textarea_add_text(qual_textarea, "Greetings Adventure. Here lies the great QUAL alliance autonomous routines");
         lv_textarea_set_cursor_click_pos(qual_textarea, false);

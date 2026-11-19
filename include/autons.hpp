@@ -1,28 +1,14 @@
 #ifndef AUTONS_HPP
 #define AUTONS_HPP
 
-#include "lemlib/selector.hpp" // For auton selector
+// Autonomous routines. None exist for the new robot yet. Adding one: write it,
+// add a button + description to its selector tab in initialize(), and a case
+// in runAuton() (src/main.cpp)
 
-// Autonomous routines declarations
-int auton1ring();
-int AI1();
-int AI2();
-int AI3();
-int AI4();
-int AI5();
-int AI6();
-int qual1();
-int qual2();
-int qual3();
-int qual4();
-int qual5();
-int qual6();
-int skills1();
-int skills2();
-int skills3();
-int skills4();
-int skills5();
-int skills6();
-
+/**
+ * @brief Run routine number `routine` (the selector's numbering). Blocking.
+ * autonomous() calls it in a match; driverControl() calls it for a test run
+ */
+void runAuton(int routine);
 
 #endif // AUTONS_HPP

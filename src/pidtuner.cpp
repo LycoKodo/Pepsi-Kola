@@ -22,6 +22,10 @@ constexpr float DRIVE_TOLERANCE = 1.0; // inches
 constexpr float TURN_TOLERANCE = 1.5; // degrees
 constexpr int CHART_POINTS = 100;
 constexpr int CHART_SCALE = 10; // chart values are int16, so plot error * 10
+// Driver control runs the drive in COAST, which would let a test move roll on past the target
+// where an auton would not. Tests run in BRAKE (what the measured tuning routes used when these
+// gains were tuned) and put the driver's mode back afterwards
+constexpr pros::motor_brake_mode_e_t TEST_BRAKE_MODE = pros::E_MOTOR_BRAKE_BRAKE;
 
 enum Mode { DRIVE = 0, TURN = 1 };
 
@@ -122,15 +126,11 @@ float signOf(float x) { return x < 0 ? -1 : 1; }
 // Test run (own task, no LVGL calls in here)
 // ---------------------------------------
 void testTask() {
-    static bool podsDown = false;
     const TestParams p = params;
 
-    // setting it again costs no air, but only wait for the pods to land the first time
-    odomLift.set_value(1);
-    if (!podsDown) {
-        pros::delay(250);
-        podsDown = true;
-    }
+    // LemLib has no brake mode getter: read it off the drive motors (setBrakeMode sets both sides)
+    const pros::motor_brake_mode_e_t savedBrakeMode = leftMotors.get_brake_mode();
+    chassis.setBrakeMode(TEST_BRAKE_MODE);
 
     const lemlib::Pose start = chassis.getPose();
     const float theta0 = start.theta * M_PI / 180;
@@ -143,6 +143,8 @@ void testTask() {
         float ty = start.y + p.target * std::cos(theta0);
         chassis.moveToPoint(tx, ty, DRIVE_TIMEOUT_MS, {.forwards = p.target > 0}, true);
     } else {
+        // chassis is a TeamChassis, so this is its turnToHeading (with the team's small/big turn
+        // rules), the same one the autons get
         chassis.turnToHeading(targetHeading, TURN_TIMEOUT_MS, {}, true);
     }
 
@@ -177,6 +179,9 @@ void testTask() {
         pros::Task::delay_until(&now, SAMPLE_MS);
     }
     if (chassis.isInMotion()) chassis.cancelAllMotions(); // ran out of buffer
+    // every way out of the loop above (finished, stopped, stick moved, out of buffer) comes through
+    // here, with the motion over: give the drive back in the mode it had
+    chassis.setBrakeMode(savedBrakeMode);
 
     const float tolerance = p.mode == DRIVE ? DRIVE_TOLERANCE : TURN_TOLERANCE;
     float minErr = 0;

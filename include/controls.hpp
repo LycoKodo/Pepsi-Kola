@@ -3,18 +3,16 @@
 
 /**
  * @file controls.hpp
- * @brief Header file for robot control mechanisms.
- *
- * This file declares the global variables and functions used to manage various subsystems
- * of the robot, such as alliance selection, drivetrain, and intake control.
+ * @brief Driver control. The button map is in the comments in src/controls.cpp and
+ *        the macro table in macros.hpp.
  */
-
-#include "main.h"
 
 /**
- * @brief Provides joystick-based drivetrain control with toggleable braking modes.
+ * @brief The driver-control loop. Never returns; call it from opcontrol().
+ *
+ * Drive, intake and manual cascade run here every 10ms and never block.
+ * Anything with a wait in it is a macro (macros.hpp) and runs on its own task.
  */
-void drivetrain_control();
-void teleop_loop();
+void driverControl();
 
 #endif // CONTROLS_HPP
