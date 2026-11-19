@@ -1,3 +1,4 @@
 bin/
 .cache/
-.d/__pycache__/
+.d/
+__pycache__/
