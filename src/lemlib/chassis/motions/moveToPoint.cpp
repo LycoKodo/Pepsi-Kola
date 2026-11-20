@@ -33,6 +33,9 @@ void lemlib::Chassis::moveToPoint(float x, float y, int timeout, MoveToPointPara
     float prevAngularOut = 0; // previous angular power
     const int compState = pros::competition::get_status();
     std::optional<bool> prevSide = std::nullopt;
+    // Heading to hold while settling (see the loop). Empty when the move starts inside the settle zone
+    std::optional<float> settleHeading = std::nullopt;
+    bool firstIteration = true;
 
     // calculate target pose in standard form
     Pose target(x, y);
@@ -55,7 +58,24 @@ void lemlib::Chassis::moveToPoint(float x, float y, int timeout, MoveToPointPara
         if (distTarget < 7.5 && close == false) {
             close = true;
             params.maxSpeed = fmax(fabs(prevLateralOut), 60);
+            // Remember the direction to the target at this moment. From here on the robot steers to
+            // this fixed heading, which is the straight line through the target, instead of steering
+            // at the target point (that angle swings wildly as the distance goes to zero, which is why
+            // stock LemLib switches steering off here). Without it nothing corrects a yaw picked up
+            // while braking: on the robot, 48 in drives ended 5 to 6 deg off heading (2026-11-20).
+            const float entryHeading = params.forwards ? pose.theta : pose.theta + M_PI;
+            if (firstIteration) {
+                // the move starts inside the zone: hold the heading the robot has now. The error starts
+                // at zero, so the robot never turns toward the target (as before); it only resists a yaw
+                settleHeading = entryHeading;
+            } else if (std::fabs(radToDeg(angleError(entryHeading, pose.angle(target)))) < 10) {
+                // drove into the zone already pointing (within 10 deg) along the line to the target
+                settleHeading = pose.angle(target);
+            }
+            // otherwise (a turn-and-drive move that reaches the zone still swinging round) there is no
+            // sensible heading to lock in, so steering stays off while settling, as in stock LemLib
         }
+        firstIteration = false;
 
         // motion chaining
         const bool side =
@@ -68,7 +88,8 @@ void lemlib::Chassis::moveToPoint(float x, float y, int timeout, MoveToPointPara
 
         // calculate error
         const float adjustedRobotTheta = params.forwards ? pose.theta : pose.theta + M_PI;
-        const float angularError = angleError(adjustedRobotTheta, pose.angle(target));
+        const float angularError = settleHeading ? angleError(adjustedRobotTheta, *settleHeading)
+                                                 : angleError(adjustedRobotTheta, pose.angle(target));
         float lateralError = pose.distance(target) * cos(angleError(pose.theta, pose.angle(target)));
 
         // update exit conditions
@@ -78,7 +99,7 @@ void lemlib::Chassis::moveToPoint(float x, float y, int timeout, MoveToPointPara
         // get output from PIDs
         float lateralOut = lateralPID.update(lateralError);
         float angularOut = angularPID.update(radToDeg(angularError));
-        if (close) angularOut = 0;
+        if (close && !settleHeading) angularOut = 0; // settling with no heading to hold: no steering, as before
 
         // apply restrictions on angular speed
         angularOut = std::clamp(angularOut, -params.maxSpeed, params.maxSpeed);

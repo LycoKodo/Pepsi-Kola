@@ -279,15 +279,17 @@ void testTask() {
     // here, with the motion over: give the drive back in the mode it had
     chassis.setBrakeMode(savedBrakeMode);
 
-    // Tracking-wheel offset readout. In a turn on the spot each tracking wheel rolls (its distance from
-    // the centre of rotation) x (the angle turned), and LemLib's odometry cancels exactly that using the
-    // offsets in robot-config.cpp. So this turn measures what those offsets should be. Average several
-    // turns, both ways (the robot never spins perfectly on the spot), and compare with the config values
+    // Spin-point readout. In a turn each tracking wheel rolls (its distance from the point the robot
+    // spins about) x (the angle turned), so this gives where each wheel sits relative to that spin point,
+    // signed the same way as the offsets in robot-config.cpp. It is NOT the offset to put in the config
+    // unless the robot spins exactly about its centre: the config wants the wheel's position relative to
+    // the robot's centre (measure that with a ruler). The difference between the two is how far the spin
+    // point is from the centre, and it changes with the turn direction
     if (p.mode == TURN) {
         const double turned = (imu.get_rotation() - calRotation0) * M_PI / 180; // radians, clockwise positive
         if (std::isfinite(turned) && std::abs(turned) > 0.5) {
-            printf("[ODOMCAL] turned %+.1f deg: vertical wheel offset measures %+.2f in (config %+.2f), "
-                   "horizontal %+.2f in (config %+.2f)\n",
+            printf("[ODOMCAL] turned %+.1f deg: from the spin point, vertical wheel %+.2f in (config offset %+.2f), "
+                   "horizontal wheel %+.2f in (config offset %+.2f)\n",
                    turned * 180 / M_PI, -(verticalWheel.getDistanceTraveled() - calVertical0) / turned,
                    verticalWheel.getOffset(), -(horizontalWheel.getDistanceTraveled() - calHorizontal0) / turned,
                    horizontalWheel.getOffset());

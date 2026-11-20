@@ -69,10 +69,21 @@ pros::Rotation horizontalEncoder(ports::HORIZONTAL_ODOM);
 
 // 2" omnis. Offset = distance from the tracking centre, in inches, signed the
 // LemLib way: vertical wheel + right / - left, horizontal wheel + front / - back
-lemlib::TrackingWheel verticalWheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, 0.9);     // 0.9" right
-// NOT MEASURED on the new robot: 2.55" in front is the old robot's offset. A wrong offset shows up as X
-// drifting while the robot turns on the spot; measure from the centre of rotation and set it here
-lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, lemlib::Omniwheel::NEW_2, 2.55); // 2.55" in front
+// Both offsets were measured with a ruler by the team on 2026-11-20, from the centre of the robot.
+// (Before that: 0.9" and 2.55", the old robot's values.)
+// The PID tab's [ODOMCAL] lines measure something different: where each wheel sits relative to the point
+// the robot actually spins about in a turn. On 2026-11-20 they read about -0.45" (vertical; +0.1 clockwise,
+// -1.35 counter-clockwise) and +3.6" (horizontal). The spin point is not the robot's centre and it moves
+// with the turn direction, so the ruler values are the ones to use.
+// The team confirmed the sides, looking down on the robot: the vertical wheel is LEFT of the centre
+// (negative offset) and the horizontal wheel is BEHIND it (negative offset).
+// UNRESOLVED: the horizontal [ODOMCAL] value is positive (wheel in front of the spin point). With the
+// wheel 2.23" behind the centre, that puts the spin point about 5.8" behind the centre, near the back
+// wheels. If the robot does not visibly pivot about its back end, either this sign or the direction the
+// horizontal sensor counts in is wrong. Check: on the Developer tab, turn the robot one full turn by hand
+// about its centre; X and Y should stay within about half an inch the whole way round
+lemlib::TrackingWheel verticalWheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, -0.6);     // 0.6" left
+lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, lemlib::Omniwheel::NEW_2, -2.23); // 2.23" behind
 
 lemlib::OdomSensors sensors(&verticalWheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2
