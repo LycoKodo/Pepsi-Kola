@@ -30,6 +30,7 @@ bool Params::set(const std::string& k, double val) {
         {"C_BRAKE_L", &Params::C_BRAKE_L},
         {"C_BRAKE_R", &Params::C_BRAKE_R},
         {"V_MAX", &Params::V_MAX},
+        {"MU_LAT", &Params::MU_LAT},
         {"STICK_EPS", &Params::STICK_EPS},
         {"VERT_OFFSET", &Params::VERT_OFFSET},
         {"HORIZ_OFFSET", &Params::HORIZ_OFFSET},
@@ -53,6 +54,7 @@ void World::reset() {
     now = 0;
     x = y = heading = 0;
     v[0] = v[1] = travel[0] = travel[1] = 0;
+    vSide = sideDist = peakSide = 0;
     vertTravel = horizTravelLeft = 0;
     cmd[0] = cmd[1] = 0;
     cmdHist[0].assign(1, 0);
@@ -128,17 +130,45 @@ void World::physics(double dt) {
     }
     const double va[2] = {(vOld[0] + v[0]) / 2, (vOld[1] + v[1]) / 2};
     const double vf = (va[LEFT] + va[RIGHT]) / 2;
-    const double dth = (va[LEFT] - va[RIGHT]) / p.TRACK_EFF * dt; // clockwise positive
+    const double omega = (va[LEFT] - va[RIGHT]) / p.TRACK_EFF; // rad/s, clockwise positive
+    const double dth = omega * dt;
+
+    // sideways slip. With no sideways force the robot keeps its world-frame velocity, so in the robot
+    // frame the sideways speed changes at -omega * vf (it slides to the outside of a turn) and the
+    // sideways speed turns into forward speed at +omega * vSide. Wheel scrub opposes sideways motion
+    // with a Coulomb limit MU_LAT * g; at zero sideways speed it holds as long as the centripetal
+    // acceleration needed, |omega * vf|, is within that limit (always, with the default MU_LAT)
+    const double grip = p.MU_LAT * 386.09;
+    const double vsOld = vSide;
+    const double need = -omega * vf; // sideways acceleration if nothing held the robot
+    if (vSide == 0 && std::fabs(need) <= grip) {
+        // sticks: the wheels supply the centripetal force; vSide stays exactly 0
+    } else {
+        const double dir = vSide != 0 ? sgn(vSide) : sgn(need);
+        double vn = vSide + (need - grip * dir) * dt;
+        if (vSide != 0 && vn * vSide < 0 && std::fabs(need) <= grip) vn = 0; // scrub stops it, then it holds
+        vSide = vn;
+    }
+    const double vsAvg = (vsOld + vSide) / 2;
+    if (vsAvg != 0) {
+        for (int s = 0; s < 2; s++) v[s] += omega * vsAvg * dt; // sideways momentum rotating into forward
+    }
+    sideDist += std::fabs(vsAvg) * dt;
+    peakSide = std::max(peakSide, std::fabs(vSide));
+
     const double hm = heading + dth / 2;
-    x += vf * dt * std::sin(hm);
-    y += vf * dt * std::cos(hm);
+    // world velocity = vf along the heading + vSide to its right; with vSide = 0 the extra terms are
+    // exactly zero, so the result is bit-for-bit what it was before slip was modelled
+    x += vf * dt * std::sin(hm) + vsAvg * dt * std::cos(hm);
+    y += vf * dt * std::cos(hm) - vsAvg * dt * std::sin(hm);
     heading += dth;
     travel[LEFT] += va[LEFT] * dt;
     travel[RIGHT] += va[RIGHT] * dt;
     // tracking wheels: the vertical one (right of centre) loses travel when turning clockwise; the
-    // horizontal one (in front) is pushed to the right. LemLib counts horizontal travel + to the left
+    // horizontal one (in front) is pushed to the right by the turn and by sideways slip. LemLib counts
+    // horizontal travel + to the left
     vertTravel += vf * dt - p.VERT_OFFSET * dth;
-    horizTravelLeft += -p.HORIZ_OFFSET * dth;
+    horizTravelLeft += -p.HORIZ_OFFSET * dth - vsAvg * dt;
 }
 
 void World::refreshRotation(RotationDev& r) {

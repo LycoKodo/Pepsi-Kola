@@ -19,7 +19,9 @@
 #include "pros/imu.hpp"
 #include "pros/motor_group.hpp"
 #include "pros/rotation.hpp"
+#include <memory>
 #include "json.hpp"
+#include "pose_mirror.hpp"
 #include "world.hpp"
 
 #ifndef SIM_DIR
@@ -35,7 +37,11 @@ namespace {
 struct Options {
         std::string move = "drive";
         double target = 24;
-        double kP = NAN, kI = NAN, kD = NAN; // the active mode's controller
+        double kP = NAN, kI = NAN, kD = NAN; // drive and pose: lateral controller; turn: angular
+        double angKP = NAN, angKI = NAN, angKD = NAN; // angular controller, any mode
+        // --move pose: Chassis::moveToPose(x, y, theta, timeout, params) from (0, 0, 0)
+        double px = NAN, py = NAN, ptheta = 0;
+        lemlib::MoveToPoseParams pp; // defaults as in include/lemlib/chassis/chassis.hpp
         int timeout = -1;
         std::string params = std::string(SIM_DIR) + "/robot.json";
         std::vector<std::pair<std::string, double>> sets;
@@ -48,7 +54,9 @@ struct Options {
 [[noreturn]] void usage(const char* msg) {
     if (msg) std::fprintf(stderr, "tb: %s\n", msg);
     std::fprintf(stderr,
-                 "usage: tb_" DUT_NAME " [--move drive|turn] [--target N] [--kP X --kI X --kD X]\n"
+                 "usage: tb_" DUT_NAME " [--move drive|turn] [--target N] [--kP X --kI X --kD X] [--ang-kP X ...]\n"
+                 "       tb_" DUT_NAME " --move pose --x X --y Y [--theta DEG] [--lead L] [--max-speed N] [--min-speed N]\n"
+                 "        [--drift D] [--backwards] [--early-exit R]   (moveToPose from 0,0,0; timeout 4000)\n"
                  "        [--rot-ms N] [--rot-lock] [--rot-phase N] [--imu-ms N] [--imu-phase N] [--odom-phase N]\n"
                  "        [--latency MS] [--params robot.json] [--set KEY=VALUE ...] [--timeout MS]\n"
                  "        [--csv out.csv] [--vcd out.vcd] [--pidlog out.log|-] [--summary-json] [--dut-stdout FILE]\n"
@@ -58,15 +66,20 @@ struct Options {
 
 // ------------------------------------------------------------------------------------ columns
 enum Col {
-    T_MS, X, Y, HEADING, VL, VR, V, CMDL, CMDR, VCMDL, VCMDR, NETL, NETR, UL, UR, BRAKE, ROTV, ROTV_REFRESH, ROTH,
+    T_MS, X, Y, HEADING, VL, VR, V, VSIDE, CMDL, CMDR, VCMDL, VCMDR, NETL, NETR, UL, UR, BRAKE, ROTV, ROTV_REFRESH, ROTH,
     IMU_DEG, ODOM_STROBE, ODOM_X, ODOM_Y, ODOM_THETA, ITER_STROBE, ITER_N, ITER_X, ITER_Y, ITER_THETA, ITER_DIST,
     ITER_ERR, ITER_FRESH, ITER_NEWSAMPLE, ITER_P, ITER_I, ITER_D, ITER_PID, CLOSE, IN_MOTION, FINISHED, TAB_STROBE,
-    TAB_N, TAB_ERR, TAB_DEV, TARGET, NCOLS
+    TAB_N, TAB_ERR, TAB_DEV, TARGET,
+    // --move pose only, mirrored from stock moveToPose (bench/pose_mirror.*), held between iterations
+    P_TX, P_TY, P_TTHETA, P_TIMEOUT, P_DIST, P_CARROT_X, P_CARROT_Y, P_RADIUS, P_CAP, P_LAT_ERR, P_ANG_ERR, P_LAT_PID, P_ANG_PID,
+    P_LAT_CAPPED, P_OVERTURN, P_LAT_OUT, P_ANG_OUT, P_MAX_SPEED, P_LAT_SENT, P_ANG_SENT, P_CAP_BIND, P_LIMIT,
+    P_MIRROR_OK, P_EX_LAT_SMALL, P_EX_LAT_LARGE, P_EX_ANG_SMALL, P_EX_ANG_LARGE, P_LAT_SETTLED, P_EXITS_MET, NCOLS
 };
 struct ColInfo {
         const char* name;
         char kind; // 'r' real, 'i' integer, 'b' bit
         const char* help;
+        char scope = 'a'; // 'a' every run, 'p' --move pose only
 };
 const ColInfo COLS[NCOLS] = {
     {"t_ms", 'i', "ms since the motion was called"},
@@ -76,6 +89,7 @@ const ColInfo COLS[NCOLS] = {
     {"vL", 'r', "left side speed, in/s"},
     {"vR", 'r', "right side speed, in/s"},
     {"v", 'r', "forward speed, in/s"},
+    {"vside", 'r', "sideways speed in the robot frame, in/s, + = to the robot's right (0 unless MU_LAT lets go)"},
     {"cmdL", 'i', "left command last set by the DUT, -127..127"},
     {"cmdR", 'i', "right command last set by the DUT"},
     {"vcmdL", 'r', "left command voltage after the latency, V"},
@@ -113,8 +127,38 @@ const ColInfo COLS[NCOLS] = {
     {"tab_n", 'i', "PID tab sample index (held)"},
     {"tab_err", 'r', "PID tab error: in or deg, + = short of the target (held)"},
     {"tab_dev", 'r', "PID tab dev: drive heading change deg / turn wander in (held)"},
-    {"target", 'r', "the commanded target: in (drive) or deg (turn), signed (constant)"},
+    {"target", 'r', "the commanded target: in (drive) or deg (turn), signed; pose: distance to the target pose"},
+    {"target_x", 'r', "pose target x, in (constant)", 'p'},
+    {"target_y", 'r', "pose target y, in (constant)", 'p'},
+    {"target_theta", 'r', "pose target heading, deg (constant)", 'p'},
+    {"timeout_ms", 'i', "moveToPose timeout, ms (constant)", 'p'},
+    {"p_dist", 'r', "distance to the target the DUT saw, in", 'p'},
+    {"p_carrot_x", 'r', "carrot point x, in (= target once close)", 'p'},
+    {"p_carrot_y", 'r', "carrot point y, in", 'p'},
+    {"p_radius", 'r', "arc radius pose -> carrot, 1/|getCurvature|, in (inf when the carrot is straight ahead)", 'p'},
+    {"p_cap", 'r', "maxSlipSpeed = sqrt(drift * radius * 9.8), motor power", 'p'},
+    {"p_lat_err", 'r', "lateral error as moveToPose computes it, in", 'p'},
+    {"p_ang_err", 'r', "angular error as moveToPose computes it, deg", 'p'},
+    {"p_lat_pid", 'r', "lateral PID output before any limit", 'p'},
+    {"p_ang_pid", 'r', "angular PID output before any limit", 'p'},
+    {"p_lat_capped", 'r', "lateralOut after maxSpeed clamp, slew and the cap", 'p'},
+    {"p_overturn", 'r', "|angularOut| + |lateralOut| - maxSpeed (subtracted from lateralOut when > 0)", 'p'},
+    {"p_lat_out", 'r', "lateralOut after every limit, before the left/right ratio (mirror)", 'p'},
+    {"p_ang_out", 'r', "angularOut after its clamp (mirror)", 'p'},
+    {"p_max_speed", 'r', "params.maxSpeed as the DUT has it (lowered when close)", 'p'},
+    {"p_lat_sent", 'r', "implied lateralOut as sent: (cmdL + cmdR) / 2", 'p'},
+    {"p_ang_sent", 'r', "implied angularOut as sent: (cmdL - cmdR) / 2", 'p'},
+    {"p_cap_bind", 'b', "cap binding: |p_lat_sent| within 1 of the cap and cap < maxSpeed", 'p'},
+    {"p_limit", 'i', "last stage that changed lateralOut: 0 none 1 maxSpeed 2 slew 3 cap 4 overturn 5 direction 6 minSpeed", 'p'},
+    {"p_mirror_ok", 'b', "the mirror's left/right commands equal the DUT's (stock moveToPose: always 1)", 'p'},
+    {"p_ex_lat_small", 'b', "lateral small exit done (0.5 in / 200 ms)", 'p'},
+    {"p_ex_lat_large", 'b', "lateral large exit done (3 in / 500 ms)", 'p'},
+    {"p_ex_ang_small", 'b', "angular small exit done (1 deg / 200 ms)", 'p'},
+    {"p_ex_ang_large", 'b', "angular large exit done (3 deg / 500 ms)", 'p'},
+    {"p_lat_settled", 'b', "moveToPose's lateralSettled latch", 'p'},
+    {"p_exits_met", 'b', "the loop condition ends the motion after this iteration (close, lateralSettled, an angular exit)", 'p'},
 };
+bool inScope(int c);
 
 using Row = std::array<double, NCOLS>;
 
@@ -126,7 +170,8 @@ struct TabSample {
 
 struct Bench {
         Options o;
-        bool drive = true;
+        bool drive = true; // moveToPoint; false for turn and pose
+        bool pose = false;
         lemlib::Chassis* chassis = nullptr;
         pros::MotorGroup* left = nullptr;
         pros::MotorGroup* right = nullptr;
@@ -155,6 +200,18 @@ struct Bench {
         };
         std::vector<Iter> iters;
 
+        // pose
+        std::unique_ptr<sim::PoseMirror> mirror;
+        double latSent = NAN, angSent = NAN;
+        bool capBind = false, mirrorOk = true;
+        struct PoseIter {
+                uint32_t t;
+                double dist, latSent, angSent, cap, maxSpeed, latPid, latOut, angOut, overturn, latErr, angErr;
+                int limit, cmdL, cmdR, mL, mR;
+                bool close, capBind, mirrorOk, exitsMet;
+        };
+        std::vector<PoseIter> piters;
+
         // PID tab sampler
         bool samplerActive = false, samplerDone = false;
         uint32_t nextSample = 0, tabStrobeAt = UINT32_MAX;
@@ -165,6 +222,8 @@ struct Bench {
 };
 
 Bench B;
+
+bool inScope(int c) { return COLS[c].scope == 'a' || B.pose; }
 
 double angleErrDeg(double target, double pos) { return lemlib::angleError(float(target), float(pos), false); }
 
@@ -179,7 +238,21 @@ void onIteration(uint32_t now) {
     B.iy = p.y;
     B.ith = p.theta * 180.0 / M_PI;
     double err;
-    if (B.drive) {
+    if (B.pose) {
+        sim::PoseMirror& m = *B.mirror;
+        m.step(B.chassis->getPose(true, true)); // exactly the pose moveToPose read at the top of this iteration
+        B.idist = m.distTarget;
+        B.closeLatched = m.close;
+        err = m.lateralError;
+        B.latSent = (w.cmd[0] + w.cmd[1]) / 2.0;
+        B.angSent = (w.cmd[0] - w.cmd[1]) / 2.0;
+        B.capBind = std::fabs(std::fabs(B.latSent) - m.cap) <= 1.0 && m.cap < m.maxSpeedNow;
+        B.mirrorOk = m.cmdL == w.cmd[0] && m.cmdR == w.cmd[1];
+        B.piters.push_back({now - B.o.t0, m.distTarget, B.latSent, B.angSent, m.cap, m.maxSpeedNow, m.latPidOut,
+                            m.latFinal, m.angFinal, m.overturn, m.lateralError, m.angularErrorRad * 180.0 / M_PI,
+                            m.limit, w.cmd[0], w.cmd[1], m.cmdL, m.cmdR, m.close, B.capBind, B.mirrorOk,
+                            m.exitsSatisfied});
+    } else if (B.drive) {
         const double dx = B.tx - p.x, dy = B.ty - p.y;
         B.idist = std::hypot(dx, dy);
         if (B.idist < 7.5) B.closeLatched = true;
@@ -200,9 +273,13 @@ void onIteration(uint32_t now) {
     B.iD = B.kD * (err - B.prevErr);
     B.ipid = B.iP + B.iI + B.iD;
     B.prevErr = err;
+    if (B.pose) { // moveToPose has two PIDs: show the mirrored lateral one instead
+        B.iP = B.iI = B.iD = NAN;
+        B.ipid = B.mirror->latPidOut;
+    }
     // fresh: drive = the position the DUT saw changed; turn = the heading changed
     B.ifresh = std::isnan(B.lastX) ||
-               (B.drive ? std::hypot(p.x - B.lastX, p.y - B.lastY) > 1e-6 : std::fabs(p.theta - B.lastTh) > 1e-9);
+               (!B.drive && !B.pose ? std::fabs(p.theta - B.lastTh) > 1e-9 : std::hypot(p.x - B.lastX, p.y - B.lastY) > 1e-6);
     B.lastTh = p.theta;
     B.inew = B.iterN == 1 || w.odomFreshUpdates != B.lastFreshCount;
     B.lastX = p.x;
@@ -219,7 +296,10 @@ void sampler(uint32_t now) {
     const double th0 = B.start.theta * M_PI / 180.0;
     const double dir = B.o.target < 0 ? -1 : 1;
     double err, dev;
-    if (B.drive) {
+    if (B.pose) { // distance to the target position, and heading error
+        err = std::hypot(B.tx - pose.x, B.ty - pose.y);
+        dev = std::remainder(B.targetHeading - pose.theta, 360.0);
+    } else if (B.drive) {
         const double progress = (pose.x - B.start.x) * std::sin(th0) + (pose.y - B.start.y) * std::cos(th0);
         err = std::fabs(B.o.target) - progress * dir;
         dev = pose.theta - B.start.theta;
@@ -249,6 +329,7 @@ void record(uint32_t now) {
     r[VL] = w.v[0];
     r[VR] = w.v[1];
     r[V] = (w.v[0] + w.v[1]) / 2;
+    r[VSIDE] = w.vSide;
     r[CMDL] = w.cmd[0];
     r[CMDR] = w.cmd[1];
     r[VCMDL] = w.vcmd[0];
@@ -295,6 +376,39 @@ void record(uint32_t now) {
     r[TAB_ERR] = B.tab.empty() ? NAN : B.tab.back().err;
     r[TAB_DEV] = B.tab.empty() ? NAN : B.tab.back().dev;
     r[TARGET] = B.o.target;
+    if (B.pose && B.mirror) {
+        const sim::PoseMirror& m = *B.mirror;
+        const bool any = B.iterN > 0;
+        r[P_TX] = B.tx;
+        r[P_TY] = B.ty;
+        r[P_TTHETA] = B.targetHeading;
+        r[P_TIMEOUT] = B.o.timeout;
+        r[P_DIST] = any ? m.distTarget : NAN;
+        r[P_CARROT_X] = any ? m.carrot.x : NAN;
+        r[P_CARROT_Y] = any ? m.carrot.y : NAN;
+        r[P_RADIUS] = any ? m.radius : NAN;
+        r[P_CAP] = any ? m.cap : NAN;
+        r[P_LAT_ERR] = any ? m.lateralError : NAN;
+        r[P_ANG_ERR] = any ? m.angularErrorRad * 180.0 / M_PI : NAN;
+        r[P_LAT_PID] = any ? m.latPidOut : NAN;
+        r[P_ANG_PID] = any ? m.angPidOut : NAN;
+        r[P_LAT_CAPPED] = any ? m.latAfterCap : NAN;
+        r[P_OVERTURN] = any ? m.overturn : NAN;
+        r[P_LAT_OUT] = any ? m.latFinal : NAN;
+        r[P_ANG_OUT] = any ? m.angFinal : NAN;
+        r[P_MAX_SPEED] = any ? m.maxSpeedNow : NAN;
+        r[P_LAT_SENT] = B.latSent;
+        r[P_ANG_SENT] = B.angSent;
+        r[P_CAP_BIND] = B.capBind && !B.finished;
+        r[P_LIMIT] = m.limit;
+        r[P_MIRROR_OK] = B.mirrorOk;
+        r[P_EX_LAT_SMALL] = const_cast<sim::PoseMirror&>(m).latSmall.getExit();
+        r[P_EX_LAT_LARGE] = const_cast<sim::PoseMirror&>(m).latLarge.getExit();
+        r[P_EX_ANG_SMALL] = const_cast<sim::PoseMirror&>(m).angSmall.getExit();
+        r[P_EX_ANG_LARGE] = const_cast<sim::PoseMirror&>(m).angLarge.getExit();
+        r[P_LAT_SETTLED] = m.lateralSettled;
+        r[P_EXITS_MET] = m.exitsSatisfied;
+    }
     B.rows.push_back(r);
 }
 
@@ -311,11 +425,13 @@ void writeCsv(const std::string& path) {
     FILE* f = std::fopen(path.c_str(), "w");
     if (!f) usage(("cannot write " + path).c_str());
     std::string line;
-    for (int c = 0; c < NCOLS; c++) line += std::string(c ? "," : "") + COLS[c].name;
+    for (int c = 0; c < NCOLS; c++)
+        if (inScope(c)) line += std::string(c ? "," : "") + COLS[c].name;
     std::fprintf(f, "%s\n", line.c_str());
     for (const Row& r : B.rows) {
         line.clear();
         for (int c = 0; c < NCOLS; c++) {
+            if (!inScope(c)) continue;
             if (c) line += ',';
             fmtVal(line, r[c], COLS[c].kind);
         }
@@ -339,6 +455,7 @@ void writeVcd(const std::string& path, const std::string& about) {
         return s;
     };
     for (int c = 1; c < NCOLS; c++) {
+        if (!inScope(c)) continue;
         const char* type = COLS[c].kind == 'r' ? "real 64" : (COLS[c].kind == 'b' ? "wire 1" : "integer 32");
         std::fprintf(f, "$var %s %s %s $end\n", type, id(c).c_str(), COLS[c].name);
     }
@@ -348,6 +465,7 @@ void writeVcd(const std::string& path, const std::string& about) {
     for (const Row& r : B.rows) {
         bool stamped = false;
         for (int c = 1; c < NCOLS; c++) {
+            if (!inScope(c)) continue;
             const double v = r[c];
             if (v == prev[c] || (std::isnan(v) && std::isnan(prev[c]))) continue;
             if (!stamped) {
@@ -355,7 +473,8 @@ void writeVcd(const std::string& path, const std::string& about) {
                 stamped = true;
             }
             if (COLS[c].kind == 'r') {
-                std::fprintf(f, "r%.6g %s\n", std::isnan(v) ? 0.0 : v, id(c).c_str());
+                const double vv = std::isnan(v) ? 0.0 : (std::isinf(v) ? (v > 0 ? 1e9 : -1e9) : v);
+                std::fprintf(f, "r%.6g %s\n", vv, id(c).c_str());
             } else if (COLS[c].kind == 'b') {
                 std::fprintf(f, "%d%s\n", v != 0, id(c).c_str());
             } else {
@@ -399,7 +518,8 @@ void writePidlog(FILE* f, const Metrics& m) {
                  "[PIDLOG] BEGIN v=1 run=1 mode=%s target=%.1f unit=%s kP=%.3f kI=%.4f kD=%.3f windup=%.2f slew=15.0 "
                  "small=%s large=%s timeout=%d batt_mV=0 batt_pct=0 dt_ms=10 ips_per_rpm=0.1080 track=11.61 "
                  "cols=t,err,dev,vL,vR,uL,uR src=sim dut=%s rot_ms=%d\n",
-                 d ? "DRIVE" : "TURN", B.o.target, d ? "in" : "deg", B.kP, B.kI, B.kD, B.windup,
+                 B.pose ? "POSE" : (d ? "DRIVE" : "TURN"), B.o.target, (d || B.pose) ? "in" : "deg", B.kP, B.kI,
+                 B.kD, B.windup,
                  d ? "0.50/200" : "1.00/200", "3.00/500", B.o.timeout, DUT_NAME, sim::world().p.rotMs);
     uint32_t sum = 0;
     for (const TabSample& s : B.tab) {
@@ -435,6 +555,18 @@ int main(int argc, char** argv) {
         else if (a == "--kP") o.kP = std::atof(next().c_str());
         else if (a == "--kI") o.kI = std::atof(next().c_str());
         else if (a == "--kD") o.kD = std::atof(next().c_str());
+        else if (a == "--ang-kP") o.angKP = std::atof(next().c_str());
+        else if (a == "--ang-kI") o.angKI = std::atof(next().c_str());
+        else if (a == "--ang-kD") o.angKD = std::atof(next().c_str());
+        else if (a == "--x") o.px = std::atof(next().c_str());
+        else if (a == "--y") o.py = std::atof(next().c_str());
+        else if (a == "--theta") o.ptheta = std::atof(next().c_str());
+        else if (a == "--lead") o.pp.lead = float(std::atof(next().c_str()));
+        else if (a == "--max-speed") o.pp.maxSpeed = float(std::atof(next().c_str()));
+        else if (a == "--min-speed") o.pp.minSpeed = float(std::atof(next().c_str()));
+        else if (a == "--drift") o.pp.horizontalDrift = float(std::atof(next().c_str()));
+        else if (a == "--early-exit") o.pp.earlyExitRange = float(std::atof(next().c_str()));
+        else if (a == "--backwards") o.pp.forwards = false;
         else if (a == "--timeout") o.timeout = std::atoi(next().c_str());
         else if (a == "--params") o.params = next();
         else if (a == "--csv") o.csv = next();
@@ -456,9 +588,11 @@ int main(int argc, char** argv) {
         } else if (a == "-h" || a == "--help") usage(nullptr);
         else usage(("unknown option " + a).c_str());
     }
-    if (o.move != "drive" && o.move != "turn") usage("--move must be drive or turn");
+    if (o.move != "drive" && o.move != "turn" && o.move != "pose") usage("--move must be drive, turn or pose");
     B.drive = o.move == "drive";
-    if (o.timeout < 0) o.timeout = B.drive ? 4000 : 2500;
+    B.pose = o.move == "pose";
+    if (B.pose && (std::isnan(o.px) || std::isnan(o.py))) usage("--move pose needs --x and --y");
+    if (o.timeout < 0) o.timeout = (B.drive || B.pose) ? 4000 : 2500;
 
     // plant parameters: robot.json, then --set
     {
@@ -519,15 +653,17 @@ int main(int argc, char** argv) {
     lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, lemlib::Omniwheel::NEW_2, 2.55);
     lemlib::OdomSensors sensors(&verticalWheel, nullptr, &horizontalWheel, nullptr, &imu);
     const bool d = B.drive;
+    const bool lat = B.drive || B.pose; // --kP/--kI/--kD: lateral for drive and pose, angular for turn
     auto pick = [](double v, double def) { return std::isnan(v) ? def : v; };
-    lemlib::ControllerSettings linear(d ? pick(o.kP, 12.5) : 12.5, d ? pick(o.kI, 0.1) : 0.1, d ? pick(o.kD, 100) : 100,
-                                      3, 0.5, 200, 3, 500, 15);
-    lemlib::ControllerSettings angular(!d ? pick(o.kP, 4.8) : 4.8, !d ? pick(o.kI, 0.25) : 0.25,
-                                       !d ? pick(o.kD, 42) : 42, 5, 1, 200, 3, 500, 15);
+    lemlib::ControllerSettings linear(lat ? pick(o.kP, 12.5) : 12.5, lat ? pick(o.kI, 0.1) : 0.1,
+                                      lat ? pick(o.kD, 100) : 100, 3, 0.5, 200, 3, 500, 15);
+    lemlib::ControllerSettings angular(pick(o.angKP, !lat ? pick(o.kP, 4.8) : 4.8),
+                                       pick(o.angKI, !lat ? pick(o.kI, 0.25) : 0.25),
+                                       pick(o.angKD, !lat ? pick(o.kD, 42) : 42), 5, 1, 200, 3, 500, 15);
     lemlib::ExpoDriveCurve throttleCurve(0, 10, 1);
     lemlib::ExpoDriveCurve steerCurve(0, 10, 1.010);
     lemlib::Chassis chassis(drivetrain, linear, angular, sensors, &throttleCurve, &steerCurve);
-    const lemlib::ControllerSettings& active = d ? linear : angular;
+    const lemlib::ControllerSettings& active = lat ? linear : angular;
     B.kP = active.kP;
     B.kI = active.kI;
     B.kD = active.kD;
@@ -555,10 +691,20 @@ int main(int argc, char** argv) {
     B.tx = B.start.x + o.target * std::sin(th0);
     B.ty = B.start.y + o.target * std::cos(th0);
     B.targetHeading = B.start.theta + o.target;
+    if (B.pose) {
+        B.tx = o.px;
+        B.ty = o.py;
+        B.targetHeading = o.ptheta;
+        o.target = std::hypot(o.px - B.start.x, o.py - B.start.y);
+        B.mirror = std::make_unique<sim::PoseMirror>(linear, angular, float(o.px), float(o.py), float(o.ptheta), o.pp,
+                                                     drivetrain.horizontalDrift);
+    }
     B.recording = true;
     B.samplerActive = true;
     B.nextSample = w.now + 10; // the async call's delay(10) before testTask starts sampling
-    if (d) {
+    if (B.pose) {
+        chassis.moveToPose(float(o.px), float(o.py), float(o.ptheta), o.timeout, o.pp, false);
+    } else if (d) {
         lemlib::MoveToPointParams mp;
         mp.forwards = o.target > 0;
         chassis.moveToPoint(float(B.tx), float(B.ty), o.timeout, mp, false);
@@ -574,8 +720,13 @@ int main(int argc, char** argv) {
     const Metrics m = tabMetrics(d ? 1.0 : 1.0);
     if (!o.csv.empty()) writeCsv(o.csv);
     char about[256];
-    std::snprintf(about, sizeof about, "tb_%s move=%s target=%g kP=%g kI=%g kD=%g rot_ms=%d rot_lock=%d", DUT_NAME,
-                  o.move.c_str(), o.target, B.kP, B.kI, B.kD, w.p.rotMs, int(w.p.rotLock));
+    if (B.pose)
+        std::snprintf(about, sizeof about, "tb_%s move=pose x=%g y=%g theta=%g lead=%g drift=%g max=%g min=%g%s MU_LAT=%g",
+                      DUT_NAME, o.px, o.py, o.ptheta, o.pp.lead, o.pp.horizontalDrift, o.pp.maxSpeed, o.pp.minSpeed,
+                      o.pp.forwards ? "" : " backwards", w.p.MU_LAT);
+    else
+        std::snprintf(about, sizeof about, "tb_%s move=%s target=%g kP=%g kI=%g kD=%g rot_ms=%d rot_lock=%d", DUT_NAME,
+                      o.move.c_str(), o.target, B.kP, B.kI, B.kD, w.p.rotMs, int(w.p.rotLock));
     if (!o.vcd.empty()) writeVcd(o.vcd, about);
     if (!o.pidlog.empty()) {
         FILE* f = o.pidlog == "-" ? out : std::fopen(o.pidlog.c_str(), "w");
@@ -612,6 +763,32 @@ int main(int argc, char** argv) {
                       req.c_str());
         rotInfo += buf;
     }
+    // pose: how it ended and where
+    struct PoseSum {
+            std::string endedBy = "";
+            double along = NAN, across = NAN, headErr = NAN, posErr = NAN, odomErr = NAN, peakFwd = 0, capMs = 0,
+                   minLatClose = NAN;
+            int mismatches = 0, timeoutIters = 0;
+    } ps;
+    if (B.pose) {
+        const double th = B.targetHeading * M_PI / 180.0;
+        ps.along = (B.tx - w.x) * std::sin(th) + (B.ty - w.y) * std::cos(th);
+        ps.across = (w.x - B.tx) * std::cos(th) - (w.y - B.ty) * std::sin(th);
+        ps.posErr = std::hypot(B.tx - w.x, B.ty - w.y);
+        ps.headErr = std::remainder(B.targetHeading - w.heading * 180.0 / M_PI, 360.0);
+        const lemlib::Pose op = lemlib::getPose(false);
+        ps.odomErr = std::hypot(op.x - w.x, op.y - w.y);
+        for (const Row& r : B.rows) ps.peakFwd = std::max(ps.peakFwd, std::fabs(r[V]));
+        for (const auto& it : B.piters) {
+            if (it.capBind) ps.capMs += 10;
+            if (!it.mirrorOk) ps.mismatches++;
+            if (it.close && std::fabs(it.latSent) > 0 && !(std::fabs(it.latSent) >= ps.minLatClose))
+                ps.minLatClose = std::fabs(it.latSent);
+        }
+        const bool timedOut = int(B.tEnd - o.t0) >= o.timeout;
+        const bool exitsMet = !B.piters.empty() && B.piters.back().exitsMet;
+        ps.endedBy = timedOut ? "timeout" : (exitsMet ? "exits" : "other");
+    }
     const double staleFrac = B.iters.empty() ? NAN : double(stale) / B.iters.size();
     const double staleMovFrac = moving ? double(staleMoving) / moving : NAN;
     const double closeT = closeIter >= 0 ? B.iters[closeIter].t : -1;
@@ -628,16 +805,41 @@ int main(int argc, char** argv) {
                      "\"rot_lock\":%s,\"rotation\":[%s],\"imu_ms\":%d,\"latency_ms\":%s,\"motion_end_ms\":%d,"
                      "\"end_ms\":%s,\"iterations\":%zu,\"stale_frac\":%s,\"stale_frac_moving\":%s,"
                      "\"close_t\":%s,\"close_dist\":%s,\"overshoot\":%s,\"final\":%s,\"settle_ms\":%s,"
-                     "\"peak_speed\":%s,\"peak_t\":%s,\"peak_togo\":%s,\"tasks\":%d}\n",
+                     "\"peak_speed\":%s,\"peak_t\":%s,\"peak_togo\":%s,\"tasks\":%d,"
+                     "\"peak_side\":%s,\"side_dist\":%s,\"mu_lat\":%s%s}\n",
                      DUT_NAME, o.move.c_str(), j(o.target).c_str(), j(B.kP).c_str(), j(B.kI).c_str(), j(B.kD).c_str(),
                      sim::world().p.rotMs, w.p.rotLock ? "true" : "false", rotInfo.c_str(), w.p.imuMs,
                      j(w.p.LATENCY_MS).c_str(), int(B.tEnd - o.t0), j(m.endMs).c_str(), B.iters.size(),
                      j(staleFrac).c_str(), j(staleMovFrac).c_str(), j(closeT).c_str(), j(closeDist).c_str(),
                      j(m.over).c_str(), j(m.finalErr).c_str(), j(m.settle).c_str(), j(peakV).c_str(), j(peakT).c_str(),
-                     j(peakDist).c_str(), w.tasksCreated);
+                     j(peakDist).c_str(), w.tasksCreated, j(w.peakSide).c_str(), j(w.sideDist).c_str(),
+                     j(w.p.MU_LAT).c_str(), [&]() {
+                         if (!B.pose) return std::string();
+                         char buf[900];
+                         std::snprintf(
+                             buf, sizeof buf,
+                             ",\"pose\":{\"x\":%s,\"y\":%s,\"theta\":%s,\"lead\":%s,\"drift\":%s,\"max_speed\":%s,"
+                             "\"min_speed\":%s,\"forwards\":%s,\"timeout\":%d,\"ended_by\":\"%s\",\"along\":%s,"
+                             "\"across\":%s,\"pos_err\":%s,\"heading_err\":%s,\"odom_err\":%s,\"peak_fwd\":%s,"
+                             "\"cap_bind_ms\":%s,\"min_lat_close\":%s,\"mirror_mismatches\":%d,\"final_x\":%s,"
+                             "\"final_y\":%s,\"final_heading\":%s}",
+                             j(o.px).c_str(), j(o.py).c_str(), j(o.ptheta).c_str(), j(o.pp.lead).c_str(),
+                             j(B.mirror->params.horizontalDrift).c_str(), j(o.pp.maxSpeed).c_str(),
+                             j(o.pp.minSpeed).c_str(), o.pp.forwards ? "true" : "false", o.timeout,
+                             ps.endedBy.c_str(), j(ps.along).c_str(), j(ps.across).c_str(), j(ps.posErr).c_str(),
+                             j(ps.headErr).c_str(), j(ps.odomErr).c_str(), j(ps.peakFwd).c_str(), j(ps.capMs).c_str(),
+                             j(ps.minLatClose).c_str(), ps.mismatches, j(w.x).c_str(), j(w.y).c_str(),
+                             j(w.heading * 180.0 / M_PI).c_str());
+                         return std::string(buf);
+                     }().c_str());
     } else {
-        std::fprintf(out, "tb_%s  %s target %g  kP %g kI %g kD %g  latency %g ms\n", DUT_NAME, o.move.c_str(),
-                     o.target, B.kP, B.kI, B.kD, w.p.LATENCY_MS);
+        if (B.pose)
+            std::fprintf(out, "tb_%s  pose (%g, %g, %g deg)%s  lead %g  drift %g  maxSpeed %g  minSpeed %g  MU_LAT %g\n",
+                         DUT_NAME, o.px, o.py, o.ptheta, o.pp.forwards ? "" : " backwards", o.pp.lead,
+                         B.mirror->params.horizontalDrift, o.pp.maxSpeed, o.pp.minSpeed, w.p.MU_LAT);
+        else
+            std::fprintf(out, "tb_%s  %s target %g  kP %g kI %g kD %g  latency %g ms\n", DUT_NAME, o.move.c_str(),
+                         o.target, B.kP, B.kI, B.kD, w.p.LATENCY_MS);
         for (auto& [port, r] : w.rot) {
             std::string req;
             for (int q : r.requestedRates) req += (req.empty() ? "" : ",") + std::to_string(q);
@@ -651,11 +853,22 @@ int main(int argc, char** argv) {
         if (B.drive)
             std::fprintf(out, "  close at iteration %d, t=%g ms, %.2f in to go\n", closeIter + 1, closeT, closeDist);
         std::fprintf(out, "  stale iterations (%s unchanged): %.0f%% of all, %.0f%% while moving (wheels > 2 in/s)\n",
-                     B.drive ? "position" : "heading", 100 * staleFrac, 100 * staleMovFrac);
+                     (!B.drive && !B.pose) ? "heading" : "position", 100 * staleFrac, 100 * staleMovFrac);
         if (B.drive) std::fprintf(out, "  peak speed %.1f in/s at t=%g ms, %.2f in to go\n", peakV, peakT, peakDist);
         else std::fprintf(out, "  peak wheel speed %.1f in/s at t=%g ms\n", peakV, peakT);
-        std::fprintf(out, "  PID tab: overshoot %.2f %s, final %.2f, settle %g ms (1.0 tolerance)\n", m.over,
-                     B.drive ? "in" : "deg", m.finalErr, m.settle);
+        if (B.pose) {
+            std::fprintf(out, "  ended by %s at %d ms; final error %.2f in (along %+.2f, across %+.2f), heading %+.2f deg\n",
+                         ps.endedBy.c_str(), int(B.tEnd - o.t0), ps.posErr, ps.along, ps.across, ps.headErr);
+            std::fprintf(out, "  peak forward speed %.1f in/s; cap binding %.0f ms; lowest |lateralOut| when close %.2f\n",
+                         ps.peakFwd, ps.capMs, ps.minLatClose);
+            std::fprintf(out, "  mirror of stock moveToPose: %d of %zu iterations differ from the DUT's commands\n",
+                         ps.mismatches, B.piters.size());
+        } else {
+            std::fprintf(out, "  PID tab: overshoot %.2f %s, final %.2f, settle %g ms (1.0 tolerance)\n", m.over,
+                         B.drive ? "in" : "deg", m.finalErr, m.settle);
+        }
+        std::fprintf(out, "  sideways slip: peak %.2f in/s, %.3f in in all (MU_LAT %g)\n", w.peakSide, w.sideDist,
+                     w.p.MU_LAT);
     }
     std::fflush(out);
     return 0;

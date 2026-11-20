@@ -14,6 +14,14 @@ PID tab logs it) against time, for one or more CSVs plus the robot run.
 
     wave.py a.csv b.csv --label "bench, rot 20 ms" --label "bench, rot 5 ms" \
             --robot data/tune_2026-11-19.log:6073 --displacement out.png
+
+Pose runs (tb_* --move pose): the waveform view shows distance to target, speed, the implied
+lateralOut with the slip cap on the same axis, angularOut, then cap binding / close / finished.
+The top view (--path) draws the true x-y path of one or more pose runs, start and target poses as
+arrows, a dot every 100 ms, and a wide band under the path wherever the cap was binding.
+
+    wave.py pose.csv [pose2.csv] --label .. -o wave.png
+    wave.py pose.csv [pose2.csv ...] --label .. --path top.png [--carrot]
 """
 from __future__ import annotations
 
@@ -317,6 +325,216 @@ def displacement(args, datas, labels, rob):
     print(f"wrote {out}")
 
 
+# ------------------------------------------------------------------------------------ pose runs
+
+def is_pose(d):
+    return "p_dist" in d
+
+
+def summarize_pose(d):
+    s = {}
+    it = d["iter_strobe"] == 1
+    fin = d["finished"] == 1
+    s["end_t"] = float(d["t_ms"][fin][0]) if fin.any() else None
+    s["exits"] = bool(d["p_exits_met"][it][-1]) if it.any() else False
+    timeout = float(d["timeout_ms"][0]) if "timeout_ms" in d else float("inf")
+    s["ended"] = "the exits" if s["exits"] else ("timeout" if s["end_t"] is not None and s["end_t"] >= timeout
+                                                 else "another rule")
+    s["cap_ms"] = 10.0 * float(np.sum(d["p_cap_bind"][it & (d["finished"] == 0)]))
+    s["err"] = float(np.hypot(d["target_x"][-1] - d["x"][-1], d["target_y"][-1] - d["y"][-1]))
+    s["herr"] = round(float(np.remainder(d["target_theta"][-1] - d["heading_deg"][-1] + 180.0, 360.0) - 180.0), 1) + 0.0
+    close = it & (d["close"] == 1)
+    s["close_t"] = float(d["t_ms"][close][0]) if close.any() else None
+    s["target"] = (float(d["target_x"][0]), float(d["target_y"][0]), float(d["target_theta"][0]))
+    s["mismatch"] = int(np.sum(d["p_mirror_ok"][it] == 0))
+    return s
+
+
+def waveform_pose(args, datas, labels):
+    sums = [summarize_pose(d) for d in datas]
+    ncol = len(datas)
+    t_lo = min(d["t_ms"][0] for d in datas)
+    t_hi = max(d["t_ms"][-1] for d in datas)
+    if args.zoom:
+        t_lo, t_hi = (float(v) for v in args.zoom.split(":"))
+    win = [(d["t_ms"] >= t_lo) & (d["t_ms"] <= t_hi) for d in datas]
+    slip = any(np.max(np.abs(d["vside"])) > 0.01 for d in datas)
+
+    def lim(key, pad=0.08, lo0=None):
+        vals = np.concatenate([d[key][w][np.isfinite(d[key][w])] for d, w in zip(datas, win)])
+        lo, hi = float(vals.min()), float(vals.max())
+        if lo0 is not None:
+            lo, hi = min(lo, lo0), max(hi, lo0)
+        span = max(hi - lo, 1.0)
+        return lo - pad * span, hi + pad * span
+
+    dist_lim = lim("p_dist", lo0=0.0)
+    spd_lim = lim("v", lo0=0.0)
+    side_lim = lim("vside", lo0=0.0) if slip else None
+    lat_vals = np.concatenate([d["p_lat_sent"][w][np.isfinite(d["p_lat_sent"][w])] for d, w in zip(datas, win)])
+    lat_lim = (min(-10.0, float(lat_vals.min()) - 8), 140.0)
+    ang_lim = lim("p_ang_sent", lo0=0.0)
+
+    rows = [("dist", 1.7), ("speed", 1.4)] + ([("side", 1.1)] if slip else []) + \
+           [("lat", 1.9), ("ang", 1.4), ("bind", 0.45), ("close", 0.45), ("fin", 0.45)]
+    heights = [h for _, h in rows]
+    H = sum(heights) + 1.9
+    W = 6.2 * ncol + 1.6
+    fig = plt.figure(figsize=(W, H))
+    fig.patch.set_facecolor(STYLE["surface"])
+    gs = GridSpec(len(rows), ncol, figure=fig, height_ratios=heights, hspace=0.18, wspace=0.10, left=1.55 / W,
+                  right=0.985, top=1 - 1.0 / H, bottom=0.55 / H)
+    for c, (d, lab, s, w) in enumerate(zip(datas, labels, sums, win)):
+        color = STYLE["series"][BENCH_SLOTS[c]]
+        t = d["t_ms"]
+        moving = d["finished"] == 0
+        axes = {}
+        first = None
+        for r, (name, _) in enumerate(rows):
+            a = fig.add_subplot(gs[r, c], sharex=first)
+            first = first or a
+            apply_axis_style(a)
+            a.set_xlim(t_lo, t_hi)
+            if r < len(rows) - 1:
+                a.tick_params(labelbottom=False)
+            axes[name] = a
+        a = axes["dist"]
+        a.axhline(0, color=STYLE["baseline"], lw=1, zorder=1)
+        if dist_lim[0] < 7.5 < dist_lim[1] - 0.08 * (dist_lim[1] - dist_lim[0]):
+            a.axhline(7.5, color=STYLE["grid"], lw=1, zorder=1)
+            a.text(t_lo + 0.01 * (t_hi - t_lo), 7.5, "close below 7.5 in", ha="left", va="bottom", fontsize=7,
+                   color=STYLE["text2"], clip_on=True)
+        a.step(t, d["p_dist"], where="post", color=color, lw=2, zorder=3)
+        a.set_ylim(*dist_lim)
+        a = axes["speed"]
+        a.axhline(0, color=STYLE["baseline"], lw=1, zorder=1)
+        a.plot(t, d["v"], color=color, lw=2, zorder=3)
+        a.set_ylim(*spd_lim)
+        if slip:
+            a = axes["side"]
+            a.axhline(0, color=STYLE["baseline"], lw=1, zorder=1)
+            a.plot(t, d["vside"], color=color, lw=2, zorder=3)
+            a.set_ylim(*side_lim)
+        a = axes["lat"]
+        a.axhline(0, color=STYLE["baseline"], lw=1, zorder=1)
+        cap = np.where(moving, np.minimum(d["p_cap"], 1e4), np.nan)
+        a.step(t, cap, where="post", color=STYLE["text2"], lw=1.4, zorder=2, label="cap √(drift·radius·9.8)")
+        a.step(t, np.where(moving, d["p_lat_sent"], np.nan), where="post", color=color, lw=2, zorder=3,
+               label="lateralOut as sent, (L+R)/2")
+        a.set_ylim(*lat_lim)
+        a.set_yticks([0, 60, 127])
+        vis = np.nonzero(moving & (cap < lat_lim[1] - 10) & (t >= t_lo) & (t <= t_hi))[0]
+        if c == 0:
+            a.legend(loc="upper right", fontsize=7.5, frameon=False, labelcolor=STYLE["text"], handlelength=1.6)
+        a = axes["ang"]
+        a.axhline(0, color=STYLE["baseline"], lw=1, zorder=1)
+        a.step(t, np.where(moving, d["p_ang_sent"], np.nan), where="post", color=color, lw=2, zorder=3)
+        a.set_ylim(*ang_lim)
+        digital(axes["bind"], t, np.where(moving, d["p_cap_bind"], 0), color, "bind")
+        digital(axes["close"], t, d["close"], color, "close")
+        digital(axes["fin"], t, d["finished"], color, "finished")
+        axes["fin"].set_xlabel("time since the move started, ms", fontsize=8, color=STYLE["text2"])
+        if s["close_t"] is not None and t_lo <= s["close_t"] <= t_hi:
+            for a in axes.values():
+                a.axvline(s["close_t"], color=STYLE["muted"], lw=1, zorder=2)
+            axes["dist"].text(s["close_t"], dist_lim[1], " close" if s["close_t"] > t_lo else " close from the start",
+                              ha="left", va="top", fontsize=7.5, color=STYLE["text2"], clip_on=True)
+        bits = [f"ended by {s['ended']} at {s['end_t']:.0f} ms",
+                f"final error {s['err']:.2f} in, {s['herr']:+.1f} deg", f"cap binding {s['cap_ms']:.0f} ms"]
+        if s["mismatch"]:
+            bits.append(f"mirror ≠ DUT on {s['mismatch']} iterations")
+        axes["dist"].set_title(lab, loc="left", fontsize=10.5, color=STYLE["text"], pad=16, fontweight="semibold")
+        axes["dist"].text(0, 1.03, "   ".join(bits), transform=axes["dist"].transAxes, fontsize=8,
+                          color=STYLE["text2"], ha="left", va="bottom")
+        if c == 0:
+            row_label(axes["dist"], "distance to target", "in")
+            row_label(axes["speed"], "forward speed", "in/s")
+            if slip:
+                row_label(axes["side"], "sideways speed", "in/s, + right")
+            row_label(axes["lat"], "lateralOut", "motor power")
+            row_label(axes["ang"], "angularOut", "(L-R)/2")
+            row_label(axes["bind"], "cap binding")
+            row_label(axes["close"], "close", "7.5 in")
+            row_label(axes["fin"], "finished")
+    tx, ty, tth = sums[0]["target"]
+    title = args.title or f"moveToPose to ({tx:g}, {ty:g}, {tth:g}°): waveforms"
+    sub = "signals mirrored from stock moveToPose in the bench; cap drawn only while the motion runs, clipped at 140"
+    if args.zoom:
+        sub += f"; window {t_lo:.0f}-{t_hi:.0f} ms"
+    fig.text(0.008, 0.995, title, ha="left", va="top", fontsize=12.5, color=STYLE["text"], fontweight="semibold")
+    fig.text(0.008, 0.995 - 0.30 / H, sub, ha="left", va="top", fontsize=8.5, color=STYLE["text2"])
+    fig.savefig(args.out, dpi=DPI, facecolor=STYLE["surface"])
+    print(f"wrote {args.out}")
+
+
+def pose_arrow(ax, x, y, heading_deg, length, color, label, ha):
+    hr = np.radians(heading_deg)
+    dx, dy = length * np.sin(hr), length * np.cos(hr)
+    ax.annotate("", xy=(x + dx, y + dy), xytext=(x, y), zorder=6,
+                arrowprops=dict(arrowstyle="-|>", color=color, lw=1.6, mutation_scale=14, shrinkA=0, shrinkB=0))
+    ax.plot([x], [y], "o", ms=4, color=color, zorder=6)
+    # label beside the arrow, on its left (perpendicular to the heading), clear of the path along it
+    px, py = -np.cos(hr), np.sin(hr)
+    off = 0.45 * length
+    ha = "center" if abs(px) < 0.5 else ("right" if px < 0 else "left")
+    va = "center" if abs(py) < 0.5 else ("bottom" if py > 0 else "top")
+    ax.text(x + 0.5 * dx + off * px, y + 0.5 * dy + off * py, label, ha=ha, va=va, fontsize=8, color=STYLE["text"],
+            zorder=7)
+
+
+def path_view(args, datas, labels):
+    fig, ax = plt.subplots(figsize=(8.6, 8.0))
+    fig.patch.set_facecolor(STYLE["surface"])
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.86, bottom=0.08)
+    apply_axis_style(ax, grid_y=True)
+    ax.grid(axis="x", color=STYLE["grid"], linewidth=0.8, linestyle="-")
+    xs = np.concatenate([d["x"] for d in datas] + [d["target_x"][:1] for d in datas] + [np.zeros(1)])
+    ys = np.concatenate([d["y"] for d in datas] + [d["target_y"][:1] for d in datas] + [np.zeros(1)])
+    span = max(xs.max() - xs.min(), ys.max() - ys.min(), 6.0)
+    alen = 0.09 * span
+    ends = []
+    for i, (d, lab) in enumerate(zip(datas, labels)):
+        col = STYLE["series"][BENCH_SLOTS[i]]
+        t, x, y = d["t_ms"], d["x"], d["y"]
+        moving = d["finished"] == 0
+        bind = (d["p_cap_bind"] == 1) & moving
+        # cap binding: a wide translucent band under the path (width is the encoding, not colour)
+        xb, yb = np.where(bind, x, np.nan), np.where(bind, y, np.nan)
+        ax.plot(xb, yb, color=col, lw=9, alpha=0.28, solid_capstyle="butt", zorder=2,
+                label="cap binding (wide band)" if i == 0 else None)
+        ax.plot(x, y, color=col, lw=2, solid_capstyle="round", zorder=3, label=lab)
+        tick = (np.mod(t, 100) == 0) & (t >= 0)
+        ax.plot(x[tick], y[tick], "o", ms=4.8, color=col, mec=STYLE["surface"], mew=1.0, zorder=4)
+        if args.carrot:
+            it = (d["iter_strobe"] == 1) & moving
+            ax.plot(d["p_carrot_x"][it][::3], d["p_carrot_y"][it][::3], "o", ms=3.5, mfc="none", mec=STYLE["muted"],
+                    mew=0.8, zorder=1, label="carrot (every 3rd iteration)" if i == 0 else None)
+        ends.append((x[-1], y[-1], lab, col))
+    d0 = datas[0]
+    pose_arrow(ax, d0["x"][0], d0["y"][0], d0["heading_deg"][0], alen, STYLE["text2"], "start", "right")
+    tx, ty, tth = float(d0["target_x"][0]), float(d0["target_y"][0]), float(d0["target_theta"][0])
+    pose_arrow(ax, tx, ty, tth, alen, STYLE["text"], f"target ({tx:g}, {ty:g}, {tth:g}°)", "left")
+    if len(datas) > 1:
+        for (xe, ye, lab, col) in ends:
+            ax.annotate(lab, xy=(xe, ye), xytext=(8, -12), textcoords="offset points", fontsize=8,
+                        color=STYLE["text"], arrowprops=dict(arrowstyle="-", color=STYLE["muted"], lw=0.8))
+    # equal spans on both axes, centred on the data, so equal aspect needs no limit adjustment
+    half = 0.5 * span + 0.14 * span
+    cx, cy = 0.5 * (xs.min() + xs.max()), 0.5 * (ys.min() + ys.max())
+    ax.set_xlim(cx - half, cx + half)
+    ax.set_ylim(cy - half, cy + half)
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("x, in (+ right of the start)", fontsize=9, color=STYLE["text2"])
+    ax.set_ylabel("y, in (+ ahead of the start)", fontsize=9, color=STYLE["text2"])
+    ax.legend(loc="best", fontsize=8, frameon=False, labelcolor=STYLE["text"], handlelength=2.2)
+    title = args.title or f"moveToPose to ({tx:g}, {ty:g}, {tth:g}°): top view"
+    fig.text(0.10, 0.955, title, ha="left", va="top", fontsize=13, color=STYLE["text"], fontweight="semibold")
+    fig.text(0.10, 0.915, "True path; a dot every 100 ms, so wider spacing = faster; wide band where the slip cap "
+             "was binding", ha="left", va="top", fontsize=8.5, color=STYLE["text2"])
+    fig.savefig(args.path, dpi=DPI, facecolor=STYLE["surface"])
+    print(f"wrote {args.path}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("csv", nargs="+", help="bench CSVs (waveform view: 1 or 2)")
@@ -327,16 +545,26 @@ def main():
     ap.add_argument("--title")
     ap.add_argument("-o", "--out", help="waveform PNG")
     ap.add_argument("--displacement", help="displacement-vs-time PNG")
+    ap.add_argument("--path", help="top view (x-y) PNG of pose runs")
+    ap.add_argument("--carrot", action="store_true", help="top view: also draw the carrot point trail")
     a = ap.parse_args()
-    if not a.out and not a.displacement:
-        ap.error("give -o for the waveform view and/or --displacement")
+    if not a.out and not a.displacement and not a.path:
+        ap.error("give -o (waveforms), --displacement and/or --path")
     datas = [load_csv(p) for p in a.csv]
     labels = a.label + [os.path.basename(p) for p in a.csv[len(a.label):]]
     rob = robot_run(a.robot) if a.robot else None
+    pose = all(is_pose(d) for d in datas)
     if a.out:
         if len(datas) > 2:
             ap.error("the waveform view takes one or two CSVs")
-        waveform(a, datas, labels, rob)
+        if pose:
+            waveform_pose(a, datas, labels)
+        else:
+            waveform(a, datas, labels, rob)
+    if a.path:
+        if not pose:
+            ap.error("--path needs pose CSVs (tb_* --move pose)")
+        path_view(a, datas, labels)
     if a.displacement:
         displacement(a, datas, labels, rob)
 

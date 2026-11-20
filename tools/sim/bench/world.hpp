@@ -30,6 +30,8 @@ struct Params {
     double LATENCY_MS = 10.0;   // command latency, ms (fractional: interpolated)
     double C_DRIVE_L = 1.0, C_DRIVE_R = 1.0; // per-side scale on C while driving
     double C_BRAKE_L = 1.0, C_BRAKE_R = 1.0; // per-side scale on C while braking
+    double MU_LAT = 100.0;      // sideways (scrub) friction coefficient; sideways grip = MU_LAT * 386.09 in/s^2.
+                                // The default never lets go, so drives and turns are unchanged
     double V_MAX = 12.0;        // volts at command 127
     double STICK_EPS = 1e-3;    // in/s: below this a side counts as stopped
     // geometry
@@ -82,6 +84,9 @@ struct World {
     // true state (in, rad, in/s); heading 0 = +y, clockwise positive (LemLib convention)
     double x = 0, y = 0, heading = 0;
     double v[2] = {0, 0};
+    double vSide = 0;               // sideways speed in the robot frame, in/s, + to the robot's right
+    double sideDist = 0;            // integral of |vSide|, in
+    double peakSide = 0;            // max |vSide|, in/s
     double travel[2] = {0, 0};      // per-side ground travel, in
     double vertTravel = 0;          // vertical tracking wheel: + forward
     double horizTravelLeft = 0;     // horizontal tracking wheel: + to the robot's left (LemLib)

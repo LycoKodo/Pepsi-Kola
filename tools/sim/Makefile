@@ -1,6 +1,7 @@
-# Host testbench for the drive code. `make` builds both binaries:
-#   make DUT=baseline   -> build/baseline/tb_baseline   (sources: tools/sim/dut_baseline, the snapshot)
+# Host testbench for the drive code. `make` builds one binary per DUT:
 #   make DUT=live       -> build/live/tb_live           (sources: src/lemlib, as edited now)
+#   make DUT=<name>     -> build/<name>/tb_<name>       (sources: tools/sim/dut_<name>/, laid out like src/lemlib)
+#   e.g. DUT=baseline (snapshot at the first session's HEAD), DUT=fix1 (snapshot with the PID fix)
 # Headers always come from the repo's include/lemlib (through build/inc), after the stubs in stubs/.
 # The DUT files are compiled unmodified; header changes trigger rebuilds (-MMD).
 
@@ -23,25 +24,27 @@ export SDKFLAG
 DUT_FILES := chassis/motions/moveToPoint.cpp chassis/motions/turnToHeading.cpp chassis/motions/moveToPose.cpp \
              chassis/chassis.cpp chassis/odom.cpp chassis/trackingWheel.cpp pid.cpp exitcondition.cpp timer.cpp \
              util.cpp pose.cpp driveCurve.cpp
-BENCH_FILES := world.cpp stubs_impl.cpp tb_main.cpp
+BENCH_FILES := world.cpp stubs_impl.cpp pose_mirror.cpp tb_main.cpp
 
-.PHONY: all baseline live clean
+# every DUT there is: live plus each tools/sim/dut_<name>/
+DUTS := live $(sort $(patsubst dut_%,%,$(notdir $(wildcard $(SIM)/dut_*))))
+
+.PHONY: all clean $(DUTS)
 ifeq ($(DUT),)
-all: baseline live
-baseline:
-	@$(MAKE) --no-print-directory -f $(SIM)/Makefile DUT=baseline
-live:
-	@$(MAKE) --no-print-directory -f $(SIM)/Makefile DUT=live
+all: $(DUTS)
+$(DUTS):
+	@$(MAKE) --no-print-directory -f $(SIM)/Makefile DUT=$@
 clean:
 	rm -rf $(SIM)/build
 else
 
-ifeq ($(DUT),baseline)
-DUT_SRC := $(SIM)/dut_baseline
-else ifeq ($(DUT),live)
+ifeq ($(DUT),live)
 DUT_SRC := $(REPO)/src/lemlib
 else
-$(error DUT must be baseline or live)
+DUT_SRC := $(SIM)/dut_$(DUT)
+ifeq ($(wildcard $(DUT_SRC)/chassis/motions/moveToPose.cpp),)
+$(error $(DUT_SRC) does not look like src/lemlib (no chassis/motions/moveToPose.cpp))
+endif
 endif
 
 BUILD := $(SIM)/build/$(DUT)

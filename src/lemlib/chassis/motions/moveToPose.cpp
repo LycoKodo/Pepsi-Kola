@@ -112,10 +112,15 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
         if (!close) lateralOut = slew(lateralOut, prevLateralOut, lateralSettings.slew);
 
         // constrain lateral output by the max speed it can travel at without
-        // slipping
+        // slipping. Only before settling: once close, the carrot IS the target, so the "radius" is
+        // that of an arc to the target that the robot is no longer steering along (it is turning to
+        // the final heading), and it shrinks toward zero with the distance. The cap then drops below
+        // the power that moves the robot and it sits short of the target until the timeout (testbench,
+        // 2026-11-19: (12,12,90) stuck 1.0 in away at a command of 3). While settling the speed is
+        // already limited by maxSpeed and the lateral PID
         const float radius = 1 / fabs(getCurvature(pose, carrot));
         const float maxSlipSpeed(sqrt(params.horizontalDrift * radius * 9.8));
-        lateralOut = std::clamp(lateralOut, -maxSlipSpeed, maxSlipSpeed);
+        if (!close) lateralOut = std::clamp(lateralOut, -maxSlipSpeed, maxSlipSpeed);
         // prioritize angular movement over lateral movement
         const float overturn = fabs(angularOut) + fabs(lateralOut) - params.maxSpeed;
         if (overturn > 0) lateralOut -= lateralOut > 0 ? overturn : -overturn;
