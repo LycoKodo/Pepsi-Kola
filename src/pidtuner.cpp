@@ -219,6 +219,11 @@ void testTask() {
     const float dist = std::abs(p.target);
     const float targetHeading = start.theta + p.target;
 
+    // raw sensor readings before the move, for the tracking-wheel offset readout after a TURN
+    const float calVertical0 = verticalWheel.getDistanceTraveled();
+    const float calHorizontal0 = horizontalWheel.getDistanceTraveled();
+    const double calRotation0 = imu.get_rotation();
+
     if (p.mode == DRIVE) {
         float tx = start.x + p.target * std::sin(theta0);
         float ty = start.y + p.target * std::cos(theta0);
@@ -273,6 +278,21 @@ void testTask() {
     // every way out of the loop above (finished, stopped, stick moved, out of buffer) comes through
     // here, with the motion over: give the drive back in the mode it had
     chassis.setBrakeMode(savedBrakeMode);
+
+    // Tracking-wheel offset readout. In a turn on the spot each tracking wheel rolls (its distance from
+    // the centre of rotation) x (the angle turned), and LemLib's odometry cancels exactly that using the
+    // offsets in robot-config.cpp. So this turn measures what those offsets should be. Average several
+    // turns, both ways (the robot never spins perfectly on the spot), and compare with the config values
+    if (p.mode == TURN) {
+        const double turned = (imu.get_rotation() - calRotation0) * M_PI / 180; // radians, clockwise positive
+        if (std::isfinite(turned) && std::abs(turned) > 0.5) {
+            printf("[ODOMCAL] turned %+.1f deg: vertical wheel offset measures %+.2f in (config %+.2f), "
+                   "horizontal %+.2f in (config %+.2f)\n",
+                   turned * 180 / M_PI, -(verticalWheel.getDistanceTraveled() - calVertical0) / turned,
+                   verticalWheel.getOffset(), -(horizontalWheel.getDistanceTraveled() - calHorizontal0) / turned,
+                   horizontalWheel.getOffset());
+        }
+    }
 
     const float tolerance = p.mode == DRIVE ? DRIVE_TOLERANCE : TURN_TOLERANCE;
     float minErr = 0;

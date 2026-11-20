@@ -4,6 +4,7 @@
 // http://thepilons.ca/wp-content/uploads/2018/10/Tracking.pdf
 
 #include <math.h>
+#include <cmath>
 #include "pros/rtos.hpp"
 #include "lemlib/util.hpp"
 #include "lemlib/chassis/odom.hpp"
@@ -27,6 +28,7 @@ float prevHorizontal = 0;
 float prevHorizontal1 = 0;
 float prevHorizontal2 = 0;
 float prevImu = 0;
+bool imuFault = false; // the last IMU read was an error (see update())
 
 void lemlib::setSensors(lemlib::OdomSensors sensors, lemlib::Drivetrain drivetrain) {
     odomSensors = sensors;
@@ -84,7 +86,20 @@ void lemlib::update() {
     if (odomSensors.vertical2 != nullptr) vertical2Raw = odomSensors.vertical2->getDistanceTraveled();
     if (odomSensors.horizontal1 != nullptr) horizontal1Raw = odomSensors.horizontal1->getDistanceTraveled();
     if (odomSensors.horizontal2 != nullptr) horizontal2Raw = odomSensors.horizontal2->getDistanceTraveled();
-    if (odomSensors.imu != nullptr) imuRaw = degToRad(odomSensors.imu->get_rotation());
+    if (odomSensors.imu != nullptr) {
+        // An IMU that drops out reads infinity. That used to turn x, y and the heading into NaN for
+        // the rest of the run (only setPose cleared it). Hold the heading while the reading is bad,
+        // and when it comes back carry on from the held heading instead of jumping to the IMU's new value
+        const double rotation = odomSensors.imu->get_rotation();
+        if (std::isfinite(rotation)) {
+            imuRaw = degToRad(rotation);
+            if (imuFault) prevImu = imuRaw;
+            imuFault = false;
+        } else {
+            imuRaw = prevImu;
+            imuFault = true;
+        }
+    }
 
     // calculate the change in sensor values
     float deltaVertical1 = vertical1Raw - prevVertical1;

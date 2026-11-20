@@ -192,5 +192,9 @@ class TrackingWheel {
         pros::Rotation* rotation = nullptr;
         pros::MotorGroup* motors = nullptr;
         float gearRatio = 1;
+        // rotation-sensor dropout handling (see getDistanceTraveled in trackingWheel.cpp)
+        float lastRotationDistance = 0; // the last good distance, returned while the sensor reads an error
+        float rotationOffset = 0; // added to the raw distance so it carries on from the last good value
+        bool rotationFault = false; // the last read was an error
 };
 } // namespace lemlib

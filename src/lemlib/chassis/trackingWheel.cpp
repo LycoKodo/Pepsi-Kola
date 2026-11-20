@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "lemlib/util.hpp"
 #include "pros/abstract_motor.hpp"
@@ -35,6 +36,9 @@ void lemlib::TrackingWheel::reset() {
         // loop gets a new reading every time. Done here because reset() runs from Chassis::calibrate(),
         // after PROS has started; a constructor of a global object would be too early
         this->rotation->set_data_rate(5);
+        this->lastRotationDistance = 0;
+        this->rotationOffset = 0;
+        this->rotationFault = false;
     }
     if (this->motors != nullptr) this->motors->tare_position_all();
 }
@@ -43,7 +47,22 @@ float lemlib::TrackingWheel::getDistanceTraveled() {
     if (this->encoder != nullptr) {
         return (float(this->encoder->get_value()) * this->diameter * M_PI / 360) / this->gearRatio;
     } else if (this->rotation != nullptr) {
-        return (float(this->rotation->get_position()) * this->diameter * M_PI / 36000) / this->gearRatio;
+        // An unplugged or dropped-out rotation sensor reads PROS_ERR (2147483647 centidegrees), which
+        // used to become a 398,000 in jump in the pose. Hold the last good distance instead, and when
+        // the sensor comes back carry on from there: only the travel during the dropout is lost
+        const std::int32_t raw = this->rotation->get_position();
+        if (raw == INT32_MAX) {
+            this->rotationFault = true;
+            return this->lastRotationDistance;
+        }
+        const float distance = (float(raw) * this->diameter * M_PI / 36000) / this->gearRatio;
+        if (this->rotationFault) {
+            this->rotationFault = false;
+            this->rotationOffset = this->lastRotationDistance - distance;
+            this->rotation->set_data_rate(5); // a sensor that restarted is back on its slow default
+        }
+        this->lastRotationDistance = distance + this->rotationOffset;
+        return this->lastRotationDistance;
     } else if (this->motors != nullptr) {
         // get distance traveled by each motor
         std::vector<pros::MotorGears> gearsets = this->motors->get_gearing_all();

@@ -4,6 +4,7 @@
 
 #include "lemlib/selector.hpp" // For auton selector
 #include "robot-config.hpp"
+#include "ports.hpp"
 #include "controls.hpp"
 #include "autons.hpp"
 #include "macros.hpp"
@@ -73,6 +74,16 @@ void initialize() {
     // -----------------------
     // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
+    // If the IMU did not calibrate (unplugged, wrong port, robot moved during calibration) LemLib carries
+    // on without it and every heading is then a rough estimate from the wheels. Say so loudly
+    if (!std::isfinite(imu.get_rotation())) {
+        std::printf("[boot] IMU FAILED TO CALIBRATE: headings will be wrong. Check port %d, keep the robot still, restart\n",
+                    ports::IMU);
+        pros::delay(60); // the controller takes one message per 50 ms, and calibrate() just sent one
+        master.set_text(0, 0, "IMU FAILED       ");
+        pros::delay(60);
+        master.rumble("---");
+    }
 
     // -----------------------
     // Initialise Mechanisms
