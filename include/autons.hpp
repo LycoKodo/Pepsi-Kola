@@ -1,10 +1,13 @@
 #ifndef AUTONS_HPP
 #define AUTONS_HPP
 
-// Autonomous routines. No match routines exist for the new robot yet; the Skills
-// tab has the odometry test below. Adding one: write it, add a button +
-// description to its selector tab in initialize(), and a case in runAuton()
-// (src/main.cpp)
+// Autonomous routines (src/autons.cpp); the Skills tab has the odometry test
+// below (src/umbmark.cpp). Adding one: write it there, declare it here, add a
+// button + description to its selector tab in initialize(), and a case in
+// runAuton() (src/main.cpp)
+
+/** @brief Qual routine 2 (selector: Qual tab, "james_67") */
+void james_67();
 
 /**
  * @brief Run routine number `routine` (the selector's numbering). Blocking.
@@ -47,5 +50,8 @@ bool imuCalibratedAtBoot();
  * If fusion is switched Off while a fault is still feeding a correction back out, the rest stays in the pose
  */
 void startGpsFusion();
+
+/** @brief True if runAuton(routine) runs a real routine (not "none" or a NONE placeholder) */
+bool routineExists(int routine);
 
 #endif // AUTONS_HPP

@@ -59,17 +59,22 @@ in `moveToPose`, the "AAA" controller print in `calibrate`); `arcade`'s
 `leftPower*0.9`, `curvature`'s `turn *= 0.95` and `variableCurvature` are still
 there and would run if called (the driver loop uses `chassis.tank`). Two library
 changes were made the same day: `TrackingWheel::reset()` sets rotation sensors to
-a 5 ms refresh, and `PID::update` takes its derivative over two samples. Test
-library changes in `tools/sim/` before the robot.
+a 5 ms refresh, and `PID::update` takes its derivative over two samples. On
+2026-11-20: the first `PID::update` after a reset has no derivative (it used to
+read a jump from 0, a full-power twitch at the start of motions), and
+`moveToPose` resets its angular PID and ramps the angular power (the angular
+slew) once inside its 7.5 in settle zone (the heading target jumps there and the
+robot stopped and lurched). Test library changes in `tools/sim/` before the robot.
 
 **The screen has 32 KB and no lock.** LVGL's heap on the brain is 32 KB and the
 selector plus the PID tab use most of it (estimated 79%; the real figure prints at
 boot as `[PID] LVGL heap NN% used`). Running out hangs the display. Prefer one
 `lv_btnmatrix` over many buttons, static arrays over heap ones, shared styles.
 PROS runs LVGL on its own task without a lock: call `lv_*` only from LVGL event
-callbacks, an `lv_timer`, or `initialize()`. The PID tab follows this. The
-selector's `tabWatcher` is an `lv_timer` too since 2026-11-23: as a separate task it
-crashed the robot (DATA ABORT, CURRENT TASK: tabWatcher).
+callbacks, an `lv_timer`, or `initialize()`. The PID tab follows this, and so
+does the selector's `tabWatcher`, a 50 ms `lv_timer` since 2026-11-20/23. As its own
+task it rewrote the Developer tab's text every 10 ms with no lock: the "prefetch
+error" crashes, and DATA ABORT with CURRENT TASK: tabWatcher.
 
 **Selector numbering.** `auton` is 1.. for Qual, -1.. for AI, 101.. for Skills,
 999 for none. The button handlers in `selector.cpp` map button text to a number

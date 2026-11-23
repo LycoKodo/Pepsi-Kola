@@ -62,6 +62,11 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
         if (distTarget < 7.5 && close == false) {
             close = true;
             params.maxSpeed = fmax(fabs(prevLateralOut), 60);
+            // From here the angular error is to the final heading, not to the carrot: it jumps (2 to 67 deg on a
+            // 135 deg pose in the testbench). The derivative read that jump as speed and the kick took every bit of
+            // power for two updates, a stop-and-go twitch 7.5 in out (2026-11-20). Restart the angular PID here:
+            // its first update after a reset has no derivative (pid.cpp). The integral is 0 this far out anyway
+            angularPID.reset();
         }
 
         // check if the lateral controller has settled
@@ -104,6 +109,12 @@ void lemlib::Chassis::moveToPose(float x, float y, float theta, int timeout, Mov
 
         // apply restrictions on angular speed
         angularOut = std::clamp(angularOut, -params.maxSpeed, params.maxSpeed);
+        // While settling, ramp the turning power (the angular controller's slew, as moveToPoint always does).
+        // On entering the settle zone the angular target jumps from the carrot to the final heading (15 deg on a
+        // 21 in offset pose, testbench), the turn takes the whole maxSpeed at once and, turning having priority,
+        // the forward power went 30 -> 0 -> 0 -> 16: a stop and lurch 7.5 in out (2026-11-20). Ramped, forward
+        // power is taken away over a few updates instead
+        if (close) angularOut = slew(angularOut, prevAngularOut, angularSettings.slew);
 
         // apply restrictions on lateral speed
         lateralOut = std::clamp(lateralOut, -params.maxSpeed, params.maxSpeed);

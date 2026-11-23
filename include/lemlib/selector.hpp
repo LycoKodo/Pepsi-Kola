@@ -34,7 +34,7 @@ extern int autonCount;
 extern uint16_t currentRedButton;
 extern uint16_t currentBlueButton;
 
-extern lv_timer_t* tabWatcher_timer;
+extern lv_timer_t* tabWatcher_timer; // runs tabWatcher on LVGL's task
 
 constexpr int MAX_AUTONS = 100;
 extern const char* redBtnmMap[MAX_AUTONS];

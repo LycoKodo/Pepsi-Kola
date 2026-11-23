@@ -115,6 +115,8 @@ void initialize() {
     // mechanisms are zeroed where they sit now: power on with the cascade down
     // and the roller stowed
     subsystems::init();
+    // while a routine is picked and none has run yet, the colour toggle leaves toggleB alone (2026-11-20)
+    subsystems::holdColourToggleUntilAuton([] { return routineExists(lemlib::selector::auton); });
     subsystems::startColourToggle();
     macros::init();
 
@@ -126,11 +128,10 @@ void initialize() {
 
     // Routine numbers: qual 1, 2, 3...  AI -1, -2...  skills 101, 102...
     // (see the button handlers in src/lemlib/selector.cpp for how a button maps to a number).
-    // No match routines exist for the new robot yet. Every tab needs at least one
-    // button (LVGL crashes on an empty map), so Qual and AI have a placeholder that
-    // runAuton() treats as "nothing selected"
-    static const char* qualBtnmMap[] = {"NONE", nullptr};
-    static const char* qualBtnmDesc[] = {"No routines yet", nullptr};
+    // Every tab needs at least one button (LVGL crashes on an empty map), so Qual and AI
+    // have a "NONE" placeholder that runAuton() treats as "nothing selected"
+    static const char* qualBtnmMap[] = {"NONE", "james_67", nullptr};
+    static const char* qualBtnmDesc[] = {"No routine", "james_67: spins toggleB until it sees our alliance colour", nullptr};
 
     static const char* AIBtnmMap[] = {"NONE", nullptr};
     static const char* AIBtnmDesc[] = {"No routines yet", nullptr};
@@ -149,7 +150,8 @@ void initialize() {
         "3 tiles ahead, 3 LEFT, 1 behind, 1 right. Hold A, press B. A stick stops it",
         nullptr};
 
-    lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
+    constexpr int DEFAULT_AUTON = 2; // james_67 (Qual tab, second button); 999 = none
+    lemlib::selector::init(DEFAULT_AUTON, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
     pidtuner::init(lemlib::selector::tabview); // PID tuning tab, added after the selector's tabs
 }
 
@@ -160,6 +162,8 @@ static void stopMechanisms() {
     macros::cancel();
     for (int t = 0; t < 100 && macros::isBusy(); t += 10) pros::delay(10);
     subsystems::stopAll();
+    // an auton cut off inside spinToAllianceColour leaves the colour toggle paused: give toggleB back to it
+    subsystems::pauseColourToggle(false);
 }
 
 void disabled() {
@@ -177,10 +181,18 @@ void startGpsFusion() {
     lemlib::gpsfusion::setMode(GPS_FUSION_MODE);
 }
 
+bool routineExists(int routine) {
+    // keep in step with the cases in runAuton(). The UMBmark squares (101, 102) are test runs that never touch
+    // toggleB, so they do not hold the colour toggle
+    return routine == 2;
+}
+
 void runAuton(int routine) {
+    subsystems::colourToggleAutonStarted(); // the colour toggle may run normally from now on
     // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills, 999 none.
-    // No match routines yet, so the placeholder buttons (1, -1) land in default too
+    // The placeholder buttons ("NONE": 1, -1) land in default
     switch (routine) {
+        case 2: james_67(); break;              // Qual tab, second button
         case 101: umbmarkSquare(true); break;  // Skills "UMB CW": odometry test, clockwise square
         case 102: umbmarkSquare(false); break; // Skills "UMB CCW": the same, counter-clockwise
         // nothing selected (999) or a placeholder: do nothing
