@@ -64,6 +64,10 @@ constexpr double UNLOAD_ROLLER = 450;        // rollerTurn position while liftin
  * close it (the other way round was tried and was backwards) */
 constexpr bool CLAW_OPEN = true;
 constexpr bool CLAW_CLOSED = false;
+// The L1 grab (controls.cpp clawControls; autons copy it)
+constexpr std::int32_t CLAW_CATCH_MM = 100; // distance sensor, mm (10 cm; 7, 4 and 2 cm were tried)
+constexpr std::uint32_t CLAW_IGNORE_MS = 300;     // after opening, ignore the sensor this long so the claw opens
+constexpr std::uint32_t CLAW_INTAKE_AFTER_MS = 2000; // after catching, keep intaking this long (5 s and 1 s were tried)
 
 /** @brief Open (true) or close (false) the claw. Everything sets it through here, so clawOpen() is right */
 void setClaw(bool open);
@@ -119,6 +123,34 @@ void startColourToggle();
 /** @brief Which alliance the colour toggle plays for. Set from the selector's Qual tab; red to start */
 void setBlueAlliance(bool blue);
 bool isBlueAlliance();
+
+/**
+ * @brief Stop the colour toggle task from driving toggleB (true) or let it carry on (false).
+ * For autons that drive toggleB themselves
+ */
+void pauseColourToggle(bool paused);
+
+/**
+ * @brief Keep the colour toggle off toggleB while `hold()` returns true, until colourToggleAutonStarted() is
+ * called; from then on it runs normally. main.cpp uses it to keep the toggle still while a routine is picked
+ * on the selector and none has run yet. Call before startColourToggle()
+ */
+void holdColourToggleUntilAuton(bool (*hold)());
+/** @brief An auton has started: the hold above is over for good */
+void colourToggleAutonStarted();
+
+/** @brief true while the optical sensor sees, within ~5 cm, this alliance's own colour (red or blue) */
+bool seesAllianceColour();
+
+constexpr int ALLIANCE_COLOUR_TIMEOUT_MS = 3000; // spinToAllianceColour gives up after this
+constexpr int ALLIANCE_COLOUR_SPEED_PCT = 100;   // full speed, as the colour toggle spins
+
+/**
+ * @brief Spin toggleB until the optical sensor sees this alliance's colour, then stop it dead (hold brake).
+ * Pauses the colour toggle task meanwhile. Blocking. Gives up after `timeoutMs`.
+ * @return true if the colour was seen, false if it timed out
+ */
+bool spinToAllianceColour(int timeoutMs = ALLIANCE_COLOUR_TIMEOUT_MS, int percent = ALLIANCE_COLOUR_SPEED_PCT);
 
 /**
  * @brief Move a motor (or group) to an absolute position and wait until it arrives.

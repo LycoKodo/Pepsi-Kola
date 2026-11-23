@@ -10,6 +10,16 @@ PID::PID(float kP, float kI, float kD, float windupRange, bool signFlipReset)
       signFlipReset(signFlipReset) {}
 
 float PID::update(const float error) {
+    // First update after a reset: there is no previous error yet. prevError was 0, so the derivative read a jump
+    // from 0 to the whole error: kD * error / 2 for two updates. On a moveToPose that starts 45 deg off that was
+    // several times full power for 20 ms, a twitch at the start of every motion (testbench, 2026-11-20). Start
+    // the history at this error instead, so the derivative starts at 0
+    if (!primed) {
+        prevError = error;
+        prevPrevError = error;
+        primed = true;
+    }
+
     // calculate integral
     integral += error;
     if (sgn(error) != sgn((prevError)) && signFlipReset) integral = 0;
@@ -31,6 +41,7 @@ float PID::update(const float error) {
 }
 
 void PID::reset() {
+    primed = false;
     integral = 0;
     prevError = 0;
     prevPrevError = 0;

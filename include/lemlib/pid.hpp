@@ -85,5 +85,6 @@ class PID {
         float integral = 0;
         float prevError = 0;
         float prevPrevError = 0; // the error two updates ago: the derivative is taken over two samples (pid.cpp)
+        bool primed = false; // false until the first update after a reset: that update has no derivative (pid.cpp)
 };
 } // namespace lemlib

@@ -94,9 +94,7 @@ void intakeControls(bool dpadFree) {
 // something within CLAW_CATCH_MM (10 cm), the claw closes and the motors keep intaking for
 // CLAW_INTAKE_AFTER_MS more, then stop (even with L1 still held, or let go meanwhile). Letting go of
 // L1 before it catches anything closes it and stops them straight away
-constexpr std::int32_t CLAW_CATCH_MM = 100; // distance sensor, mm (10 cm; 7, 4 and 2 cm were tried)
-constexpr std::uint32_t CLAW_IGNORE_MS = 300;     // after opening, ignore the sensor this long so the claw opens
-constexpr std::uint32_t CLAW_INTAKE_AFTER_MS = 2000; // after catching, keep intaking this long (5 s and 1 s were tried)
+// CLAW_CATCH_MM, CLAW_IGNORE_MS and CLAW_INTAKE_AFTER_MS are in subsystems.hpp (autons grab the same way)
 enum class Claw { Idle, Grabbing, Caught } claw = Claw::Idle;
 std::uint32_t clawOpenedAt = 0;
 std::uint32_t xMotorsStopAt = 0; // millis() to stop motors 14 and 16 at; 0 = no timer

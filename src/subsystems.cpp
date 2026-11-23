@@ -80,6 +80,9 @@ void stopAll() {
 
 namespace {
 std::atomic<bool> blueAlliance{false}; // set from the selector's Qual tab (display task); red to start
+std::atomic<bool> togglePaused{false}; // an auton has toggleB: the colour toggle task leaves it alone
+bool (*holdUntilAuton)() = nullptr;     // see holdColourToggleUntilAuton()
+std::atomic<bool> autonHasStarted{false};
 
 // Ranges are a first guess: check the hue the brain's Devices screen shows for each colour and adjust.
 // Red wraps round 0/360 on the hue wheel
@@ -128,6 +131,32 @@ void printOptical() {
 void setBlueAlliance(bool blue) { blueAlliance = blue; }
 bool isBlueAlliance() { return blueAlliance; }
 
+void pauseColourToggle(bool paused) { togglePaused = paused; }
+
+void holdColourToggleUntilAuton(bool (*hold)()) { holdUntilAuton = hold; }
+void colourToggleAutonStarted() { autonHasStarted = true; }
+
+bool seesAllianceColour() { return seenColour() == (blueAlliance ? Colour::Blue : Colour::Red); }
+
+bool spinToAllianceColour(int timeoutMs, int percent) {
+    pauseColourToggle(true);
+    toggleB.move_velocity(rpm(percent));
+    bool seen = false;
+    int t = 0;
+    for (; t < timeoutMs; t += 5) {
+        if (seesAllianceColour()) {
+            seen = true;
+            break;
+        }
+        pros::delay(5); // as often as the colour toggle checks, so a passing block isn't missed
+    }
+    toggleB.brake(); // hold brake: stops dead
+    pauseColourToggle(false);
+    std::printf("[auton] toggleB: %s alliance colour %s after %d ms\n", blueAlliance ? "blue" : "red",
+                seen ? "seen" : "NOT seen, gave up", t);
+    return seen;
+}
+
 void startColourToggle() {
     opticalSensor.set_led_pwm(100); // its own light, so the hue doesn't depend on the room
     static pros::Task task([] {
@@ -137,9 +166,22 @@ void startColourToggle() {
         std::uint32_t lastHeld = 0;
         bool everHeld = false;
         bool homing = false; // sent back to zero for this L1/L2 hold
+        bool recommand = false; // just un-paused: command toggleB on the next check even if nothing changed
         while (true) {
             const std::uint32_t now = pros::millis();
             printOptical();
+
+            // an auton is driving toggleB itself (spinToAllianceColour), or a routine is picked and hasn't run
+            // yet (holdColourToggleUntilAuton): hands off. Afterwards toggleB is in whatever state it was left
+            // (still spinning if the auton was cut off mid-spin), so the first check after the pause commands it
+            // whatever it wants, change or not
+            const bool heldForAuton = holdUntilAuton != nullptr && !autonHasStarted && holdUntilAuton();
+            if (togglePaused || heldForAuton) {
+                homing = false;
+                recommand = true;
+                pros::delay(5);
+                continue;
+            }
 
             // while the driver holds LEFT or RIGHT (intake), and for RESUME_MS after letting go, the toggle stays still
             if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT) ||
@@ -170,7 +212,8 @@ void startColourToggle() {
             const Colour other = blueAlliance ? Colour::Red : Colour::Blue;
             const bool want = !paused && (c == Colour::Yellow || c == other);
 
-            if (want != spinning) { // only command on a change
+            if (want != spinning || recommand) { // only command on a change (or just after a pause)
+                recommand = false;
                 if (want) {
                     toggleB.move_velocity(rpm(SPEED_PCT));
                     // toggleA (port 10) back to zero degrees, the nearest full turn, as LEFT/RIGHT does for toggleB.

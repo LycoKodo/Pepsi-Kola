@@ -34,7 +34,7 @@ extern int autonCount;
 extern uint16_t currentRedButton;
 extern uint16_t currentBlueButton;
 
-extern pros::rtos::Task* tabWatcher_task;
+extern lv_timer_t* tabWatcher_timer; // runs tabWatcher on LVGL's task
 
 constexpr int MAX_AUTONS = 100;
 extern const char* redBtnmMap[MAX_AUTONS];
@@ -51,7 +51,7 @@ uint16_t get_button_count(lv_obj_t* btnm);
 void deselect_all_buttons(lv_obj_t* btnm);
 void redBtnmAction(lv_event_t* e);
 void blueBtnmAction(lv_event_t* e);
-void tabWatcher(void* param);
+void tabWatcher(lv_timer_t* timer);
 void init(int default_auton, const char** redAutons, const char** blueAutons, const char** skillsAutons,
             const char** redDesc, const char** blueDesc, const char** skillsDesc);
 void destroy();
