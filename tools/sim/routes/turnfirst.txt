@@ -1,0 +1,8 @@
+# start with a fast turn (heading-fault probe): a healthy sensor, perfect odometry
+start 0 -24 0
+turn 180
+wait 400
+point 0 -48
+wait 500
+turn 90
+wait 500

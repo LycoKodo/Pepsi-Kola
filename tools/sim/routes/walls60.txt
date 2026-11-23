@@ -1,0 +1,82 @@
+# A 60 second Skills-like route for the wall-fix tests (docs/WALL_FIX_DESIGN.md, W2, W3, W6, W8 to W13).
+# Field coordinates: inches from the field centre, +x toward the 90 degree wall, +y toward the 0 degree wall,
+# heading 0 = facing the 0 degree wall, clockwise. Walls at 70.25 in.
+#
+# Robot: 18 in square, centred on the tracking centre (robot.json has no size; skills60.txt says "about 18 in").
+# Sensors assumed by this route (the model's defaults, dist_model.hpp):
+#   back  sensor: right 0,   forward -8.5, yaw 180 (centre line, face 0.5 in inside the rear)
+#   right sensor: right 8.5, forward 0,    yaw 90  (right side, centre line)
+#
+# 13 stops of 0.7 s with the back sensor square to a wall 9.75 to 18.75 in away, on all four walls, its beam
+# landing 26 in or more from every corner. 5 of them (marked BR) also put the right sensor square to the next
+# wall 17.75 in away. Every stop is reached with a final "turn", so the robot is square by its own heading.
+#
+# Drift: with odometry alone (IMU 1.2 %, wheels 1.5 %, slips) the true pose at a stop is up to about 2 in off
+# after 10 s, 4 in after 20 s and 6 in after 30 s. A BR stop's beams land 8.5 + d in from a corner for a sensor
+# d in from its wall, so both stay inside 24 in and 20 in from the corners only while the drift is under about
+# 6 in: all five BR stops are in the first 32 s. The second lap has mid-wall stops only, 15.75 in from the wall,
+# the middle of the range 7.87 to 24 in: at 200 mm (7.87 in) or closer the sensor's confidence means nothing and
+# check 2 refuses every reading. The close stop (B2, 9.75 in) is early for the same reason.
+# The first lap goes round the field one way (net turning down to -270 degrees) and the second lap the other
+# way, so the heading error from an IMU scale error unwinds. No turn is near 180 degrees, so no turn's direction
+# depends on noise. walls_check.py checks all of this, on the plan and on tb_live runs.
+start -36 -58 0
+point -36 -10                 # up the left side
+turn 90
+point -50 -10 back            # back up toward the -x wall
+turn 90
+wait 700                      # B1  back: -x wall 11.75 in
+point -44 -44                 # down to the bottom-left
+turn 90
+wait 700                      # BR1 back: -x wall 17.75 in; right: -y wall 17.75 in
+point 0 -40                   # along the bottom
+turn 0
+point 0 -52 back
+turn 0
+wait 700                      # B2  back: -y wall 9.75 in (close: 248 mm; at 200 mm or less check 2 refuses it)
+point 44 -44                  # on to the bottom-right
+turn 0
+wait 700                      # BR2 back: -y wall 17.75 in; right: +x wall 17.75 in
+point 30 10                   # up the right half
+turn 270
+point 48 10 back
+turn 270
+wait 700                      # B3  back: +x wall 13.75 in
+point 44 44                   # up to the top-right
+turn 270
+wait 700                      # BR3 back: +x wall 17.75 in; right: +y wall 17.75 in
+point -44 43                  # straight across the top (y 43, not 44: the middle of the y range that keeps
+turn 180                      #   both sensors inside the targets under drift)
+wait 700                      # BR4 back: +y wall 18.75 in; right: -x wall 17.75 in
+point -44 -44                 # straight down the left side
+turn 90
+wait 700                      # BR5 back: -x wall 17.75 in; right: -y wall 17.75 in (BR1's spot, 25 s later)
+# second lap, the other way round the field: mid-wall stops only, 15.75 in from the wall (the middle of 7.87 to
+# 24 in, the window that drift of up to 8 in has to stay inside)
+point 10 36 back              # backward across the field to the top
+turn 180
+point 10 46 back
+turn 180
+wait 700                      # B4  back: +y wall 15.75 in
+point 34 -20                  # down the right side
+turn 270
+point 46 -20 back
+turn 270
+wait 700                      # B5  back: +x wall 15.75 in
+point -20 -36                 # across the bottom
+turn 0
+point -20 -46 back
+turn 0
+wait 700                      # B6  back: -y wall 15.75 in
+point -36 20                  # up the left side
+turn 90
+point -46 20 back
+turn 90
+wait 700                      # B7  back: -x wall 15.75 in
+point -20 36                  # up to the top-left
+turn 180
+point -20 46 back
+turn 180
+wait 700                      # B8  back: +y wall 15.75 in
+point -4 4                    # out into the middle to finish
+wait 500

@@ -5,7 +5,120 @@ over with the user directly. `CLAUDE.md` has the durable repo knowledge;
 `docs/TUNING_RUNBOOK.md` has the step-by-step for a tuning session. This file is
 the rest: what was done, what is known, what is undecided, and what was planned.
 
-## Update: first robot session, 2026-11-19 (read this first)
+## Update: first calibration session on the robot, 2026-11-23 (read this first)
+
+Everything in this section ran on the robot unless it says otherwise.
+
+- **Horizontal tracking sensor counted the wrong way.** Now constructed reversed (`-ports::HORIZONTAL_ODOM`).
+  This was the old `[ODOMCAL]` puzzle; values logged before this date have the horizontal sign flipped.
+- **Tracking wheels are 1.982 in (vertical) and 1.987 in (horizontal)**, from 48 in / 24 in tape pushes. LemLib's
+  `NEW_2` (2.125) made the odometry read 6 % long, so every move drove 6 % short. Existing autons tuned by trial
+  will now overshoot: re-check them.
+- **The tracking centre is now the robot's spin point**, 1.55 in ahead and 0.18 in left of the geometric centre
+  (offsets -0.42 / -3.78), fitted from `[UMBLEG]` lines over 8 turns and re-checked over 16. Before, each 90 deg
+  turn swung the tracked point about 2 in and UMBmark squares ended 2.4-3.3 in from the start mark; after, 0.4,
+  0.6, 0.8 and 1.8 in. Poses in routines now mean the spin point.
+- **Inertial scale left at 1.0.** UMBmark, 3 runs each way: clockwise -0.04 +- 0.10 %, counter-clockwise
+  +0.40 +- 0.09 % (position only), and the calculator predicted no gain from changing it.
+- **Selector crash fixed.** `tabWatcher` was a task calling `lv_*`; it died with DATA ABORT three times. It is an
+  `lv_timer` now (50 ms). Compiled and uploaded; no crash since, over about ten runs.
+- **UMBmark** prints `[UMBLEG]` (pose after each of the 8 moves) and refuses to start when the heading creeps
+  more than 0.05 deg/s standing still (a bad IMU boot gave -3.18 deg/s and a square 45 deg crooked).
+- **Y button** (driver control, no competition switch): tap prints a `[MARK]` line with pose and raw sensor
+  degrees since the last zero; hold 1 s zeroes the pose.
+
+Open: every turn still moves the pose about 0.64 in "backward" at mid-turn heading, the same for both
+directions, so no offset removes it. Not known whether the robot really moves or the vertical wheel reads it.
+Test: five PID-tab TURN +90 / -90 pairs on a tape cross, then compare the robot with the Y-button pose. Drives
+end 0.25 in past their target. `tools/sim/umb_suite.py` still uses the ruler offsets (-0.6 / -2.23) as the
+robot's geometry. The last build (drift refusal) was uploaded; the drift refusal itself has not been triggered
+on the robot.
+
+## Update: UMBmark square test, 2026-11-22 evening 
+
+Built and tested in the simulator; the robot code is only compiled. Nothing ran
+on the robot. Uncommitted. The how-to for the user is `docs/UMBMARK.md`.
+
+- **What it is.** The robot drives a 48 in square under odometry, clockwise and
+  counter-clockwise, five runs each; a person measures where it really ends; a
+  laptop tool turns that into `IMU_SCALE_CLOCKWISE` / `_COUNTER_CLOCKWISE`.
+  It replaces "ten turns each way against a floor mark" as the way to get the
+  inertial scale, and its run-to-run scatter is the slip check.
+- **Pieces.** `src/umbmark.cpp` (Skills buttons "UMB CW" 101 and "UMB CCW" 102,
+  cases in `runAuton()`; `imuCalibratedAtBoot()` in `main.cpp`);
+  `tools/umbmark.py` + `tools/umbmark_selftest.py` (289 checks);
+  `tools/sim/routes/umb_*.txt`, `tools/sim/umb_suite.py` (what each error looks
+  like, figure `docs/sim/umb_signatures.png`), `tools/sim/umb_e2e.py` (simulator
+  -> fake ruler measurements -> calculator -> apply -> re-drive; 59 pass, 0
+  fail, 4 reported only in the full run; `--quick` fails 2 limits by chance with
+  only 4 robots). Bench options added: `--imu-scale CW:CCW`, `--odom-offsets
+  V:H`, world keys `VERT_YAW_DEG`, `HORIZ_YAW_DEG`. Off-pose equivalence with
+  `dut_pregps` re-checked after the bench changes.
+- **What the simulator says.** Scale found to within 0.18 points (centre mark)
+  or 0.08 (two corners) at the usual slip. One round takes 20 uncalibrated
+  robots from 2.07 to about 1.04 in at the end of the 60 s route, the same as
+  a perfect scale. A closed square cannot see wheel size, wheel offsets (even
+  the wrong sign) or a wheel off parallel: under 0.1 in at the end, though up
+  to 8.9 in at the corners on the way round. Heading drift reads as a scale
+  error of opposite sign each way; the tool refuses above 0.02 deg/s.
+- **The limit that matters for this robot.** If it really spins about a point
+  5.8 in behind its tracking centre (the open `[ODOMCAL]` question), the scale
+  from position alone comes out about 27 % low with no warning. The heading is
+  unaffected, so measure the heading too (corners form, or `heading_deg`).
+- **History worth knowing.** The first build ran its moves blocking; the review
+  found a stick push during a move did nothing and a mid-run sensor dropout
+  drove blind. The routine was rewritten to run moves async and watch every
+  10 ms. That rewrite was run on a scratch host build and read by the lead
+  session, but not independently reviewed, and never on the robot: do the
+  wheels-off-the-ground check in `docs/UMBMARK.md` section 7 first.
+- **Not done.** `pidtuner.cpp` does not refuse RUN while a UMB run is going
+  (the UMB run stops itself instead). The long Skills descriptions have not
+  been seen on the brain's text box. Hot package is now 36.5 KB (was 32.7).
+
+## Update: GPS fusion and wall sensors, 2026-11-22
+
+Built overnight, in the simulator only. Nothing ran on the robot. Uncommitted
+on `claude/serene-curie-yvp8mp` until the user says to commit. The short
+version for the user is `docs/OVERNIGHT_REPORT_2026-11-22.md`.
+
+- **What exists.** `src/lemlib/chassis/gpsFusion.cpp` (+ header): a filter that
+  nudges x and y (never the heading) toward GPS readings, and, in the same
+  filter, one-axis fixes from wall-facing distance sensors. Hook at the end of
+  `lemlib::update()` in `odom.cpp`; `lemlib::setPose` restarts it;
+  `lemlib::setImuScale`. Designs with every decision: `docs/GPS_FUSION_DESIGN.md`
+  (through "Revision 3 results") and `docs/WALL_FIX_DESIGN.md` (through
+  "Revision C"). Movement code was not touched.
+- **Switches** (`include/robot-config.hpp`): `GPS_FUSION_MODE = Off`,
+  `GPS_MOUNT_MEASURED = false`, `ODOMETRY_CALIBRATED = false`. With Off the
+  pose is bit-for-bit the pre-GPS one (checked against `tools/sim/dut_pregps`).
+  On gives Shadow until both flags are true. Routines call `startGpsFusion()`
+  after `chassis.setPose(...)`. No wall sensor is fitted or configured.
+- **Verdict.** GPS: Shadow (log only) at most; do not switch On. A healthy GPS
+  adds nothing measurable on a calibrated robot, and a GPS drifting 0.1 in/s
+  is followed up to 5.4 in with a fault in only 4 of 20 runs. Walls: the design
+  is not ready (Revision C lists eight open problems); needs a real sensor
+  measured first. **Calibrating odometry is the gain**: 0.9 in against 2.6 in
+  at the end of a 60 s route in the simulator.
+- **Tests.** `make -C tools/sim unit` (444 + 310 + 102 + 198 checks),
+  `python3 tools/sim/gps_suite.py` (about 5.5 min), `python3 tools/sim/wall_suite.py`
+  (about 3 min). Figures in `docs/sim/gps_*.png` and `wall_*.png`. The sensor
+  models are built from other teams' reports, not from measurements.
+- **Next upload re-sends the cold package** (3.7 MB, over the cable):
+  `src/lemlib` changed.
+- **Only a robot can check:** the filter's logging task (8 KB stack, priority
+  below default, started from `initialize()` by `gpsfusion::configure`); what
+  the GPS's `get_error()` does when the camera is covered (decides whether On
+  is ever safe); GPS noise, delay and dead zone; the mount offsets.
+- **Found in passing, not ours, not fixed:** in PROS 4.1 a competition task
+  deleted in the middle of a `printf` leaves the serial lock held, and every
+  later `printf` then waits for ever. Keep prints out of `autonomous()`; the
+  driver loop's `[optical]` print would hang `opcontrol()` after that.
+- **Still open from before:** odometry calibration (IMU scale by ten turns
+  each way, 48 in tape test per tracking wheel), the horizontal wheel's offset
+  sign, curve sway (turn kI), the PID tab's ODOMCAL using the raw IMU (it will
+  not match a non-1 IMU scale), the selector's `tabWatcher` race.
+
+## Update: first robot session, 2026-11-19
 
 This section is newer than everything below it and wins where they disagree.
 

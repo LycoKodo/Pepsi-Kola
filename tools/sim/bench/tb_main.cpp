@@ -3,6 +3,7 @@
 // `target` inches straight ahead (or turnToHeading), sampled every 10 ms until 300 ms after the end.
 #include <unistd.h>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -22,6 +23,8 @@
 #include <memory>
 #include "json.hpp"
 #include "pose_mirror.hpp"
+#include "dist_model.hpp"
+#include "route.hpp"
 #include "world.hpp"
 
 #ifndef SIM_DIR
@@ -46,9 +49,21 @@ struct Options {
         std::string params = std::string(SIM_DIR) + "/robot.json";
         std::vector<std::pair<std::string, double>> sets;
         std::string csv, vcd, pidlog, dutStdout;
+        std::string poseTrace; // every lemlib::update(): t and the exact pose (hex floats), to prove bit-equality
         bool summaryJson = false;
         bool selftest = false;
         uint32_t t0 = 1000;
+        uint64_t seed = 1; // random numbers (tracking-wheel slips; in route mode also the GPS model)
+        // --imu-scale CW:CCW: lemlib::setImuScale(CW, CCW), as initialize() does on the robot with IMU_SCALE_CLOCKWISE /
+        // IMU_SCALE_COUNTER_CLOCKWISE (include/robot-config.hpp). Not given: never called, so the DUT keeps 1.0 and 1.0
+        bool imuScaleGiven = false;
+        double imuScaleCw = 1, imuScaleCcw = 1;
+        // --odom-offsets VERT:HORIZ: the tracking-wheel offsets LemLib is told (inches, LemLib's signs: vertical +
+        // right, horizontal + front). Where the world's wheels truly are is --set VERT_OFFSET / HORIZ_OFFSET. The
+        // defaults are the old robot's 0.9 and 2.55, the world's own defaults; the robot now has -0.6 and -2.23
+        double toldVertOffset = 0.9, toldHorizOffset = 2.55;
+        sim::RouteOptions route; // --route and the options only route mode has
+        std::vector<std::string> routeOnly; // route-mode options given, to refuse them without --route
 };
 
 [[noreturn]] void usage(const char* msg) {
@@ -60,7 +75,23 @@ struct Options {
                  "        [--rot-ms N] [--rot-lock] [--rot-phase N] [--imu-ms N] [--imu-phase N] [--odom-phase N]\n"
                  "        [--latency MS] [--params robot.json] [--set KEY=VALUE ...] [--timeout MS]\n"
                  "        [--csv out.csv] [--vcd out.vcd] [--pidlog out.log|-] [--summary-json] [--dut-stdout FILE]\n"
-                 "        [--selftest]   check the stubs (rotation data rate / --rot-lock) and exit\n");
+                 "        [--pose-trace FILE]   after every lemlib::update(): t, x, y, theta (radians) as exact hex floats\n"
+                 "        [--selftest]   check the stubs (rotation data rate / --rot-lock) and exit\n"
+                 "        [--seed N]   random numbers (tracking-wheel slips: --set SLIP_PER_IN=.. SLIP_MAX_IN=..)\n"
+                 "        [--imu-scale CW:CCW]   lemlib::setImuScale(CW, CCW) (DUTs that have it)\n"
+                 "        [--odom-offsets VERT:HORIZ]   tracking-wheel offsets LemLib is told (default 0.9:2.55)\n"
+                 "       tb_" DUT_NAME " --route FILE [--seed N] [--fusion off|shadow|on] [--no-gps]\n"
+                 "        [--gps KEY=VALUE ...] [--gps-json FILE] [--gps-loss START_MS:LENGTH_MS[:DRIFT 1|0[:IN_PER_S]] ...]\n"
+                 "        [--fz KEY=VALUE ...] [--fz-json FILE]   (lemlib::gpsfusion::Config names, e.g. --fz gate=3)\n"
+                 "        [--shove T_MS:RIGHT_IN:FORWARD_IN[:LENGTH_MS] | --shove sSTEP:RIGHT_IN:FORWARD_IN[:LENGTH_MS]]\n"
+                 "        [--start-error DX:DY[:DEG]] [--start-wait MS] [--compare-with OFF.csv] [--recover-tol IN]\n"
+                 "        [--walls-zero]   (configureWalls() with zero sensors when no --wall-sensor is given)\n"
+                 "        [--set KEY=VALUE ...] [--csv ticks.csv] [--pose-trace FILE] [--summary-json]\n"
+                 "        wall fixes: [--wall-sensor RIGHT:FORWARD:YAW[:SCALE[:OFFSET_IN]] (up to 2; what the filter is told)]\n"
+                 "        [--wall KEY=VALUE ...] [--wall-json FILE]   (lemlib::gpsfusion::WallConfig names, planeIn0..3)\n"
+                 "        [--wall-trust WALL|all:ignore|clear|solid ...] [--keep-out WALL:FROM_IN:TO_IN ...]\n"
+                 "        [--dist KEY=VALUE ...] [--dist-json FILE]   (the simulated sensor; --dist help lists every key)\n"
+                 "        route mode: see bench/route.hpp and tools/sim/README.md\n");
     std::exit(2);
 }
 
@@ -573,8 +604,120 @@ int main(int argc, char** argv) {
         else if (a == "--vcd") o.vcd = next();
         else if (a == "--pidlog") o.pidlog = next();
         else if (a == "--dut-stdout") o.dutStdout = next();
+        else if (a == "--pose-trace") o.poseTrace = next();
         else if (a == "--summary-json") o.summaryJson = true;
         else if (a == "--selftest") o.selftest = true;
+        else if (a == "--seed") o.seed = std::strtoull(next().c_str(), nullptr, 10);
+        else if (a == "--imu-scale" || a == "--odom-offsets") {
+            const std::string spec = next();
+            const size_t colon = spec.find(':');
+            if (colon == std::string::npos) usage((a + " needs two numbers, A:B").c_str());
+            const double first = std::atof(spec.substr(0, colon).c_str()), second = std::atof(spec.c_str() + colon + 1);
+            if (a == "--imu-scale") {
+                if (!(first > 0 && second > 0)) usage("--imu-scale needs two scales above 0, CW:CCW");
+                o.imuScaleGiven = true;
+                o.imuScaleCw = first;
+                o.imuScaleCcw = second;
+            } else {
+                o.toldVertOffset = first;
+                o.toldHorizOffset = second;
+            }
+        }
+        else if (a == "--route") o.route.routeFile = next();
+        else if (a == "--fusion" || a == "--no-gps" || a == "--gps" || a == "--gps-json" || a == "--gps-loss" ||
+                 a == "--fz" || a == "--fz-json" || a == "--shove" || a == "--start-error" || a == "--start-wait" ||
+                 a == "--compare-with" || a == "--recover-tol" || a == "--wall-sensor" || a == "--wall" ||
+                 a == "--wall-json" || a == "--wall-trust" || a == "--keep-out" || a == "--dist" ||
+                 a == "--dist-json" || a == "--walls-zero") {
+            sim::RouteOptions& r = o.route;
+            o.routeOnly.push_back(a);
+            auto keyValue = [&](std::vector<std::pair<std::string, double>>& into) {
+                const std::string kv = next();
+                const size_t eq = kv.find('=');
+                if (eq == std::string::npos) usage((a + " needs KEY=VALUE").c_str());
+                into.push_back({kv.substr(0, eq), std::atof(kv.c_str() + eq + 1)});
+            };
+            // "A:B:C" -> numbers
+            auto numbers = [&](const std::string& text) {
+                std::vector<double> v;
+                std::stringstream ss(text);
+                for (std::string part; std::getline(ss, part, ':');) v.push_back(std::atof(part.c_str()));
+                return v;
+            };
+            if (a == "--fusion") r.fusion = next();
+            else if (a == "--no-gps") r.noGps = true;
+            else if (a == "--gps") keyValue(r.gpsSets);
+            else if (a == "--gps-json") r.gpsJsonFiles.push_back(next());
+            else if (a == "--fz") keyValue(r.fusionSets);
+            else if (a == "--fz-json") r.fusionJsonFiles.push_back(next());
+            else if (a == "--gps-loss") {
+                const std::vector<double> v = numbers(next());
+                if (v.size() < 2 || v.size() > 4)
+                    usage("--gps-loss needs START_MS:LENGTH_MS[:1 drift | 0 freeze[:DRIFT_IN_PER_S]]");
+                r.losses.push_back({uint32_t(v[0]), uint32_t(v[1]), v.size() >= 3 ? int(v[2]) : -1,
+                                    v.size() == 4 ? v[3] : -1.0});
+            } else if (a == "--shove") {
+                std::string spec = next();
+                sim::ShoveSpec sh;
+                if (!spec.empty() && spec[0] == 's') {
+                    sh.atStep = true;
+                    spec = spec.substr(1);
+                }
+                const std::vector<double> v = numbers(spec);
+                if (v.size() < 3 || v.size() > 4) usage("--shove needs T_MS:RIGHT_IN:FORWARD_IN[:LENGTH_MS]");
+                if (sh.atStep) sh.step = int(v[0]);
+                else sh.routeMs = uint32_t(v[0]);
+                sh.rightIn = v[1];
+                sh.forwardIn = v[2];
+                if (v.size() == 4) sh.lengthMs = int(v[3]);
+                r.shoves.push_back(sh);
+            } else if (a == "--start-error") {
+                const std::vector<double> v = numbers(next());
+                if (v.size() < 2 || v.size() > 3) usage("--start-error needs DX:DY[:DEG]");
+                r.startErrXIn = v[0];
+                r.startErrYIn = v[1];
+                if (v.size() == 3) r.startErrDeg = v[2];
+            } else if (a == "--wall-sensor") {
+                const std::vector<double> v = numbers(next());
+                if (v.size() < 3 || v.size() > 5) usage("--wall-sensor needs RIGHT:FORWARD:YAW[:SCALE[:OFFSET_IN]]");
+                sim::WallSensorSpec ws;
+                ws.rightIn = v[0];
+                ws.forwardIn = v[1];
+                ws.yawDeg = v[2];
+                if (v.size() >= 4) ws.scale = v[3];
+                if (v.size() == 5) ws.offsetIn = v[4];
+                r.wallSensors.push_back(ws);
+            } else if (a == "--wall") keyValue(r.wallSets);
+            else if (a == "--wall-json") r.wallJsonFiles.push_back(next());
+            else if (a == "--wall-trust") {
+                // WALL:TRUST, WALL a wall number (0 +y, 1 +x, 2 -y, 3 -x) or "all"
+                const std::string spec = next();
+                const size_t colon = spec.find(':');
+                if (colon == std::string::npos) usage("--wall-trust needs WALL|all:ignore|clear|solid");
+                const std::string wall = spec.substr(0, colon), trust = spec.substr(colon + 1);
+                const int wallNo = wall == "all" ? -1 : std::atoi(wall.c_str());
+                const int trustNo = trust == "ignore" ? 0 : trust == "clear" ? 1 : trust == "solid" ? 2 : -1;
+                if (trustNo < 0 || wallNo < -1 || wallNo > 3 || (wall != "all" && (wall.size() != 1 || !std::isdigit(
+                                                                                       static_cast<unsigned char>(wall[0])))))
+                    usage("--wall-trust needs WALL|all:ignore|clear|solid (WALL 0 to 3)");
+                r.wallTrusts.push_back({wallNo, trustNo});
+            } else if (a == "--keep-out") {
+                const std::vector<double> v = numbers(next());
+                if (v.size() != 3) usage("--keep-out needs WALL:FROM_IN:TO_IN");
+                r.keepOuts.push_back({int(v[0]), v[1], v[2]});
+            } else if (a == "--dist") {
+                // "--dist help" prints every option of the simulated sensor and stops
+                if (i + 1 < argc && std::string(argv[i + 1]) == "help") {
+                    std::fputs(sim::DistModelParams::helpText().c_str(), stdout);
+                    std::exit(0);
+                }
+                keyValue(r.distSets);
+            } else if (a == "--dist-json") r.distJsonFiles.push_back(next());
+            else if (a == "--start-wait") r.startWaitMs = std::atoi(next().c_str());
+            else if (a == "--compare-with") r.compareWith = next();
+            else if (a == "--recover-tol") r.recoverTolIn = std::atof(next().c_str());
+            else if (a == "--walls-zero") r.configureZeroWalls = true;
+        }
         else if (a == "--rot-lock") w.p.rotLock = true;
         else if (a == "--rot-ms" || a == "--rot-phase" || a == "--imu-ms" || a == "--imu-phase" ||
                  a == "--odom-phase")
@@ -588,6 +731,8 @@ int main(int argc, char** argv) {
         } else if (a == "-h" || a == "--help") usage(nullptr);
         else usage(("unknown option " + a).c_str());
     }
+    if (o.route.routeFile.empty() && !o.routeOnly.empty())
+        usage((o.routeOnly.front() + " is for route mode only (--route FILE)").c_str());
     if (o.move != "drive" && o.move != "turn" && o.move != "pose") usage("--move must be drive, turn or pose");
     B.drive = o.move == "drive";
     B.pose = o.move == "pose";
@@ -605,6 +750,8 @@ int main(int argc, char** argv) {
     }
     for (auto& [k, v] : o.sets)
         if (!w.p.set(k, v)) usage(("unknown parameter " + k).c_str());
+    // the world's random numbers (slips). Nothing draws from it unless SLIP_PER_IN is set
+    w.rng.reseed(o.seed * 2 + 1);
     for (auto& [k, v] : timing) {
         const int iv = std::atoi(v.c_str());
         if (k == "--rot-ms") w.p.rotMs = std::max(5, iv / 5 * 5);
@@ -649,8 +796,9 @@ int main(int argc, char** argv) {
     w.rot[20].isVertical = true;
     w.rot[3].bound = true;
     w.rot[3].isVertical = false;
-    lemlib::TrackingWheel verticalWheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, 0.9);
-    lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, lemlib::Omniwheel::NEW_2, 2.55);
+    // the offsets LemLib is told: 0.9 and 2.55 unless --odom-offsets (the robot itself has -0.6 and -2.23)
+    lemlib::TrackingWheel verticalWheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, o.toldVertOffset);
+    lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, lemlib::Omniwheel::NEW_2, o.toldHorizOffset);
     lemlib::OdomSensors sensors(&verticalWheel, nullptr, &horizontalWheel, nullptr, &imu);
     const bool d = B.drive;
     const bool lat = B.drive || B.pose; // --kP/--kI/--kD: lateral for drive and pose, angular for turn
@@ -671,9 +819,42 @@ int main(int argc, char** argv) {
     B.chassis = &chassis;
     B.left = &leftMotors;
     B.right = &rightMotors;
+    // --imu-scale: the library's IMU heading scale (src/lemlib/chassis/odom.cpp). Only DUTs from after it was added
+    // have setImuScale; without the option it is never called
+    if (o.imuScaleGiven) {
+#if DUT_HAS_IMUSCALE
+        lemlib::setImuScale(float(o.imuScaleCw), float(o.imuScaleCcw));
+#else
+        usage("--imu-scale: this DUT has no lemlib::setImuScale");
+#endif
+    }
+
+    // ---- route mode: a list of moves in field coordinates, with the GPS model and fusion (bench/route.cpp)
+    if (!o.route.routeFile.empty()) {
+        sim::RouteOptions& r = o.route;
+        r.seed = o.seed;
+        r.csv = o.csv;
+        r.poseTrace = o.poseTrace;
+        r.summaryJson = o.summaryJson;
+        if (!o.vcd.empty() || !o.pidlog.empty()) usage("--vcd and --pidlog are not available in route mode");
+        return sim::runRoute(r, chassis, out);
+    }
 
     w.preTick = record;
     w.postEvents = sampler;
+    // --pose-trace: the CSV rounds to 5 digits, this does not. Reading the pose changes nothing in the DUT
+    static FILE* poseTraceFile = nullptr;
+    if (!o.poseTrace.empty()) {
+        poseTraceFile = std::fopen(o.poseTrace.c_str(), "w");
+        if (!poseTraceFile) usage(("cannot write " + o.poseTrace).c_str());
+        w.postEvents = [](uint32_t now) {
+            sampler(now);
+            if (sim::world().odomStrobe) {
+                const lemlib::Pose p = lemlib::getPose(true);
+                std::fprintf(poseTraceFile, "%u %a %a %a\n", now, double(p.x), double(p.y), double(p.theta));
+            }
+        };
+    }
     w.onDelay = [](uint32_t now) {
         if (B.recording && !B.finished && B.chassis->isInMotion()) onIteration(now);
     };
@@ -719,6 +900,7 @@ int main(int argc, char** argv) {
     // ---- outputs
     const Metrics m = tabMetrics(d ? 1.0 : 1.0);
     if (!o.csv.empty()) writeCsv(o.csv);
+    if (poseTraceFile) std::fclose(poseTraceFile);
     char about[256];
     if (B.pose)
         std::snprintf(about, sizeof about, "tb_%s move=pose x=%g y=%g theta=%g lead=%g drift=%g max=%g min=%g%s MU_LAT=%g",

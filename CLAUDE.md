@@ -18,6 +18,8 @@ confirmed on the robot.
     pros terminal --output tune.log       # show the robot's output and append it to a file
     python3 tools/pidlog.py tune.log --out pidlog_out   # read PID tab logs (plots need matplotlib)
     python3 tools/pidlog_selftest.py      # the reader's own check: "selftest passed: 26 runs"
+    python3 tools/umbmark.py FILE.csv --log umb_round1.log   # UMBmark square: IMU scales from ruler measurements
+    python3 tools/umbmark_selftest.py     # its own check: "selftest passed: 289 checks"
 
 `pros` with no subcommand crashes on this laptop (a rich_click version clash) and
 prints SSL/analytics warnings after every command. Both are harmless.
@@ -34,7 +36,10 @@ prints SSL/analytics warnings after every command. Both are harmless.
 | Start-up order, `runAuton()`, competition callbacks | `src/main.cpp` |
 | Auton selector and Developer tab (team-written, lives under lemlib/) | `src/lemlib/selector.cpp` |
 | PID tab: live gain editing, test moves, run logging | `src/pidtuner.cpp` |
-| Laptop tools | `tools/pidlog.py`, `tools/pidlog_selftest.py` |
+| GPS and wall-sensor fusion (Off by default; hook at the end of `lemlib::update()`), IMU scale | `src/lemlib/chassis/gpsFusion.cpp`, `include/lemlib/chassis/gpsFusion.hpp`, `src/lemlib/chassis/odom.cpp`; designs in `docs/GPS_FUSION_DESIGN.md`, `docs/WALL_FIX_DESIGN.md` |
+| UMBmark square, the odometry test: Skills buttons "UMB CW" (101) and "UMB CCW" (102); how-to in `docs/UMBMARK.md` | `src/umbmark.cpp` |
+| Laptop tools | `tools/pidlog.py`, `tools/pidlog_selftest.py`, `tools/umbmark.py`, `tools/umbmark_selftest.py` |
+| Host simulator (real LemLib on the laptop), fusion unit tests and suites | `tools/sim/` (`make -C tools/sim unit`, `gps_suite.py`, `wall_suite.py`, `slip_sweep.py`, `umb_suite.py`, `umb_e2e.py`; use `/opt/anaconda3/bin/python3`, the system one has no numpy) |
 | Screen images (boot logo, selector picture), linked into the COLD package so normal uploads stay ~32 KB; see the bottom of `Makefile` | `cold/image.c`, `cold/dorito.c` |
 
 ## Traps that have already cost time
@@ -63,8 +68,8 @@ boot as `[PID] LVGL heap NN% used`). Running out hangs the display. Prefer one
 `lv_btnmatrix` over many buttons, static arrays over heap ones, shared styles.
 PROS runs LVGL on its own task without a lock: call `lv_*` only from LVGL event
 callbacks, an `lv_timer`, or `initialize()`. The PID tab follows this. The
-selector's `tabWatcher` does not (it is a separate task that calls `lv_*`), which
-is an existing race nobody has fixed.
+selector's `tabWatcher` is an `lv_timer` too since 2026-11-23: as a separate task it
+crashed the robot (DATA ABORT, CURRENT TASK: tabWatcher).
 
 **Selector numbering.** `auton` is 1.. for Qual, -1.. for AI, 101.. for Skills,
 999 for none. The button handlers in `selector.cpp` map button text to a number
@@ -77,6 +82,25 @@ blocks. Anything with a wait is a macro. Do not spawn loops from `opcontrol()` o
 `autonomous()`: PROS kills those tasks on a mode change but not their children.
 Anything that drives the drivetrain during driver control (the PID tab's test
 move) needs `drive()` to yield, as it does for `pidtuner::isRunning()`.
+
+**Fusion stays Off unless the user asks.** `GPS_FUSION_MODE` is Off and must
+keep the pose bit-for-bit what `tools/sim/dut_pregps` gives
+(`make -C tools/sim` then compare with `--pose-trace`). On is refused (Shadow
+instead) until `GPS_MOUNT_MEASURED` and `ODOMETRY_CALIBRATED` are true. The
+odometry task never prints: the fusion code's own logging task does. Run both
+suites after any change to `gpsFusion.cpp`.
+
+**The UMBmark square (`src/umbmark.cpp`) is a test run only.** It refuses under
+field control or a competition switch, with the lift up, or with the inertial
+sensor failed. Its moves run async in LemLib's own task while the routine
+watches the sticks, the sensor and the PID tab every 10 ms and cancels on any of
+them; it prints one line per run. Its constants (side 48, speeds 70, waits) are
+mirrored in `tools/sim/routes/umb_*.txt`, `umb_suite.py` and `umb_e2e.py`, which
+check they match: change them together. `tools/umbmark.py` exits 3 and prints no
+constants when its checks do not agree (reasons at the top of the report); that
+is by design, not a failure. A closed square cannot see tracking wheel size or
+offsets, and reads the scale about a quarter low from position alone if the
+robot spins about a point behind its tracking centre.
 
 **Printing.** A `printf` in a 10 ms loop floods the terminal. The colour toggle
 already prints `[optical]` twice a second.

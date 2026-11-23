@@ -26,7 +26,7 @@
  *    5  rollerTurn        motor, green, rev      B  intakeLift   (unused)
  *                                                C  sideToggle   (no button now)
  *                                                H  pistonH      claw: L1 (see controls.cpp)
- *    7  gps               GPS sensor       (not used in code yet; for the planned Kalman filter)
+ *    7  gps               GPS sensor       (read by GPS fusion, gpsfusion::step, only when it is not Off)
  *    8  cascade A        motor, green       (was 10)
  *    9  cascade B         motor, green, rev  (was 14)
  *   10  toggle A          motor, green, rev  (was intakeBottom, port 1)
@@ -70,11 +70,11 @@ constexpr std::int8_t X_MOTOR_B = 16;
 // sensors
 constexpr std::uint8_t VERTICAL_ODOM = 20; // new robot (was 11)
 constexpr std::uint8_t IMU = 13;
-constexpr std::uint8_t HORIZONTAL_ODOM = 3;  // new robot: rolls sideways, 2" omni (was placeholder 6, switched off). Checked: pushing right raises X
+constexpr std::uint8_t HORIZONTAL_ODOM = 3;  // new robot: rolls sideways, 2" omni (was placeholder 6, switched off). Counts reversed: robot-config.cpp constructs it with -HORIZONTAL_ODOM (2026-11-23, pushing right lowered X)
 constexpr std::uint8_t DISTANCE = 19; // PLACEHOLDER (was 17, now toggle B)
 constexpr std::uint8_t OPTICAL = 18;  // colour sensor for TOGGLE_B
 constexpr std::uint8_t CLAW_DISTANCE = 15; // the claw's distance sensor
-constexpr std::uint8_t GPS = 7; // GPS sensor, plugged in; not read by the code yet (for the planned Kalman filter)
+constexpr std::uint8_t GPS = 7; // GPS sensor: read only by GPS fusion's odometry step, and only when fusion is not Off
 
 // 3-wire ports on the brain
 constexpr char TOGGLE_LIFT = 'A';

@@ -1,0 +1,12 @@
+# A5 standard move: drive 24 in backwards.
+# Lead-in: 40 in east and a quarter turn, so odometry has drifted and the filter has a correction to feed in
+# when the measured move (the last move in the file) starts. gps_suite.py A5 compares that move with fusion
+# Off and On: overshoot and settle time, the PID tab way.
+start -40 20 90
+wait 1000
+point 0 20
+wait 400
+turn 0
+wait 400
+point 0 -4 back
+wait 1000

@@ -47,9 +47,9 @@ uint16_t currentQualButton = UINT16_MAX; // button IDs for buttons selected rn
 uint16_t currentAIButton = UINT16_MAX;
 uint16_t currentSKillsButton = UINT16_MAX;
 
-void tabWatcher(void* param);
+void tabWatcher(lv_timer_t* timer);
 
-pros::rtos::Task* tabWatcher_task = nullptr;
+lv_timer_t* tabWatcher_timer = nullptr;
 
 const char* qualBtnmMap[MAX_AUTONS];
 const char* AIBtnmMap[MAX_AUTONS];
@@ -218,50 +218,45 @@ void skillsBtnmAction(lv_event_t* e) {
     }
 }
 
-void tabWatcher(void* param) {
+// How often the screen is refreshed. Was a 10 ms loop in its own task
+constexpr uint32_t TAB_WATCH_MS = 50;
+
+// One refresh of the selector and Developer tab. Runs as an lv_timer, so on LVGL's own task.
+// Until 2026-11-23 this was a separate task ("tabWatcher") looping every 10 ms and calling lv_* from outside
+// LVGL's task, which PROS does not lock. That race crashed the program on the robot (DATA ABORT EXCEPTION,
+// CURRENT TASK: tabWatcher, three times in one afternoon of UMBmark runs). The work per refresh is unchanged
+void tabWatcher(lv_timer_t*) {
     try {
-        while (true) {
-            int activeTab = lv_tabview_get_tab_act(tabview);
-            if (!autonStarted) {
-                int currentTab = lv_tabview_get_tab_act(tabview);
-
-                if (currentTab != activeTab) {
-                    activeTab = currentTab;
-                }
-                // Handle actions for the active tab
-                if (activeTab == 1 && currentQualButton < UINT16_MAX) {
-                    deselect_all_buttons(qualBtnm);
-                    lv_btnmatrix_set_btn_ctrl(qualBtnm, currentQualButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 2 && currentAIButton < UINT16_MAX) {
-                    deselect_all_buttons(AIBtnm);
-                    lv_btnmatrix_set_btn_ctrl(AIBtnm, currentAIButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 3 && currentSKillsButton < UINT16_MAX) {
-                    deselect_all_buttons(skillsBtnm);
-                    lv_btnmatrix_set_btn_ctrl(skillsBtnm, currentSKillsButton, LV_BTNMATRIX_CTRL_CHECKED);
-                } else if (activeTab == 0) {
-                    motorUpdate();
-                    odomUpdate();
-                }
-
-                // "No auton picked" reminder: rumbled every 10 ms until a selector button was tapped.
-                // Paused 2026-11-19 for PID tuning; set RUMBLE_UNTIL_PICKED to true to bring it back
-                constexpr bool RUMBLE_UNTIL_PICKED = false;
-                if (RUMBLE_UNTIL_PICKED && auton == 999) {
-                    master.rumble(".");
-                }
-                textUpdate();
-                // printf("Current Auton %i", auton);
-                pros::delay(10);
-            }
-
-            // Auton has started
-            if (autonStarted) {
-                lv_tabview_set_act(tabview, 0, LV_ANIM_OFF);
+        int activeTab = lv_tabview_get_tab_act(tabview);
+        if (!autonStarted) {
+            // Handle actions for the active tab
+            if (activeTab == 1 && currentQualButton < UINT16_MAX) {
+                deselect_all_buttons(qualBtnm);
+                lv_btnmatrix_set_btn_ctrl(qualBtnm, currentQualButton, LV_BTNMATRIX_CTRL_CHECKED);
+            } else if (activeTab == 2 && currentAIButton < UINT16_MAX) {
+                deselect_all_buttons(AIBtnm);
+                lv_btnmatrix_set_btn_ctrl(AIBtnm, currentAIButton, LV_BTNMATRIX_CTRL_CHECKED);
+            } else if (activeTab == 3 && currentSKillsButton < UINT16_MAX) {
+                deselect_all_buttons(skillsBtnm);
+                lv_btnmatrix_set_btn_ctrl(skillsBtnm, currentSKillsButton, LV_BTNMATRIX_CTRL_CHECKED);
+            } else if (activeTab == 0) {
                 motorUpdate();
                 odomUpdate();
-                // printf("Current Auton %i", auton);
-                pros::delay(10);
             }
+
+            // "No auton picked" reminder: rumbled every 10 ms until a selector button was tapped.
+            // Paused 2026-11-19 for PID tuning; set RUMBLE_UNTIL_PICKED to true to bring it back
+            // (it would now rumble every TAB_WATCH_MS)
+            constexpr bool RUMBLE_UNTIL_PICKED = false;
+            if (RUMBLE_UNTIL_PICKED && auton == 999) {
+                master.rumble(".");
+            }
+            textUpdate();
+        } else {
+            // Auton has started
+            lv_tabview_set_act(tabview, 0, LV_ANIM_OFF);
+            motorUpdate();
+            odomUpdate();
         }
     } catch (const std::exception& ex) {
         log_error("tabWatcher", ex.what());
@@ -432,7 +427,7 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         // Image scale: the zoom factor is in 256ths, so 200 = about 78%
         lv_img_set_zoom(img, 200);
 
-        tabWatcher_task = new pros::Task(tabWatcher, nullptr, "tabWatcher");
+        tabWatcher_timer = lv_timer_create(tabWatcher, TAB_WATCH_MS, nullptr);
 
         printf("Selector initialised!\n");
 
@@ -442,10 +437,10 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
 }
 
 void destroy() {
-    if (tabWatcher_task != nullptr) {
-        tabWatcher_task->remove();
-        delete tabWatcher_task;
-        tabWatcher_task = nullptr;
+    // nothing calls destroy() today. lv_timer_del is an lv_* call: only call this from LVGL's task
+    if (tabWatcher_timer != nullptr) {
+        lv_timer_del(tabWatcher_timer);
+        tabWatcher_timer = nullptr;
     }
 }
 

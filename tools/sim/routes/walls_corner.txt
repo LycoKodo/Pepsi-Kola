@@ -1,0 +1,101 @@
+# Stops near corners and next to wall-mounted elements, for the keep-out test W7 (docs/WALL_FIX_DESIGN.md, check
+# 8: the cone of coneHalfDeg 18, its footprint on the wall widened by footprintMarginIn 2, must stay
+# cornerMarginIn 6 from a corner and off every keep-out). Same frame, robot and sensors as walls60.txt
+# (back sensor right 0, forward -8.5, yaw 180; right sensor right 8.5, forward 0, yaw 90).
+#
+# The two wall-mounted elements are PLACEHOLDERS, not this season's field (nobody has measured it here). The
+# integrator must give the model the same elements (dist_model elemN_*) and the filter the same keep-outs:
+#@element 3 -6 6 4
+#@element 0 18 30 4
+#   element 0: on the -x wall (wall 3), from y = -6 to 6, sticking out 4 in
+#   element 1: on the +y wall (wall 0), from x = 18 to 30, sticking out 4 in
+#
+# What each stop is for ("filter" = what check 8 should decide with the first values; "true cone" = whether the
+# model's cone, 12 degrees by default, really meets the corner or element; walls_check.py prints both):
+#   K4  back sensor 35.75 in from the -y wall, beam 12.25 in from the -x corner: filter rejects (corner); the true
+#       cone is clean (it would meet the -x wall with cone_half_deg 19 or more)
+#   K3  22 in from the wall: filter rejects; true cone clean
+#   K1  14 in: filter rejects, by 0.3 in; true cone clean
+#   K2  10 in: filter accepts, with 1 in to spare
+#   E4  back sensor 14 in from the -x wall, 8 in beside element 0: filter accepts (1.45 in to spare)
+#   E3  4 in beside it: filter rejects (keep-out); true cone clean
+#   E2  2 in beside it: the true cone meets the element's corner and the reading is pulled short (about 1.9 in
+#       with the blend, less than blockedMaxIn 2.5, so only check 8 stops it); filter rejects (keep-out). The case
+#       W7 is about
+#   E1  square in front of it: reads 4 in short; filter rejects (keep-out, and check 9)
+#   E7, E6, E5  the same for element 1 (7 in beside, accepted with 0.45 in to spare; 2 in beside; in front)
+#   K6  right sensor 20 in from the +x wall, beam 15 in from the +y corner: filter accepts (0.5 in to spare)
+#   K5  the same, 13.25 in from the corner: filter rejects
+#   K7  both sensors 9.75 in from their walls, beams 18.25 in from the bottom-left corner: filter accepts both
+# With the model's default 12 degree cone the true cone cannot reach a corner from any stop where the filter's
+# other checks pass (square within 10 degrees, within 36 in, the robot inside the field), so the K stops test the
+# filter's margins against clean readings. Elements are where the true cone and the filter's footprint both matter.
+#
+# The robot never turns, or drives at an angle, within 13 in of a wall (an 18 in square sweeps 12.7 in when it
+# turns), so the outline stays inside the field with drifting odometry too.
+start -58 -20 0
+point -58 -26 back
+turn 0
+wait 700                      # K4  back: -y wall 35.75 in, beam 12.25 in from the corner
+point -58 -39.75 back
+turn 0
+wait 700                      # K3  back: -y wall 22 in
+point -58 -47.75 back
+turn 0
+wait 700                      # K1  back: -y wall 14 in
+point -58 -51.75 back
+turn 0
+wait 700                      # K2  back: -y wall 10 in
+point -58 -10                 # straight back up the line
+point -52 20                  # and away from the wall at a shallow angle
+point -40 14                  # toward element 0 on the -x wall
+turn 90
+point -47.75 14 back
+turn 90
+wait 700                      # E4  back: -x wall 14 in, 8 in beside element 0 (accepted)
+point -36 10
+turn 90
+point -47.75 10 back
+turn 90
+wait 700                      # E3  4 in beside element 0
+point -36 8
+turn 90
+point -47.75 8 back
+turn 90
+wait 700                      # E2  2 in beside element 0: the true cone meets it
+point -36 0
+turn 90
+point -47.75 0 back
+turn 90
+wait 700                      # E1  square in front of element 0
+point 37 36                   # across to element 1 on the +y wall
+turn 180
+point 37 47.75 back
+turn 180
+wait 700                      # E7  back: +y wall 14 in, 7 in beside element 1 (accepted)
+point 32 36
+turn 180
+point 32 47.75 back
+turn 180
+wait 700                      # E6  2 in beside element 1: the true cone meets it
+point 24 36
+turn 180
+point 24 47.75 back
+turn 180
+wait 700                      # E5  square in front of element 1
+point 41.75 30                # down and right, then up facing the top wall
+turn 0
+point 41.75 55.25
+turn 0
+wait 700                      # K6  right: +x wall 20 in, beam 15 in from the corner (accepted)
+point 41.75 57
+turn 0
+wait 700                      # K5  right: +x wall 20 in, beam 13.25 in from the corner
+point 41.75 40 back
+point -36 -50                 # all the way to the bottom-left, turning in open field
+turn 90
+point -52 -52 back
+turn 90
+wait 700                      # K7  back: -x wall 9.75 in; right: -y wall 9.75 in; both beams 18.25 in from the corner
+point -20 -20                 # out into the field to finish
+wait 500

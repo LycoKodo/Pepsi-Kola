@@ -1,0 +1,71 @@
+# A 60 second Skills-like route for the GPS fusion acceptance tests (docs/GPS_FUSION_DESIGN.md, A3 to A9).
+# Field coordinates: inches from the field centre, +x toward the 90 degree wall, +y toward the 0 degree wall,
+# heading 0 = facing the 0 degree wall, clockwise. The robot is about 18 in square, so its centre stays within
+# 62 in of the centre (10 in from every wall). The GPS camera faces backward.
+# Stops of 0.3 to 0.5 s between moves, as a routine picking things up would make.
+start -60 -36 0
+point -60 0                 # up the left wall
+wait 400
+turn 90
+point -24 0                 # toward the middle
+wait 300
+turn 45
+point 0 24                  # diagonally through the middle
+wait 500
+turn 0
+point 0 52                  # up to the top wall (front 11 in from it)
+wait 400
+point 0 36 back
+turn 270
+wait 300
+point -48 36                # along the top
+wait 400
+turn 180
+point -48 12
+wait 300
+turn 90
+point 48 12                 # right across the middle
+wait 500
+turn 180
+point 48 -40                # down the right side
+wait 400
+turn 270
+wait 300
+point 58 -40 back           # back up to the right wall: the camera faces it from 14 in (dead zone)
+wait 500
+point 20 -40                # away from the wall
+wait 300
+turn 0
+pose -12 -8 315             # an arc into the middle
+wait 400
+turn 135 cw                 # a full clockwise spin, in two half turns. Exactly 180 deg each: without cw the
+wait 300                    # direction would depend on noise (gps_suite.py also runs it counter-clockwise)
+turn 315 cw
+wait 300
+point -40 20
+wait 400
+turn 180
+point -40 -56               # down to the bottom wall
+wait 500
+turn 90
+point 30 -56                # along the bottom
+wait 400
+turn 0
+point 30 -20
+wait 300
+turn 270
+point -52 -20               # back across to the left
+wait 400
+turn 0
+point -52 0
+wait 500
+turn 90
+point -20 0                 # back into the middle
+wait 300
+turn 225
+wait 400
+point -44 -24               # diagonal toward the bottom-left corner
+wait 300
+turn 60                     # 165 deg the shorter way (an exactly 180 deg turn's direction would depend on noise)
+point -10 -4
+wait 500

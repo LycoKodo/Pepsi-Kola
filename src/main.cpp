@@ -1,6 +1,8 @@
 #include "main.h"
 #include "lemlib/api.hpp"
 #include "lemlib/chassis/chassis.hpp"
+#include "lemlib/chassis/odom.hpp" // lemlib::setImuScale
+#include "lemlib/chassis/gpsFusion.hpp"
 
 #include "lemlib/selector.hpp" // For auton selector
 #include "robot-config.hpp"
@@ -60,6 +62,10 @@
 // ----------------------------------------------------
 
 LV_IMG_DECLARE(image); //TKSRC Logo
+
+static bool imuOkAtBoot = false; // set once in initialize(), right after chassis.calibrate()
+bool imuCalibratedAtBoot() { return imuOkAtBoot; }
+
 void initialize() {
     std::printf("[build] Yoake V0.1, small-upload test 1\n"); // shows which upload is running; bump the number to check a new one
     // ------------------------------------------
@@ -73,10 +79,14 @@ void initialize() {
     // Initialise Chassis
     // -----------------------
     // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
+    // the IMU scale is set before calibrate(), which starts the odometry task that reads it
+    lemlib::setImuScale(IMU_SCALE_CLOCKWISE, IMU_SCALE_COUNTER_CLOCKWISE); // 1.0 and 1.0 until measured
     chassis.calibrate(); // calibrate sensors
     // If the IMU did not calibrate (unplugged, wrong port, robot moved during calibration) LemLib carries
-    // on without it and every heading is then a rough estimate from the wheels. Say so loudly
-    if (!std::isfinite(imu.get_rotation())) {
+    // on without it and every heading is then a rough estimate from the wheels. Say so loudly. The odometry
+    // test (src/umbmark.cpp) remembers it and refuses to run
+    imuOkAtBoot = std::isfinite(imu.get_rotation());
+    if (!imuOkAtBoot) {
         std::printf("[boot] IMU FAILED TO CALIBRATE: headings will be wrong. Check port %d, keep the robot still, restart\n",
                     ports::IMU);
         pros::delay(60); // the controller takes one message per 50 ms, and calibrate() just sent one
@@ -84,6 +94,20 @@ void initialize() {
         pros::delay(60);
         master.rumble("---");
     }
+
+    // -----------------------
+    // GPS-aided odometry (docs/GPS_FUSION_DESIGN.md)
+    // -----------------------
+    // Fusion stays Off (the GPS is not even read) until a routine calls startGpsFusion()
+    // the filter removes the lever arm itself (gpsFusionConfig.mountRightIn/ForwardIn). If the sensor did not
+    // take the zero offset (unplugged, another device on the port), say so once: the lever-arm maths assumes it
+    if (gps.set_offset(0, 0) == PROS_ERR) {
+        std::printf("[GPSFUSE] gps.set_offset(0, 0) failed on port %d (errno %d): check the GPS sensor\n", ports::GPS,
+                    errno);
+    }
+    // the On guards go to the library, so nothing can walk round them (On needs both; robot-config.hpp). This also
+    // starts the task that prints the [GPSFUSE] lines and checks every number in gpsFusionConfig
+    lemlib::gpsfusion::configure(&gps, gpsFusionConfig, GPS_MOUNT_MEASURED, ODOMETRY_CALIBRATED);
 
     // -----------------------
     // Initialise Mechanisms
@@ -102,8 +126,8 @@ void initialize() {
 
     // Routine numbers: qual 1, 2, 3...  AI -1, -2...  skills 101, 102...
     // (see the button handlers in src/lemlib/selector.cpp for how a button maps to a number).
-    // No routines exist for the new robot yet. Every tab needs at least one
-    // button (LVGL crashes on an empty map), so each has a placeholder that
+    // No match routines exist for the new robot yet. Every tab needs at least one
+    // button (LVGL crashes on an empty map), so Qual and AI have a placeholder that
     // runAuton() treats as "nothing selected"
     static const char* qualBtnmMap[] = {"NONE", nullptr};
     static const char* qualBtnmDesc[] = {"No routines yet", nullptr};
@@ -111,8 +135,19 @@ void initialize() {
     static const char* AIBtnmMap[] = {"NONE", nullptr};
     static const char* AIBtnmDesc[] = {"No routines yet", nullptr};
 
-    static const char* skillsBtnmMap[] = {"NONE", nullptr};
-    static const char* skillsBtnmDesc[] = {"No routines yet", nullptr};
+    // Skills holds the odometry test (src/umbmark.cpp): two buttons in one row, 101 and 102. Button names
+    // must differ (the handler finds the button by its text). The robot's centre drives a 48 in (two tile)
+    // square; an 18 in robot's corners swing out about 13 in further when it turns, at every corner including
+    // the start. So: about 61 in clear ahead of and beside the start (3 tiles past the robot's own tile leaves
+    // room), and about 13 in behind and on the other side (1 tile)
+    static const char* skillsBtnmMap[] = {"UMB CW", "UMB CCW", nullptr};
+    // It runs only as a test run (it refuses under field control), so a skills run with it picked does nothing
+    static const char* skillsBtnmDesc[] = {
+        "Odometry test, clockwise 2 tile square. Robot centred on a tile, lift down. Keep clear: 3 tiles "
+        "ahead, 3 RIGHT, 1 behind, 1 left. Hold A, press B. A stick stops it",
+        "Odometry test, counter-clockwise 2 tile square. Robot centred on a tile, lift down. Keep clear: "
+        "3 tiles ahead, 3 LEFT, 1 behind, 1 right. Hold A, press B. A stick stops it",
+        nullptr};
 
     lemlib::selector::init(999, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
     pidtuner::init(lemlib::selector::tabview); // PID tuning tab, added after the selector's tabs
@@ -127,17 +162,33 @@ static void stopMechanisms() {
     subsystems::stopAll();
 }
 
-void disabled() { stopMechanisms(); }
+void disabled() {
+    stopMechanisms();
+    lemlib::gpsfusion::setMode(lemlib::gpsfusion::Mode::Off);
+}
 
 void competition_initialize() {}
 
+void startGpsFusion() {
+    // GPS_FUSION_MODE is Off until the team changes it in robot-config.hpp: then this does nothing at all. The
+    // mount and odometry guards are in the library now (configure() in initialize() was told GPS_MOUNT_MEASURED
+    // and ODOMETRY_CALIBRATED): asking for On before both are true gives Shadow, and the [GPSFUSE] logging task
+    // says which one is missing. Nothing here prints: a routine's task can be deleted in the middle of a print
+    lemlib::gpsfusion::setMode(GPS_FUSION_MODE);
+}
+
 void runAuton(int routine) {
     // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills, 999 none.
-    // No routines yet, so the placeholder buttons (1, -1, 101) land in default too
+    // No match routines yet, so the placeholder buttons (1, -1) land in default too
     switch (routine) {
+        case 101: umbmarkSquare(true); break;  // Skills "UMB CW": odometry test, clockwise square
+        case 102: umbmarkSquare(false); break; // Skills "UMB CCW": the same, counter-clockwise
         // nothing selected (999) or a placeholder: do nothing
         default: std::printf("[auton] no routine selected (%d)\n", routine); break;
     }
+    // GPS fusion is never used while the driver drives, and a test run (hold A, press B) returns straight to
+    // driver control, so switch it Off whenever a routine ends
+    lemlib::gpsfusion::setMode(lemlib::gpsfusion::Mode::Off);
 }
 
 void autonomous() {
@@ -147,6 +198,8 @@ void autonomous() {
 }
 
 void opcontrol() {
+    // GPS fusion is for routines only, never while the driver drives (docs/GPS_FUSION_DESIGN.md)
+    lemlib::gpsfusion::setMode(lemlib::gpsfusion::Mode::Off);
     // the loop runs right here, in the opcontrol task, rather than in tasks it
     // spawns: PROS kills this task when the mode changes, but not its children,
     // so spawned loops would keep driving into the next auton/disabled period

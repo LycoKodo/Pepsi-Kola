@@ -1,9 +1,11 @@
 // Implementations of the stub PROS devices declared in tools/sim/stubs/pros/*.
 // All device state lives in sim::world(), keyed by port.
+#include <cstring>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include "pros/distance.hpp"
 #include "pros/imu.hpp"
 #include "pros/motor_group.hpp"
 #include "pros/rotation.hpp"
@@ -24,7 +26,15 @@ uint32_t millis(void) { return world().now; }
 } // namespace c
 
 namespace sim_detail {
+// The distance sensor stub's hook (stubs/pros/distance.hpp), defined once here for the whole bench. It stays
+// nullptr (every distance sensor unplugged) unless route mode is given wall sensors (--wall-sensor): then
+// bench/route.cpp points it at the simulated sensor (bench/dist_model.*)
+DistanceRead (*distanceReadHook)(int port) = nullptr;
+
 void task_created(const char* name) {
+    // GPS fusion's logging task (gpsFusion.cpp, started by configure()) only prints the [GPSFUSE] lines; the bench
+    // reads status() itself, so it is not run, not counted and not warned about
+    if (name && std::strcmp(name, "gpsfuse log") == 0) return;
     sim::World& w = world();
     w.tasksCreated++;
     if (w.tasksCreated == 1) {

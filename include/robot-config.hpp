@@ -4,7 +4,9 @@
 #include "main.h"
 #include "lemlib/api.hpp"
 #include "lemlib/chassis/chassis.hpp"
+#include "lemlib/chassis/gpsFusion.hpp"
 #include "pros/adi.hpp"
+#include "pros/gps.hpp"
 
 // Every device below is defined once in src/robot-config.cpp. Port numbers are
 // in include/ports.hpp.
@@ -45,6 +47,39 @@ extern pros::Rotation horizontalEncoder;
 extern lemlib::TrackingWheel verticalWheel;
 extern lemlib::TrackingWheel horizontalWheel;
 extern lemlib::OdomSensors sensors;
+
+// IMU heading scale (lemlib::setImuScale, applied in initialize()). 1.0 changes nothing. To measure: turn the
+// robot ten full turns clockwise, divide 3600 by the degrees it reads; the same counter-clockwise
+constexpr float IMU_SCALE_CLOCKWISE = 1.0f; // not measured yet
+constexpr float IMU_SCALE_COUNTER_CLOCKWISE = 1.0f; // not measured yet
+
+// ---------------------------------------
+// GPS-aided odometry (docs/GPS_FUSION_DESIGN.md)
+// ---------------------------------------
+extern pros::Gps gps; // port 7
+
+// What startGpsFusion() (src/main.cpp) switches fusion to when a routine starts. Off: the GPS is never read
+// and odometry is exactly what it was without fusion. The design's stages on the robot: first Shadow (runs and
+// prints [GPSFUSE] lines, changes nothing), then On for Skills routines once Shadow has proved it
+constexpr lemlib::gpsfusion::Mode GPS_FUSION_MODE = lemlib::gpsfusion::Mode::Off;
+
+// Mount guard (docs/GPS_FUSION_DESIGN.md, R4). Set to true only once gpsFusionConfig.mountRightIn and
+// mountForwardIn have been measured on the robot (even if they really are 0). While it is false, asking for On
+// gives Shadow instead (the library enforces it: configure() is told this in initialize()), and the [GPSFUSE]
+// logging task says why: a camera 6 in off-centre with the mount left at 0 made fusion 4 in worse than odometry
+// alone in the simulator
+constexpr bool GPS_MOUNT_MEASURED = false;
+
+// Odometry guard (docs/GPS_FUSION_DESIGN.md, "Revision 2 results"). Set to true only once odometry has been
+// calibrated (stage 0): the IMU scale measured (IMU_SCALE_CLOCKWISE / IMU_SCALE_COUNTER_CLOCKWISE above) and the
+// tracking wheel size checked with the tape test. While it is false, asking for On gives Shadow instead, like
+// GPS_MOUNT_MEASURED: with the inertial sensor 1.2 percent wrong the filter fixes position but not the heading
+// that keeps rebuilding the error, and in the simulator it missed its target in one spin direction; with a
+// calibrated sensor that did not happen
+constexpr bool ODOMETRY_CALIBRATED = false;
+
+// Every number the filter uses (src/robot-config.cpp)
+extern const lemlib::gpsfusion::Config gpsFusionConfig;
 
 // ---------------------------------------
 // PID Controller

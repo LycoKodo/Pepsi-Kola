@@ -10,6 +10,7 @@
 #include "lemlib/chassis/odom.hpp"
 #include "lemlib/chassis/chassis.hpp"
 #include "lemlib/chassis/trackingWheel.hpp"
+#include "lemlib/chassis/gpsFusion.hpp"
 
 // tracking thread
 pros::Task* trackingTask = nullptr;
@@ -30,6 +31,17 @@ float prevHorizontal2 = 0;
 float prevImu = 0;
 bool imuFault = false; // the last IMU read was an error (see update())
 
+// The V5 inertial sensor turns out 1 to 1.4 percent wrong in heading, and calibration does not fix that
+// (docs/GPS_FUSION_DESIGN.md). Each heading change from the IMU is multiplied by one of these, depending on
+// which way the robot turned. 1.0 (the default) leaves the heading exactly as it was
+static float imuScaleClockwise = 1.0f;
+static float imuScaleCounterClockwise = 1.0f;
+
+void lemlib::setImuScale(float clockwise, float counterClockwise) {
+    imuScaleClockwise = clockwise;
+    imuScaleCounterClockwise = counterClockwise;
+}
+
 void lemlib::setSensors(lemlib::OdomSensors sensors, lemlib::Drivetrain drivetrain) {
     odomSensors = sensors;
     drive = drivetrain;
@@ -41,8 +53,15 @@ lemlib::Pose lemlib::getPose(bool radians) {
 }
 
 void lemlib::setPose(lemlib::Pose pose, bool radians) {
+    // GPS fusion (docs/GPS_FUSION_DESIGN.md, Revision 3): with fusion Off, pauseForSetPose() reads one atomic and
+    // returns Off, and nothing else happens, so setPose is exactly what it was. With fusion on, the filter is
+    // paused before the pose is written and started again from the new pose after it, as setMode does (otherwise
+    // it would go on believing the pose holds corrections the new pose no longer has, and a later fault would
+    // feed them back out of it). Waits at most a few ms; if it cannot, fusion goes Off
+    const gpsfusion::Mode fusionBefore = gpsfusion::pauseForSetPose();
     if (radians) odomPose = pose;
     else odomPose = lemlib::Pose(pose.x, pose.y, degToRad(pose.theta));
+    if (fusionBefore != gpsfusion::Mode::Off) gpsfusion::restartAfterSetPose(fusionBefore);
 }
 
 lemlib::Pose lemlib::getSpeed(bool radians) {
@@ -107,6 +126,10 @@ void lemlib::update() {
     float deltaHorizontal1 = horizontal1Raw - prevHorizontal1;
     float deltaHorizontal2 = horizontal2Raw - prevHorizontal2;
     float deltaImu = imuRaw - prevImu;
+    // IMU scale (setImuScale). LemLib's heading, like the IMU's, grows clockwise. Skipped completely at a scale
+    // of exactly 1.0, so by default the heading is bit-for-bit what it was without this
+    if (deltaImu > 0 && imuScaleClockwise != 1.0f) deltaImu *= imuScaleClockwise;
+    else if (deltaImu < 0 && imuScaleCounterClockwise != 1.0f) deltaImu *= imuScaleCounterClockwise;
 
     // update the previous sensor values
     prevVertical1 = vertical1Raw;
@@ -195,6 +218,19 @@ void lemlib::update() {
     odomLocalSpeed.x = ema(localX / 0.01, odomLocalSpeed.x, 0.95);
     odomLocalSpeed.y = ema(localY / 0.01, odomLocalSpeed.y, 0.95);
     odomLocalSpeed.theta = ema(deltaHeading / 0.01, odomLocalSpeed.theta, 0.95);
+
+    // GPS fusion (docs/GPS_FUSION_DESIGN.md, src/lemlib/chassis/gpsFusion.cpp). Off by default, and then none
+    // of this runs, so the pose is exactly the dead-reckoned one above. It comes after the speeds, so a
+    // correction being fed in never shows up as speed. It only ever moves x and y, never the heading.
+    // The correction is added only when it is not zero (so Shadow, which always returns zero, leaves even the
+    // sign of a zero alone) and only if no routine switched fusion Off while step() ran
+    if (gpsfusion::mode() != gpsfusion::Mode::Off) {
+        const gpsfusion::Correction correction = gpsfusion::step(odomPose.x, odomPose.y, odomPose.theta);
+        if ((correction.xIn != 0 || correction.yIn != 0) && gpsfusion::mode() != gpsfusion::Mode::Off) {
+            odomPose.x += correction.xIn;
+            odomPose.y += correction.yIn;
+        }
+    }
 }
 
 void lemlib::init() {

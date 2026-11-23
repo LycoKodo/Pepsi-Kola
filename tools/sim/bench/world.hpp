@@ -5,8 +5,10 @@
 //   1. preTick(t) hook (the bench records the row for time t: the DUT's code at t has already run)
 //   2. 1 ms of physics
 //   3. now = t+1, then the events due at t+1, in this order: sensor refreshes (IMU, rotation
-//      sensors), lemlib::update() when odometry is running and (t+1 - odomPhase) % 10 == 0, then
-//      the postEvents(t+1) hook (the bench's PID-tab sampler).
+//      sensors, then the deviceRefresh hook: the GPS model in route mode), lemlib::update() when
+//      odometry is running and (t+1 - odomPhase) % 10 == 0, then the postEvents(t+1) hook (the
+//      bench's PID-tab sampler, or route mode's logger).
+// Shoves (route mode) move the robot during step 2, after the physics.
 // So anything scheduled at a millisecond happens before DUT code that runs in that millisecond.
 #pragma once
 #include <cstdint>
@@ -14,6 +16,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "rng.hpp"
 
 namespace sim {
 
@@ -40,6 +43,20 @@ struct Params {
     double TRACK_WHEEL_D = 2.125;
     double DRIVE_WHEEL_D = 2.75;
     double DRIVE_RPM = 450;     // wheel rpm at motor free speed (600 rpm cartridge)
+    // odometry error sources (docs/GPS_FUSION_DESIGN.md, acceptance tests). All zero by default: perfect sensors,
+    // and then not one existing result changes
+    double IMU_SCALE_ERR_CW = 0;  // the IMU reads (1 + this) times every clockwise heading change (0.012 = 1.2 %)
+    double IMU_SCALE_ERR_CCW = 0; // ... and every counter-clockwise one
+    double IMU_DRIFT_DEG_S = 0;   // the IMU's heading creeps this many degrees per second (clockwise +)
+    double VERT_SCALE_ERR = 0;    // the vertical tracking wheel reads (1 + this) times its real travel
+    double HORIZ_SCALE_ERR = 0;   // the horizontal one
+    double SLIP_PER_IN = 0;       // chance, per inch a tracking wheel rolls, that it slips (each wheel separately)
+    double SLIP_MAX_IN = 0;       // a slip loses between 0 and this many inches of the wheel's travel
+    // A tracking wheel that is not parallel to the robot (the UMBmark square, tools/sim/umb_suite.py): it rolls
+    // along a line turned this many degrees clockwise (seen from above) from the one LemLib assumes, so it reads
+    // part of the motion across it. 0 by default, and then the wheels read exactly what they did before
+    double VERT_YAW_DEG = 0;      // the vertical wheel: + reads some rightward motion as forward
+    double HORIZ_YAW_DEG = 0;     // the horizontal wheel: + reads some forward motion as leftward
     // timing (command line)
     int rotMs = 20;      // rotation sensor refresh period until the DUT changes it
     bool rotLock = false; // ignore the DUT's set_data_rate()
@@ -69,6 +86,17 @@ struct ImuDev {
     double zeroDeg = 0;
 };
 
+// A shove: the robot is pushed without its tracking wheels turning (and without the IMU seeing a turn)
+struct Shove {
+    uint32_t startMs = 0;      // world time
+    int lengthMs = 200;        // spread evenly over this long
+    double rightIn = 0;        // how far, in the robot's frame at the moment it starts: + to the robot's right
+    double forwardIn = 0;      // + forward
+    // filled in when it starts: the same push in field coordinates
+    bool started = false;
+    double dxIn = 0, dyIn = 0;
+};
+
 struct MotorPort {
     int side = -1;            // LEFT/RIGHT if part of the drivetrain
     int brake = 0;            // 0 coast, 1 brake, 2 hold
@@ -90,6 +118,14 @@ struct World {
     double travel[2] = {0, 0};      // per-side ground travel, in
     double vertTravel = 0;          // vertical tracking wheel: + forward
     double horizTravelLeft = 0;     // horizontal tracking wheel: + to the robot's left (LemLib)
+
+    // odometry error sources (Params IMU_* / *_SCALE_ERR / SLIP_*; all off by default)
+    double imuHeading = 0;          // what the IMU believes the heading is, rad (= heading with a perfect IMU)
+    double vertSlip = 0;            // travel the vertical wheel lost to slips, in (signed like vertTravel)
+    double horizSlip = 0;           // the horizontal wheel's
+    uint32_t slips = 0;             // how many slips so far
+    std::vector<Shove> shoves;
+    Rng rng;                        // slips draw from this (seeded by the bench's --seed)
 
     // drive commands and actuator outputs
     int cmd[2] = {0, 0};            // last value the DUT passed to move(), -127..127
@@ -115,8 +151,11 @@ struct World {
     std::function<void(uint32_t)> preTick;
     std::function<void(uint32_t)> postEvents;
     std::function<void(uint32_t)> onDelay; // DUT called pros::delay at `now`
+    std::function<void(uint32_t)> deviceRefresh; // more sensors (the GPS model), every ms, just before odometry
 
     void reset();
+    void placeAt(double xIn, double yIn, double headingRad); // put the robot somewhere (route mode), at rest
+    bool imuHasErrors() const;
     void advance(uint32_t ms);
     void tick();
     void physics(double dt);

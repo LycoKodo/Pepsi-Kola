@@ -1,0 +1,27 @@
+# UMBmark square, counter-clockwise (tools/sim/umb_suite.py). The mirror image of umb_cw.txt: the same first
+# leg, then the square to the robot's left. Frame: setPose(0, 0, 0), x to the robot's right at the start, y
+# forward, heading clockwise, so the turns go to 270, 180, 90 and 0 (LemLib's heading ends near -360).
+# Side 48 in (UMB_SIDE_IN), maxSpeed 70 for legs and turns (UMB_DRIVE_MAX_SPEED, UMB_TURN_MAX_SPEED), 2000 ms
+# standing still first (UMB_STILL_MS), 300 ms after every move (UMB_STOP_MS), 1000 ms more after the last turn
+# (UMB_SETTLE_MS). Turns go the shorter way (TeamChassis::turnToHeading's default): always counter-clockwise here.
+# Time limits 5000 ms a leg, 3000 ms a turn, as the routine's. The same notes as umb_cw.txt: the robot's offsets
+# come from umb_suite.py's arguments, not from this file.
+start 0 0 0
+wait 2000
+point 0 48 max=70 timeout=5000
+wait 300
+turn 270 max=70 timeout=3000
+wait 300
+point -48 48 max=70 timeout=5000
+wait 300
+turn 180 max=70 timeout=3000
+wait 300
+point -48 0 max=70 timeout=5000
+wait 300
+turn 90 max=70 timeout=3000
+wait 300
+point 0 0 max=70 timeout=5000
+wait 300
+turn 0 max=70 timeout=3000
+wait 300
+wait 1000

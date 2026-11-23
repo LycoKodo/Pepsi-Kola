@@ -48,6 +48,18 @@ Pose getLocalSpeed(bool radians = false);
  */
 Pose estimatePose(float time, bool radians = false);
 /**
+ * @brief Correct the inertial sensor's heading scale
+ *
+ * Every heading change the IMU reports is multiplied by `clockwise` when the robot turned clockwise and by
+ * `counterClockwise` when it turned the other way. 1.0 and 1.0 (the default) change nothing at all.
+ * To measure: turn the robot ten full turns one way and divide 3600 by how many degrees it reads; repeat the
+ * other way (docs/GPS_FUSION_DESIGN.md, "Inertial sensor scale")
+ *
+ * @param clockwise scale for clockwise turns
+ * @param counterClockwise scale for counter-clockwise turns
+ */
+void setImuScale(float clockwise, float counterClockwise);
+/**
  * @brief Update the pose of the robot
  *
  */

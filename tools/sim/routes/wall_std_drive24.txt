@@ -1,0 +1,14 @@
+# W9 standard move for the wall fixes (docs/WALL_FIX_DESIGN.md): drive 24 in.
+# Lead-in: 40 in east, so odometry has drifted in x, then a quarter turn to face +y, which puts the right sensor
+# (right 8.5, forward 0, yaw 90) square to the +x wall 17.75 in away. During the 400 ms stop the right sensor's
+# start check and its first fix happen, and the correction is still being fed in (2 in/s) when the measured
+# move (the last move in the file) starts. wall_suite.py W9 compares that move with fusion Off and On, the PID
+# tab way, like gps_suite.py's A5 does with routes/std_*.txt.
+start 4 0 90
+wait 1000
+point 44 0
+wait 400
+turn 0
+wait 400
+point 44 24
+wait 1000

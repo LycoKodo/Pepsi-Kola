@@ -4,6 +4,7 @@
 #include "lemlib/chassis/chassis.hpp"
 #include "pros/adi.hpp"
 #include "pros/distance.hpp"
+#include "pros/gps.hpp"
 #include "pros/imu.hpp"
 #include "pros/motor_group.hpp"
 #include "pros/motors.hpp"
@@ -65,7 +66,10 @@ pros::Distance clawSensor(ports::CLAW_DISTANCE); // L1: closes the claw when som
 pros::Imu imu(ports::IMU);
 
 pros::Rotation verticalEncoder(ports::VERTICAL_ODOM);
-pros::Rotation horizontalEncoder(ports::HORIZONTAL_ODOM);
+// Reversed (negative port) on 2026-11-23: at the robot, pushing it right with Theta 0 made X go DOWN
+// (-25.74 for one tile), twice, after a restart. The earlier "pushing right raises X" check in ports.hpp
+// no longer holds. This likely also explains the positive horizontal [ODOMCAL] value noted below.
+pros::Rotation horizontalEncoder(-ports::HORIZONTAL_ODOM);
 
 // 2" omnis. Offset = distance from the tracking centre, in inches, signed the
 // LemLib way: vertical wheel + right / - left, horizontal wheel + front / - back
@@ -77,13 +81,38 @@ pros::Rotation horizontalEncoder(ports::HORIZONTAL_ODOM);
 // with the turn direction, so the ruler values are the ones to use.
 // The team confirmed the sides, looking down on the robot: the vertical wheel is LEFT of the centre
 // (negative offset) and the horizontal wheel is BEHIND it (negative offset).
-// UNRESOLVED: the horizontal [ODOMCAL] value is positive (wheel in front of the spin point). With the
-// wheel 2.23" behind the centre, that puts the spin point about 5.8" behind the centre, near the back
-// wheels. If the robot does not visibly pivot about its back end, either this sign or the direction the
-// horizontal sensor counts in is wrong. Check: on the Developer tab, turn the robot one full turn by hand
-// about its centre; X and Y should stay within about half an inch the whole way round
-lemlib::TrackingWheel verticalWheel(&verticalEncoder, lemlib::Omniwheel::NEW_2, -0.6);     // 0.6" left
-lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, lemlib::Omniwheel::NEW_2, -2.23); // 2.23" behind
+// RESOLVED 2026-11-23: the horizontal sensor counted the wrong way (it is now reversed, see horizontalEncoder),
+// which is why [ODOMCAL] read +3.6" and seemed to put the spin point 5.8" behind the centre. With the sensor
+// reversed and 2.0" wheels, a hand half-turn about the centre read X 0.04, Y 0.19 at 180 deg (it read
+// Y -11.94 before), so the ruler offsets below are right. [ODOMCAL] values recorded before this date have the
+// horizontal sign flipped
+// Effective tracking wheel diameter (double-stacked VEX 2" omnis). LemLib's NEW_2 assumes 2.125". On
+// 2026-11-23, hand pushes along the tiles read 25.43 / 25.5 in per tile forward (50.93 / 51 for two tiles) and
+// 25.74 sideways: about 6% long if a tile is 24", which is what a 2.000" wheel gives (2.125 / 2.0 = 1.0625).
+// Then 2.0" was used until the tape push the same day: three 48" hand pushes along a tape measure (Y-button
+// marks in calib.log, raw sensor degrees) gave 1.9781, 1.9830 and 1.9850" for the vertical wheel; mean 1.982.
+// Two more forward pushes later agreed (1.9866, 1.9774). The horizontal wheel: sideways pushes of 24" (read
+// as 24, from the odometry's 23.6 / 24.0) gave 1.9921, 1.9786 and 1.9890"; mean 1.987. A fourth (2.0100) was
+// left out because that push started from the boot position, not from a zero at the tape mark.
+constexpr float VERTICAL_WHEEL_DIAMETER = 1.982f;
+constexpr float HORIZONTAL_WHEEL_DIAMETER = 1.987f;
+// TRACKING CENTRE = THE SPIN POINT (2026-11-23). The ruler offsets (-0.6, -2.23) are from the robot's geometric
+// centre, but the robot spins about a point 1.55" AHEAD of that centre, so every 90 deg turn swung the tracked
+// position about 2" and the next drive started off its line (UMBmark squares ended 2-3" from the start mark
+// with the odometry itself right to about 0.5"). Measured from [UMBLEG] lines, the pose before and after each of
+// 8 turns: forward 1.56/1.43/1.70/1.59 (clockwise) and 1.59/1.49/1.52/1.52 (counter-clockwise); sideways -0.57
+// (clockwise) and +0.21 (counter-clockwise), mean -0.18. The offsets below are the wheels' positions from that
+// spin point, so a turn on the spot leaves the pose where it is. What is left is the sideways part that differs
+// with the turn direction, about +-0.4". CONSEQUENCE: the pose is now the spin point, 1.55" ahead of the robot's
+// centre and 0.18" left of it: start poses and targets in routines mean that point.
+constexpr float SPIN_POINT_RIGHT_IN = -0.18f;   // spin point, right of the geometric centre
+constexpr float SPIN_POINT_FORWARD_IN = 1.55f;  // spin point, ahead of the geometric centre
+constexpr float VERTICAL_WHEEL_FROM_CENTRE_IN = -0.6f;    // ruler: 0.6" left of the geometric centre
+constexpr float HORIZONTAL_WHEEL_FROM_CENTRE_IN = -2.23f; // ruler: 2.23" behind the geometric centre
+lemlib::TrackingWheel verticalWheel(&verticalEncoder, VERTICAL_WHEEL_DIAMETER,
+                                    VERTICAL_WHEEL_FROM_CENTRE_IN - SPIN_POINT_RIGHT_IN); // -0.42
+lemlib::TrackingWheel horizontalWheel(&horizontalEncoder, HORIZONTAL_WHEEL_DIAMETER,
+                                      HORIZONTAL_WHEEL_FROM_CENTRE_IN - SPIN_POINT_FORWARD_IN); // -3.78
 
 lemlib::OdomSensors sensors(&verticalWheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2
@@ -92,6 +121,60 @@ lemlib::OdomSensors sensors(&verticalWheel, // vertical tracking wheel
                             nullptr, // horizontal tracking wheel 2
                             &imu     // inertial sensor
 );
+
+// ---------------------------------------
+// GPS-aided odometry (docs/GPS_FUSION_DESIGN.md)
+// ---------------------------------------
+
+// Not read at all while GPS_FUSION_MODE (robot-config.hpp) is Off. Its own PROS offset is set to zero in
+// initialize(): the filter removes the lever arm itself, using mountRightIn / mountForwardIn below
+pros::Gps gps(ports::GPS);
+
+// Every number below is the design's FIRST GUESS, still to be measured on the robot (the design's tables say
+// how; "R1" to "R4" are its Revision 2 sections). Field coordinates: inches from the field centre, +x toward the
+// 90 degree wall, +y toward the 0 degree wall. The order must match lemlib::gpsfusion::Config (gpsFusion.hpp)
+const lemlib::gpsfusion::Config gpsFusionConfig {
+    .mountRightIn = 0, // first guess, measure with a ruler: inches from the robot's centre to the sensor, + = right
+    .mountForwardIn = 0, // first guess, measure with a ruler: same, + = forward. Then set GPS_MOUNT_MEASURED
+    .mountYawDeg = 180, // first guess: the camera faces backward. Look at the robot
+    .sigmaGpsIn = 1.5, // first guess: GPS noise (1 standard deviation). Log it standing still at several spots
+    .kDist = 0.02f, // first guess: odometry doubt per inch driven. Measure the drift on a taped route
+    .kTurn = 0.3f, // first guess: inches of doubt per radian turned. Same taped route
+    .sigmaMaxIn = 5, // R1 (was 12): cap on the doubt, inches, so the gate never grows wider than relocMaxIn
+    .latencyMs = 60, // first guess: how old a reading is. Compare GPS and odometry on a drive (under 580 ms)
+    .maxSpeedInPerS = 6, // first guess: use the GPS only below this speed. Raise once the delay is measured
+    .maxTurnRateDegPerS = 30, // first guess: and below this turn rate. Same
+    .minPeriodMs = 100, // first guess: one reading used per 100 ms. Nothing to measure
+    .staleMs = 200, // first guess: unchanged this long = frozen. Nothing to measure
+    .minViewIn = 20, // first guess: camera closer than this to the wall it faces = dead zone. Log near a wall
+    .headingGateDeg = 8, // first guess: GPS heading must agree with ours this well. Log it
+    .maxSensorErrorIn = 0, // R4, check 5b, off: drop readings whose get_error() is above this (in). Stage 1: cover
+                           // the camera and see whether get_error() rises before using it
+    .gate = 2.5f, // R1 (was 3): drop readings more than 2.5 standard deviations off. Nothing to measure
+    .slewInPerS = 2, // first guess: fastest a correction is fed in, and fed back out after a fault. Simulator
+    .maxStepIn = 1, // R1: the most one reading can move the correction, inches. Nothing to measure
+    // R1: total correction over this = fault, then back to plain odometry. Revision 3 (was 12): chosen on
+    // 2026-11-22 from (12, 12, 2), (8, 8, 1), (6, 6, 1) for (this, relocMaxIn, relocMaxCount): the smallest whose
+    // 150 healthy simulator runs fault at most once (all three: 0). Simulator
+    .maxTotalCorrectionIn = 6,
+    .startSamples = 5, // first guess: the start check averages 5 readings. Nothing to measure
+    .startTolIn = 8, // first guess: and faults if they are more than 8 in from the start pose
+    .startSigmaIn = 1, // R3: how well the team places the robot at the start, inches (1 standard deviation)
+    .startHeadingSamples = 10, // R3: 8 of the first 10 readings failing the heading check = fault
+    .relocSamples = 4, // R2 (was 20): shove recovery after 4 readings in a row fail the gate. Simulator
+    .relocWindowMs = 2000, // R2: all 4 within 2 s of each other. Simulator
+    .relocSpreadIn = 4.5f, // R2 (was 2): each within 4.5 in (3 x sigmaGpsIn) of their mean. Simulator
+    // R2 (was 18, then 12): and their mean within 6 in of odometry (further: fault). Revision 3, same rule
+    .relocMaxIn = 6,
+    // R2 (was 2): at most 1 relocalisation per run; a second = fault. Revision 3, same rule
+    .relocMaxCount = 1,
+};
+
+// Wall fixes from distance sensors (docs/WALL_FIX_DESIGN.md): no wall-facing distance sensor is fitted, so none is
+// declared and the wall code never runs on the robot. A wall sensor would be declared here (its port in
+// include/ports.hpp: 6 and 21 are free), with a lemlib::gpsfusion::WallSensorMount saying where it is and a
+// lemlib::gpsfusion::WallConfig, and passed to lemlib::gpsfusion::configureWalls() in initialize() after
+// configure(). The design's "Hardware and stages on the robot" lists the stages before trusting it.
 
 // ---------------------------------------
 // PID Controller

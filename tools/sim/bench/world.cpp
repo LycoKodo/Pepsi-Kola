@@ -37,6 +37,15 @@ bool Params::set(const std::string& k, double val) {
         {"TRACK_WHEEL_D", &Params::TRACK_WHEEL_D},
         {"DRIVE_WHEEL_D", &Params::DRIVE_WHEEL_D},
         {"DRIVE_RPM", &Params::DRIVE_RPM},
+        {"IMU_SCALE_ERR_CW", &Params::IMU_SCALE_ERR_CW},
+        {"IMU_SCALE_ERR_CCW", &Params::IMU_SCALE_ERR_CCW},
+        {"IMU_DRIFT_DEG_S", &Params::IMU_DRIFT_DEG_S},
+        {"VERT_SCALE_ERR", &Params::VERT_SCALE_ERR},
+        {"HORIZ_SCALE_ERR", &Params::HORIZ_SCALE_ERR},
+        {"SLIP_PER_IN", &Params::SLIP_PER_IN},
+        {"SLIP_MAX_IN", &Params::SLIP_MAX_IN},
+        {"VERT_YAW_DEG", &Params::VERT_YAW_DEG},
+        {"HORIZ_YAW_DEG", &Params::HORIZ_YAW_DEG},
     };
     for (const Entry& e : table) {
         if (k == e.name) {
@@ -59,6 +68,20 @@ void World::reset() {
     cmd[0] = cmd[1] = 0;
     cmdHist[0].assign(1, 0);
     cmdHist[1].assign(1, 0);
+    imuHeading = 0;
+    vertSlip = horizSlip = 0;
+    slips = 0;
+}
+
+void World::placeAt(double xIn, double yIn, double headingRad) {
+    x = xIn;
+    y = yIn;
+    heading = headingRad;
+    imuHeading = headingRad;
+}
+
+bool World::imuHasErrors() const {
+    return p.IMU_SCALE_ERR_CW != 0 || p.IMU_SCALE_ERR_CCW != 0 || p.IMU_DRIFT_DEG_S != 0;
 }
 
 void World::advance(uint32_t ms) {
@@ -167,12 +190,58 @@ void World::physics(double dt) {
     // tracking wheels: the vertical one (right of centre) loses travel when turning clockwise; the
     // horizontal one (in front) is pushed to the right by the turn and by sideways slip. LemLib counts
     // horizontal travel + to the left
-    vertTravel += vf * dt - p.VERT_OFFSET * dth;
-    horizTravelLeft += -p.HORIZ_OFFSET * dth - vsAvg * dt;
+    double vertStep = vf * dt - p.VERT_OFFSET * dth;
+    double horizStep = -p.HORIZ_OFFSET * dth - vsAvg * dt;
+    // A wheel that is not parallel to the robot (VERT_YAW_DEG / HORIZ_YAW_DEG; both 0 by default, and then this
+    // is skipped and the steps above are exactly what they were). Each wheel stays where it is and rolls along a
+    // line turned clockwise by its angle, so it reads the ground's motion under it along that line: forward
+    // vf - omega * (inches right of centre), rightward vSide + omega * (inches in front of centre)
+    if (p.VERT_YAW_DEG != 0 || p.HORIZ_YAW_DEG != 0) {
+        const double a = p.VERT_YAW_DEG * M_PI / 180.0, b = p.HORIZ_YAW_DEG * M_PI / 180.0;
+        vertStep = (vf * dt - p.VERT_OFFSET * dth) * std::cos(a) + vsAvg * dt * std::sin(a);
+        horizStep = -(vsAvg * dt + p.HORIZ_OFFSET * dth) * std::cos(b) + vf * dt * std::sin(b);
+    }
+    vertTravel += vertStep;
+    horizTravelLeft += horizStep;
+
+    // ---- odometry error sources. All zero by default, and then nothing below changes what any sensor reads
+    // The IMU: a scale error that can differ clockwise and counter-clockwise, and a drift. It is only read
+    // (events()) when one of them is set; with a perfect IMU the sensor reads `heading` exactly as before
+    const double imuScale = 1 + (dth > 0 ? p.IMU_SCALE_ERR_CW : p.IMU_SCALE_ERR_CCW);
+    imuHeading += dth * imuScale + p.IMU_DRIFT_DEG_S * M_PI / 180.0 * dt;
+    // Tracking-wheel slips: each wheel, each ms, has a chance SLIP_PER_IN * (inches it rolled) of slipping, and a
+    // slip loses up to SLIP_MAX_IN of its travel (the wheel reads short, in the direction it was rolling)
+    if (p.SLIP_PER_IN > 0) {
+        const double steps[2] = {vertStep, horizStep};
+        double* lost[2] = {&vertSlip, &horizSlip};
+        for (int k = 0; k < 2; k++) {
+            const double chance = rng.uniform(); // always two numbers per wheel: the stream stays in step
+            const double size = rng.uniform() * p.SLIP_MAX_IN;
+            if (chance < p.SLIP_PER_IN * std::fabs(steps[k])) {
+                *lost[k] += size * sgn(steps[k]);
+                slips++;
+            }
+        }
+    }
+    // Shoves: the robot is pushed sideways or back without its wheels or IMU noticing
+    for (Shove& s : shoves) {
+        if (now < s.startMs || now >= s.startMs + uint32_t(std::max(1, s.lengthMs))) continue;
+        if (!s.started) {
+            s.started = true;
+            s.dxIn = s.rightIn * std::cos(heading) + s.forwardIn * std::sin(heading);
+            s.dyIn = -s.rightIn * std::sin(heading) + s.forwardIn * std::cos(heading);
+        }
+        x += s.dxIn / std::max(1, s.lengthMs);
+        y += s.dyIn / std::max(1, s.lengthMs);
+    }
 }
 
 void World::refreshRotation(RotationDev& r) {
-    const double travelIn = r.isVertical ? vertTravel : horizTravelLeft;
+    double travelIn = r.isVertical ? vertTravel : horizTravelLeft;
+    // odometry error sources: slips and a scale error (both zero by default, and then this is skipped)
+    const double slip = r.isVertical ? vertSlip : horizSlip;
+    const double scaleErr = r.isVertical ? p.VERT_SCALE_ERR : p.HORIZ_SCALE_ERR;
+    if (slip != 0 || scaleErr != 0) travelIn = (travelIn - slip) * (1 + scaleErr);
     r.sample = int32_t(std::lround(travelIn / (M_PI * p.TRACK_WHEEL_D) * 36000.0));
     r.seq++;
     r.lastRefresh = now;
@@ -180,10 +249,12 @@ void World::refreshRotation(RotationDev& r) {
 
 void World::events() {
     odomStrobe = false;
+    const double imuReads = imuHasErrors() ? imuHeading : heading; // a perfect IMU reads the true heading
     for (auto& [port, d] : imu)
-        if (posMod(long(now) - p.imuPhase, p.imuMs) == 0) d.sampleDeg = heading * 180.0 / M_PI;
+        if (posMod(long(now) - p.imuPhase, p.imuMs) == 0) d.sampleDeg = imuReads * 180.0 / M_PI;
     for (auto& [port, r] : rot)
         if (posMod(long(now) - p.rotPhase, r.periodMs) == 0) refreshRotation(r);
+    if (deviceRefresh) deviceRefresh(now);
     if (odomRunning && posMod(long(now) - p.odomPhase, 10) == 0) {
         lemlib::update();
         odomUpdates++;

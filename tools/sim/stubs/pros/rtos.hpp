@@ -28,6 +28,15 @@ class Task {
             (void)stack_depth;
             sim_detail::task_created(name);
         }
+        // the C-function form (gpsFusion.cpp's logging task uses it): like the others, the function is not run
+        Task(void (*function)(void*), void* parameters, std::uint32_t prio, std::uint16_t stack_depth,
+             const char* name) {
+            (void)function;
+            (void)parameters;
+            (void)prio;
+            (void)stack_depth;
+            sim_detail::task_created(name);
+        }
         static void delay(const std::uint32_t milliseconds) { c::delay(milliseconds); }
         static void delay_until(std::uint32_t* const prev_time, const std::uint32_t delta) {
             const std::uint32_t wake = *prev_time + delta;
@@ -37,11 +46,19 @@ class Task {
         }
 };
 
+namespace sim_detail {
+// For tests/gps_fusion_layer.cpp only; the bench never changes them, so there every take() succeeds as before.
+// mutexBusy: every take() fails, as if another task held the lock. mutexLongestWaitMs: the longest timeout any
+// take() has asked for since it was last reset
+inline bool mutexBusy = false;
+inline std::uint32_t mutexLongestWaitMs = 0;
+} // namespace sim_detail
+
 class Mutex {
     public:
         bool take(std::uint32_t timeout = TIMEOUT_MAX) {
-            (void)timeout;
-            return true;
+            if (timeout > sim_detail::mutexLongestWaitMs) sim_detail::mutexLongestWaitMs = timeout;
+            return !sim_detail::mutexBusy;
         }
         bool give() { return true; }
 };

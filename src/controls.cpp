@@ -283,6 +283,58 @@ void rollerAControls() {
     }
 }
 
+// CALIBRATION MARKS (Y, added 2026-11-23 for the tape pushes and hand turns): tap Y to print the pose and the
+// raw sensors to the terminal (captured by `pros terminal --output FILE`) and show it on controller line 2;
+// hold Y for CAL_ZERO_HOLD_MS to zero the pose and start a new set. Raw values are counted from the last zero,
+// so wheel size and inertial scale can be worked out without trusting the config. Not under field control or
+// a competition switch. Y was free (its old roller toggle was taken off the buttons)
+constexpr std::uint32_t CAL_ZERO_HOLD_MS = 1000;
+std::uint32_t yDownAt = 0;
+bool yHoldDone = false;   // this press already zeroed
+int calSet = 0, calMark = 0;
+int calZeroTicks = 0;     // setPose again on the next tick, in case the odometry task wrote over the first
+double calVert0 = 0, calHoriz0 = 0, calImu0 = 0;
+
+void calPrintMark() {
+    const lemlib::Pose p = chassis.getPose();
+    const double vert = verticalEncoder.get_position() / 100.0 - calVert0;   // centidegrees -> degrees
+    const double horiz = horizontalEncoder.get_position() / 100.0 - calHoriz0;
+    const double rot = imu.get_rotation() - calImu0;
+    ++calMark;
+    std::printf("[MARK] set=%d mark=%d x=%.3f y=%.3f theta=%.3f imu_deg=%.3f vert_deg=%.2f horiz_deg=%.2f\n",
+                calSet, calMark, p.x, p.y, p.theta, rot, vert, horiz);
+    char line[20];
+    std::snprintf(line, sizeof(line), "%d.%d %.2f %.2f   ", calSet, calMark, p.x, p.y);
+    master.set_text(2, 0, line);
+}
+
+void calZero() {
+    chassis.setPose(0, 0, 0);
+    calVert0 = verticalEncoder.get_position() / 100.0;
+    calHoriz0 = horizontalEncoder.get_position() / 100.0;
+    calImu0 = imu.get_rotation();
+    ++calSet;
+    calMark = 0;
+    calZeroTicks = 1;
+    std::printf("[MARK] set=%d zeroed\n", calSet);
+    master.set_text(2, 0, "ZERO              ");
+    master.rumble(".");
+}
+
+void calControls() {
+    if (calZeroTicks > 0 && --calZeroTicks == 0) chassis.setPose(0, 0, 0);
+    if (pros::competition::is_connected()) return;
+    if (Y.pressed()) {
+        yDownAt = pros::millis();
+        yHoldDone = false;
+    }
+    if (Y.now && !yHoldDone && pros::millis() - yDownAt >= CAL_ZERO_HOLD_MS) {
+        yHoldDone = true;
+        calZero();
+    }
+    if (Y.released() && !yHoldDone) calPrintMark();
+}
+
 } // namespace
 
 void driverControl() {
@@ -348,6 +400,7 @@ void driverControl() {
         cascadeControls(dpadFree);
         macroControls(dpadFree);
         rollerAControls();
+        calControls();
         applyPendingRoller(); // after Y, so an unblocked move goes out the same tick
         rollerMainTimeout(); // ends the X / UP deploy spin after ROLLER_SPIN_MS
 
