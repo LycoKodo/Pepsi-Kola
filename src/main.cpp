@@ -188,9 +188,10 @@ static void stopMechanisms() {
 void disabled() {
     stopMechanisms();
     lemlib::gpsfusion::setMode(lemlib::gpsfusion::Mode::Off);
-    // Pick the routine on the controller while the robot is disabled (LEFT / RIGHT). This loop never returns:
-    // PROS deletes the disabled task when the mode changes
-    ctrlselect::disabledLoop();
+    // Pick the routine on the controller while the robot is disabled (LEFT / RIGHT). Shelved: see
+    // ctrlselect::ENABLED (autons.hpp). When on, this loop never returns: PROS deletes the disabled task when
+    // the mode changes
+    if (ctrlselect::ENABLED) ctrlselect::disabledLoop();
 }
 
 void competition_initialize() {}
@@ -201,7 +202,7 @@ void startGpsFusion() {
     // and ODOMETRY_CALIBRATED): asking for On before both are true gives Shadow, and the [GPSFUSE] logging task
     // says which one is missing. Nothing here prints: a routine's task can be deleted in the middle of a print
     lemlib::gpsfusion::setMode(GPS_FUSION_MODE);
-    ctrlselect::showNow(); // the controller shows which routine is picked
+    if (ctrlselect::ENABLED) ctrlselect::showNow(); // the controller shows which routine is picked
 }
 
 bool routineExists(int routine) {

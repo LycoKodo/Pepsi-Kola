@@ -352,12 +352,13 @@ void driverControl() {
         // edited on the touchscreen), but the D-pad handlers keep the parameter so one can again
         // Hold A: LEFT / RIGHT step through the routines on the controller (src/ctrlselect.cpp), and the D-pad
         // does nothing else meanwhile
-        if (A.now && (LEFT.pressed() || RIGHT.pressed())) {
+        // Shelved (ctrlselect::ENABLED in autons.hpp is false): the D-pad is then always free, as before
+        if (ctrlselect::ENABLED && A.now && (LEFT.pressed() || RIGHT.pressed())) {
             ctrlselect::step(RIGHT.pressed() ? 1 : -1);
             aUsed = true; // holding A on must not swap the heights
         }
-        ctrlselect::pump();
-        const bool dpadFree = !A.now;
+        if (ctrlselect::ENABLED) ctrlselect::pump();
+        const bool dpadFree = !(ctrlselect::ENABLED && A.now);
 
         // TEST RUN: hold A, press B -> run the auton picked on the brain.
         // Never with field control or a competition switch attached: there,

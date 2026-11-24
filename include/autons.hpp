@@ -83,6 +83,12 @@ bool routineExists(int routine);
  * Disabled by field control: LEFT / RIGHT alone.
  */
 namespace ctrlselect {
+// SHELVED 2026-11-24: written and compiled, never run on the robot. Picking while disabled needs a field
+// controller or competition switch to try out, so the whole picker is switched off until the team has one.
+// With this false nothing calls into src/ctrlselect.cpp: the D-pad, A and disabled() behave as they did before.
+// To bring it back: set this to true, then test A + LEFT/RIGHT in driver control and LEFT/RIGHT while disabled.
+// Mockup of the intended behaviour: https://claude.ai/artifact/5hWaizLscDuFEdnq7sLVeR
+constexpr bool ENABLED = false;
 void step(int direction);  // -1 previous, +1 next; wraps, and includes "none"
 void show();               // queue the three controller lines (sent by pump)
 void pump();               // call every loop tick: sends one queued line per 60 ms, never blocks
