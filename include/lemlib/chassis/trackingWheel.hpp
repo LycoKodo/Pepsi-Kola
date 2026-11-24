@@ -196,5 +196,6 @@ class TrackingWheel {
         float lastRotationDistance = 0; // the last good distance, returned while the sensor reads an error
         float rotationOffset = 0; // added to the raw distance so it carries on from the last good value
         bool rotationFault = false; // the last read was an error
+        bool rotationReversed = false; // the sensor's reversed flag at reset(), put back after a dropout
 };
 } // namespace lemlib

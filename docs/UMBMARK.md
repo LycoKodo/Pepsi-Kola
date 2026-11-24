@@ -46,7 +46,7 @@ also the first real test: do the checks in section 7 first.
      distance between the two corners, and how far the line joining them is behind the centre.
    - **Either way:** a long strip of tape on the floor along one side of the robot. It shows which
      way the robot ended up turned.
-4. On the brain, Skills tab: tap **UMB CW** (or **UMB CCW**).
+4. On the brain, Tests tab: tap **UMB CW** (or **UMB CCW**).
 5. On the controller: **hold A, press B.** The robot stands still for 2 s (do not touch it), then
    drives the square. Keep your thumb near a stick: **pushing any stick stops it at once** (it brakes,
    then gives you control when you let go). It also stops by itself if the inertial sensor stops

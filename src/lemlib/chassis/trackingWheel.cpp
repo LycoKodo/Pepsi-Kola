@@ -1,9 +1,13 @@
+#include <cmath>
 #include <cstdint>
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "lemlib/util.hpp"
 #include "pros/abstract_motor.hpp"
 #include "pros/motor_group.hpp"
 #include "pros/motors.h"
+
+// the most a rotation-sensor tracking wheel can really move between two reads (see getDistanceTraveled)
+static constexpr float ROTATION_MAX_STEP_IN = 20;
 
 lemlib::TrackingWheel::TrackingWheel(pros::adi::Encoder* encoder, float wheelDiameter, float distance,
                                      float gearRatio) {
@@ -39,6 +43,8 @@ void lemlib::TrackingWheel::reset() {
         this->lastRotationDistance = 0;
         this->rotationOffset = 0;
         this->rotationFault = false;
+        // The reversed flag lives in the sensor and is lost when the sensor restarts (see getDistanceTraveled)
+        this->rotationReversed = this->rotation->get_reversed() == 1;
     }
     if (this->motors != nullptr) this->motors->tare_position_all();
 }
@@ -55,11 +61,23 @@ float lemlib::TrackingWheel::getDistanceTraveled() {
             this->rotationFault = true;
             return this->lastRotationDistance;
         }
-        const float distance = (float(raw) * this->diameter * M_PI / 36000) / this->gearRatio;
+        float distance = (float(raw) * this->diameter * M_PI / 36000) / this->gearRatio;
         if (this->rotationFault) {
             this->rotationFault = false;
             this->rotationOffset = this->lastRotationDistance - distance;
             this->rotation->set_data_rate(5); // a sensor that restarted is back on its slow default
+            // ... and it has forgotten that it was reversed: it would count the other way for the rest of
+            // the run (2026-11-24). Any step in the reading while the flag takes effect is caught below
+            if (this->rotationReversed) this->rotation->set_reversed(true);
+        }
+        // A reading that moves further in one read than the robot can travel is not travel: a sensor restarting,
+        // its reversed flag changing, or a garbage value that is not PROS_ERR. Carry on from the last good
+        // distance, as after a dropout, instead of putting the jump into the pose (reported 2026-11-24: the
+        // pose went to "a million" mid-routine and the robot spun or drove into a wall). The robot's top speed
+        // is about 76 in/s, 0.8 in per 10 ms read, so only a stall of the odometry task over 0.25 s could trip
+        // this by mistake, and that would lose the travel during the stall, nothing more
+        if (std::fabs(distance + this->rotationOffset - this->lastRotationDistance) > ROTATION_MAX_STEP_IN) {
+            this->rotationOffset = this->lastRotationDistance - distance;
         }
         this->lastRotationDistance = distance + this->rotationOffset;
         return this->lastRotationDistance;

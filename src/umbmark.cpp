@@ -13,7 +13,7 @@
 // UMBmark square: an odometry test (after the University of Michigan's UMBmark, adapted to this robot).
 // The robot drives a square under its own odometry and comes back to its start. It BELIEVES it is back at the
 // start; a person measures with a ruler where it really is. Real minus believed is the odometry error.
-// Five runs clockwise ("UMB CW", routine 101), five counter-clockwise ("UMB CCW", routine 102).
+// Five runs clockwise ("UMB CW", routine -1), five counter-clockwise ("UMB CCW", routine -2); both on the Tests tab.
 // How to run it and read the result: docs/UMBMARK.md.
 //
 // Frame: setPose(0, 0, 0) at the start. x = to the robot's right at the start, y = forward at the start, heading

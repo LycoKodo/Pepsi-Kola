@@ -56,6 +56,16 @@ void init(int default_auton, const char** redAutons, const char** blueAutons, co
             const char** redDesc, const char** blueDesc, const char** skillsDesc);
 void destroy();
 
+// The routines as one list (Qual, then Skills, then Tests; no "NONE" placeholders), for the controller's
+// routine picker (src/ctrlselect.cpp)
+int routineCount();
+int routineNumberAt(int index);        // what `auton` becomes
+const char* routineNameAt(int index);  // the button's text
+const char* routineTabAt(int index);   // "QUAL", "SKILLS" or "TEST"
+int routineIndexOf(int number);        // -1: not in the list (999, or a placeholder)
+// Pick routine `index` (-1: none, auton 999). Safe from any task: the brain screen follows on LVGL's task
+void selectRoutine(int index);
+
 } // namespace lemlib::selector
 
 #endif // SELECTOR_HPP

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include "api.h"
@@ -75,7 +76,9 @@ lv_obj_t* skillsBtnm;
 
 lv_obj_t* devTab = lv_tabview_add_tab(tabview, "Developer");
 lv_obj_t* qualTab = lv_tabview_add_tab(tabview, "Qual");
-lv_obj_t* AITab = lv_tabview_add_tab(tabview, "AI");
+// The "AI" tab is the TESTS tab since 2026-11-24 (the team has no AI routines): its buttons are test runs,
+// numbered -1, -2... as before. The names in the code still say AI
+lv_obj_t* AITab = lv_tabview_add_tab(tabview, "Tests");
 lv_obj_t* skillsTab = lv_tabview_add_tab(tabview, "Skills");
 lv_obj_t* bocchiTab = lv_tabview_add_tab(tabview, " ");
 
@@ -226,9 +229,83 @@ void skillsBtnmAction(lv_event_t* e) {
 // as occasional "prefetch error" crashes, and as DATA ABORT EXCEPTION, CURRENT TASK: tabWatcher (three times in
 // one afternoon of UMBmark runs, 2026-11-23). Both branches moved it to an lv_timer (2026-11-20 and 2026-11-23).
 // Don't turn this back into a task; anything that must call lv_* from elsewhere has the same problem.
+// ---- the routine list, for picking a routine from the controller (src/ctrlselect.cpp) ----
+// Built once in init() from the three button maps, in the order Qual, Skills, Tests, leaving out row breaks and
+// the "NONE" placeholders. selectRoutine() only writes plain variables (it is called from the driver's or the
+// disabled task); the screen is brought into line by tabWatcher, on LVGL's own task
+namespace {
+struct RoutineEntry {
+    int number;        // what `auton` becomes
+    const char* name;  // the button's text
+    const char* tab;   // "QUAL", "SKILLS" or "TEST"
+    uint8_t tabIndex;  // the tab on the brain (1 Qual, 2 Tests, 3 Skills)
+    uint16_t button;   // the button's id in its matrix
+};
+RoutineEntry routineList[3 * MAX_AUTONS];
+int routineListLength = 0;
+volatile bool refreshChecks = false; // a pick from the controller: clear the old highlights
+volatile int showTabRequest = -1;    // ... and show this tab
+
+void addRoutines(const char** map, int length, const char* tab, uint8_t tabIndex, int sign, int base) {
+    uint16_t button = 0;
+    for (int i = 0; i < length; i++) {
+        if (strcmp(map[i], "\n") == 0) continue; // a row break is not a button
+        if (strcmp(map[i], "NONE") != 0) {
+            // the same numbering as the button handlers above (their i > 3 rule)
+            const int n = i > 3 ? i : i + 1;
+            routineList[routineListLength++] = {sign * n + base, map[i], tab, tabIndex, button};
+        }
+        button++;
+    }
+}
+} // namespace
+
+int routineCount() { return routineListLength; }
+int routineNumberAt(int index) { return routineList[index].number; }
+const char* routineNameAt(int index) { return routineList[index].name; }
+const char* routineTabAt(int index) { return routineList[index].tab; }
+int routineIndexOf(int number) {
+    for (int i = 0; i < routineListLength; i++)
+        if (routineList[i].number == number) return i;
+    return -1;
+}
+void selectRoutine(int index) {
+    currentQualButton = UINT16_MAX;
+    currentAIButton = UINT16_MAX;
+    currentSKillsButton = UINT16_MAX;
+    if (index < 0 || index >= routineListLength) {
+        auton = 999;
+        autonState = NONE;
+    } else {
+        const RoutineEntry& r = routineList[index];
+        auton = r.number;
+        if (r.tabIndex == 1) {
+            currentQualButton = r.button;
+            autonState = QUAL;
+        } else if (r.tabIndex == 2) {
+            currentAIButton = r.button;
+            autonState = AI;
+        } else {
+            currentSKillsButton = r.button;
+            autonState = SKILLS;
+        }
+        showTabRequest = r.tabIndex;
+    }
+    refreshChecks = true;
+}
+
 void tabWatcher(lv_timer_t*) {
     try {
         if (!autonStarted) {
+            if (refreshChecks) { // a routine was picked on the controller
+                refreshChecks = false;
+                deselect_all_buttons(qualBtnm);
+                deselect_all_buttons(AIBtnm);
+                deselect_all_buttons(skillsBtnm);
+                const int tab = showTabRequest;
+                showTabRequest = -1;
+                if (tab >= 0) lv_tabview_set_act(tabview, tab, LV_ANIM_OFF);
+            }
             const int activeTab = lv_tabview_get_tab_act(tabview);
             // Handle actions for the active tab
             if (activeTab == 1 && currentQualButton < UINT16_MAX) {
@@ -286,6 +363,11 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
             i++;
         }
         skillsLength = i;
+
+        routineListLength = 0;
+        addRoutines(qualBtnmMap, qualLength, "QUAL", 1, 1, 0);
+        addRoutines(skillsBtnmMap, skillsLength, "SKILLS", 3, 1, 100);
+        addRoutines(AIBtnmMap, AILength, "TEST", 2, -1, 0);
 
         // For button descriptions
         i = 0;
@@ -354,7 +436,7 @@ void init(int default_auton, const char** qualAutons, const char** AIAutons, con
         lv_obj_set_size(AI_textarea, 180, 180);
         lv_obj_align(AI_textarea, LV_ALIGN_LEFT_MID, 280, 0);
 
-        lv_textarea_add_text(AI_textarea, "Greetings Adventure. Here lies the great AI alliance autonomous routines");
+        lv_textarea_add_text(AI_textarea, "Test runs: nothing here runs in a match. Pick one, then hold A and press B on the controller");
         lv_textarea_set_cursor_click_pos(AI_textarea, false);
         lv_textarea_set_password_mode(AI_textarea, false);
         lv_obj_add_state(AI_textarea, LV_STATE_DISABLED);
