@@ -81,6 +81,18 @@ void initialize() {
     // @note - LLEMU CANNOT BE USED WITH LVGL | pros::lcd::initialize(); // initialize brain screen
     // the IMU scale is set before calibrate(), which starts the odometry task that reads it
     lemlib::setImuScale(IMU_SCALE_CLOCKWISE, IMU_SCALE_COUNTER_CLOCKWISE); // 1.0 and 1.0 until measured
+    // The horizontal tracking sensor counts the wrong way and is reversed in the sensor itself. Its constructor
+    // (robot-config.cpp, negative port) asks for that once, before initialize(), and nothing checks it took:
+    // if the sensor was not ready then, X counts backwards for the whole run and every move steers the wrong
+    // way. Ask again here, now that PROS is up, check it, and say so if it did not take (2026-11-24)
+    horizontalEncoder.set_reversed(true);
+    pros::delay(20);
+    if (horizontalEncoder.get_reversed() != 1) {
+        std::printf("[odom] horizontal tracking sensor did NOT take the reversed setting: X will count backwards. "
+                    "Check its cable and port, then restart the program\n");
+        master.set_text(1, 0, "ODOM X SENSOR BAD ");
+        master.rumble("---");
+    }
     chassis.calibrate(); // calibrate sensors
     // If the IMU did not calibrate (unplugged, wrong port, robot moved during calibration) LemLib carries
     // on without it and every heading is then a rough estimate from the wheels. Say so loudly. The odometry
@@ -93,7 +105,10 @@ void initialize() {
         master.set_text(0, 0, "IMU FAILED       ");
         pros::delay(60);
         master.rumble("---");
+    } else {
+        imuwatch::checkAtBoot(); // heading creeping while standing still: calibrate once more, or say so
     }
+    imuwatch::start();
 
     // -----------------------
     // GPS-aided odometry (docs/GPS_FUSION_DESIGN.md)
@@ -126,7 +141,7 @@ void initialize() {
     // LVGL INIT
     // -----------------------
 
-    // Routine numbers: qual 1, 2, 3...  AI -1, -2...  skills 101, 102...
+    // Routine numbers: qual 1, 2, 3...  tests (the old AI tab) -1, -2...  skills 101, 102...
     // (see the button handlers in src/lemlib/selector.cpp for how a button maps to a number).
     // Every tab needs at least one button (LVGL crashes on an empty map), so Qual and AI
     // have a "NONE" placeholder that runAuton() treats as "nothing selected"
@@ -134,22 +149,26 @@ void initialize() {
     static const char* qualBtnmDesc[] = {"No routine", "james_67: spins toggleB until it sees our alliance colour",
                                         "67james: new routine, being written", nullptr};
 
-    static const char* AIBtnmMap[] = {"NONE", nullptr};
-    static const char* AIBtnmDesc[] = {"No routines yet", nullptr};
-
-    // Skills holds the odometry test (src/umbmark.cpp): two buttons in one row, 101 and 102. Button names
-    // must differ (the handler finds the button by its text). The robot's centre drives a 48 in (two tile)
-    // square; an 18 in robot's corners swing out about 13 in further when it turns, at every corner including
-    // the start. So: about 61 in clear ahead of and beside the start (3 tiles past the robot's own tile leaves
-    // room), and about 13 in behind and on the other side (1 tile)
-    static const char* skillsBtnmMap[] = {"UMB CW", "UMB CCW", nullptr};
-    // It runs only as a test run (it refuses under field control), so a skills run with it picked does nothing
-    static const char* skillsBtnmDesc[] = {
+    // The Tests tab (the old AI tab, numbers -1, -2...): test runs only, never in a match. Button names must
+    // differ (the handler finds the button by its text).
+    // UMB CW / UMB CCW, the odometry test (src/umbmark.cpp): the robot's centre drives a 48 in (two tile) square;
+    // an 18 in robot's corners swing out about 13 in further when it turns, at every corner including the start.
+    // So: about 61 in clear ahead of and beside the start (3 tiles past the robot's own tile leaves room), and
+    // about 13 in behind and on the other side (1 tile).
+    // IMU TEST, the inertial sensor test (src/imutest.cpp): nothing drives
+    static const char* AIBtnmMap[] = {"UMB CW", "UMB CCW", "IMU TEST", nullptr};
+    static const char* AIBtnmDesc[] = {
         "Odometry test, clockwise 2 tile square. Robot centred on a tile, lift down. Keep clear: 3 tiles "
         "ahead, 3 RIGHT, 1 behind, 1 left. Hold A, press B. A stick stops it",
         "Odometry test, counter-clockwise 2 tile square. Robot centred on a tile, lift down. Keep clear: "
         "3 tiles ahead, 3 LEFT, 1 behind, 1 right. Hold A, press B. A stick stops it",
+        "Inertial sensor test, 2.5 min, nothing drives. Robot on the floor. Hold A, press B, then do what "
+        "the controller says. A stick stops it",
         nullptr};
+
+    // Every tab needs at least one button (LVGL crashes on an empty map): Skills has none yet
+    static const char* skillsBtnmMap[] = {"NONE", nullptr};
+    static const char* skillsBtnmDesc[] = {"No routines yet", nullptr};
 
     constexpr int DEFAULT_AUTON = 3; // 67james (Qual tab, third button; james_67 is 2); 999 = none
     lemlib::selector::init(DEFAULT_AUTON, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
@@ -170,6 +189,10 @@ static void stopMechanisms() {
 void disabled() {
     stopMechanisms();
     lemlib::gpsfusion::setMode(lemlib::gpsfusion::Mode::Off);
+    // Pick the routine on the controller while the robot is disabled (LEFT / RIGHT). Shelved: see
+    // ctrlselect::ENABLED (autons.hpp). When on, this loop never returns: PROS deletes the disabled task when
+    // the mode changes
+    if (ctrlselect::ENABLED) ctrlselect::disabledLoop();
 }
 
 void competition_initialize() {}
@@ -180,23 +203,30 @@ void startGpsFusion() {
     // and ODOMETRY_CALIBRATED): asking for On before both are true gives Shadow, and the [GPSFUSE] logging task
     // says which one is missing. Nothing here prints: a routine's task can be deleted in the middle of a print
     lemlib::gpsfusion::setMode(GPS_FUSION_MODE);
+    if (ctrlselect::ENABLED) ctrlselect::showNow(); // the controller shows which routine is picked
 }
 
 bool routineExists(int routine) {
-    // keep in step with the cases in runAuton(). The UMBmark squares (101, 102) are test runs that never touch
+    // keep in step with the cases in runAuton(). The test runs (-1, -2, -3) are that never touch
     // toggleB, so they do not hold the colour toggle
     return routine == 2 || routine == 3;
 }
 
 void runAuton(int routine) {
     subsystems::colourToggleAutonStarted(); // the colour toggle may run normally from now on
-    // one case per routine: 1..100 qual, -1..-100 AI, 101.. skills, 999 none.
+    // one case per routine: 1..100 qual, -1..-100 tests, 101.. skills, 999 none.
     // The placeholder buttons ("NONE": 1, -1) land in default
     switch (routine) {
         case 2: james_67(); break;              // Qual tab, second button
         case 3: james67b(); break;              // Qual tab, third button ("67james")
-        case 101: umbmarkSquare(true); break;  // Skills "UMB CW": odometry test, clockwise square
-        case 102: umbmarkSquare(false); break; // Skills "UMB CCW": the same, counter-clockwise
+        // the Tests tab (negative numbers): test runs, each refuses under field control
+        case -1: umbmarkSquare(true); break;  // "UMB CW": odometry test, clockwise square
+        case -2: umbmarkSquare(false); break; // "UMB CCW": the same, counter-clockwise
+        case -3: // "IMU TEST": inertial sensor test, nothing drives
+            imuwatch::pause(true);
+            imuTest();
+            imuwatch::pause(false);
+            break;
         // nothing selected (999) or a placeholder: do nothing
         default: std::printf("[auton] no routine selected (%d)\n", routine); break;
     }

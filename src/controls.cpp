@@ -356,7 +356,15 @@ void driverControl() {
 
         // true while nothing else claims the D-pad. Nothing does at the moment (the PID tab is
         // edited on the touchscreen), but the D-pad handlers keep the parameter so one can again
-        const bool dpadFree = true;
+        // Hold A: LEFT / RIGHT step through the routines on the controller (src/ctrlselect.cpp), and the D-pad
+        // does nothing else meanwhile
+        // Shelved (ctrlselect::ENABLED in autons.hpp is false): the D-pad is then always free, as before
+        if (ctrlselect::ENABLED && A.now && (LEFT.pressed() || RIGHT.pressed())) {
+            ctrlselect::step(RIGHT.pressed() ? 1 : -1);
+            aUsed = true; // holding A on must not swap the heights
+        }
+        if (ctrlselect::ENABLED) ctrlselect::pump();
+        const bool dpadFree = !(ctrlselect::ENABLED && A.now);
 
         // TEST RUN: hold A, press B -> run the auton picked on the brain.
         // Never with field control or a competition switch attached: there,
@@ -368,6 +376,12 @@ void driverControl() {
                 // nothing picked on the brain: say so instead of silently doing nothing
                 master.set_text(0, 0, "NO ROUTINE PICKED ");
                 master.rumble("-");
+            } else if (imuwatch::drifting() && routine != -3) { // -3 is the inertial sensor test itself
+                // the heading is sliding by itself: the routine would spin or drive off (src/imuwatch.cpp)
+                std::printf("[test] routine %d not run: the heading creeps %.2f deg/s standing still. Restart the "
+                            "program with the robot completely still\n", routine, imuwatch::driftDps());
+                master.set_text(0, 0, "IMU DRIFT: RESTART");
+                master.rumble("---");
             } else {
                 macros::cancel();
                 std::printf("[test] running routine %d\n", routine);
@@ -379,7 +393,8 @@ void driverControl() {
                 const std::uint32_t ms = pros::millis() - t0;
                 // skills routines (101..200) get the 60s skills period, the rest a match's 15s
                 const bool skills = routine >= 101 && routine <= 200;
-                const std::uint32_t limitMs = skills ? 60000 : 15000;
+                // a test run (negative number) has no time limit
+                const std::uint32_t limitMs = routine < 0 ? UINT32_MAX : skills ? 60000 : 15000;
 
                 // stop the cascade and roller, but leave the intake as the routine left it
                 // (an auton that ends intaking keeps intaking; LEFT/RIGHT stop it)

@@ -24,7 +24,7 @@ void runAuton(int routine);
  * From wherever the robot stands: stands still 2 s, then drives a 48 in square under odometry and comes back to
  * its start, then prints one [UMB] line with where it believes it is and shows that on the controller. A person
  * measures where it really is. Clockwise goes 48 in forward and 48 in to the right; counter-clockwise to the left.
- * Selector: Skills tab, "UMB CW" (routine 101) and "UMB CCW" (102). Never switches GPS fusion on.
+ * Selector: Tests tab, "UMB CW" (routine -1) and "UMB CCW" (-2). Never switches GPS fusion on.
  * Test runs only (hold A, press B): it refuses under field control or a competition switch, with the lift up, with
  * the inertial sensor failed, or while another move runs. A stick pushed stops it at once, as does the inertial
  * sensor stopping, a move running out of time or a PID tab test starting: one [umbmark] line, no result
@@ -35,7 +35,29 @@ void umbmarkSquare(bool clockwise);
  * @brief true if the inertial sensor read a heading right after chassis.calibrate() at boot (src/main.cpp). If
  * it did not, LemLib takes its heading from the wheels until the program restarts, even if the sensor comes back
  */
+/**
+ * Inertial sensor test (src/imutest.cpp, docs/IMU_TEST.md): Tests tab "IMU TEST" (routine -3), a test run only.
+ * Nothing drives. Calibrates ten times, sits 60 s, then asks for the cable to be wiggled and the frame tapped,
+ * and prints [IMUTEST] lines with a verdict: sensor fine, cable or port, mount, or replace the sensor.
+ */
+void imuTest();
+
 bool imuCalibratedAtBoot();
+
+/**
+ * Inertial sensor drift watch (src/imuwatch.cpp). A sensor that calibrated badly makes the heading creep while
+ * the robot stands still, and every move then follows the sliding heading.
+ * checkAtBoot(): call once in initialize(), after chassis.calibrate(); calibrates once more if the heading creeps.
+ * start(): starts the task that keeps checking while the robot stands still and warns on the controller.
+ * drifting(): true while the heading creeps standing still; driftDps(): the last rate measured, deg/s.
+ */
+namespace imuwatch {
+void checkAtBoot();
+void start();
+bool drifting();
+float driftDps();
+void pause(bool on); // true while the inertial sensor test runs: no checks, no messages
+} // namespace imuwatch
 
 /**
  * @brief Switch GPS fusion to GPS_FUSION_MODE (robot-config.hpp; Off by default, and then this does nothing).
@@ -56,5 +78,25 @@ void startGpsFusion();
 
 /** @brief True if runAuton(routine) runs a real routine (not "none" or a NONE placeholder) */
 bool routineExists(int routine);
+
+/**
+ * Picking the routine on the controller (src/ctrlselect.cpp). The pick is the same one the brain's selector
+ * shows: either can change it.
+ * Driver control: hold A, press LEFT / RIGHT to step through the routines (hold A, press B still runs it).
+ * Disabled by field control: LEFT / RIGHT alone.
+ */
+namespace ctrlselect {
+// SHELVED 2026-11-24: written and compiled, never run on the robot. Picking while disabled needs a field
+// controller or competition switch to try out, so the whole picker is switched off until the team has one.
+// With this false nothing calls into src/ctrlselect.cpp: the D-pad, A and disabled() behave as they did before.
+// To bring it back: set this to true, then test A + LEFT/RIGHT in driver control and LEFT/RIGHT while disabled.
+// Mockup of the intended behaviour: https://claude.ai/artifact/5hWaizLscDuFEdnq7sLVeR
+constexpr bool ENABLED = false;
+void step(int direction);  // -1 previous, +1 next; wraps, and includes "none"
+void show();               // queue the three controller lines (sent by pump)
+void pump();               // call every loop tick: sends one queued line per 60 ms, never blocks
+void showNow();            // write the three lines now, blocking about 200 ms (for initialize())
+void disabledLoop();       // for disabled(): never returns
+} // namespace ctrlselect
 
 #endif // AUTONS_HPP

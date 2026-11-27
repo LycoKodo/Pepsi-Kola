@@ -29,6 +29,8 @@ float prevHorizontal = 0;
 float prevHorizontal1 = 0;
 float prevHorizontal2 = 0;
 float prevImu = 0;
+// the furthest the heading can really change between two 10 ms updates: 90 deg (the robot turns under 10)
+static constexpr float IMU_MAX_STEP_RAD = M_PI / 2;
 bool imuFault = false; // the last IMU read was an error (see update())
 
 // The V5 inertial sensor turns out 1 to 1.4 percent wrong in heading, and calibration does not fix that
@@ -114,6 +116,9 @@ void lemlib::update() {
             imuRaw = degToRad(rotation);
             if (imuFault) prevImu = imuRaw;
             imuFault = false;
+            // A finite reading that turns further in one update than the robot can (IMU_MAX_STEP_RAD) is a
+            // sensor restarting or a garbage value, not a turn: carry on from the heading the pose has
+            if (std::fabs(imuRaw - prevImu) > IMU_MAX_STEP_RAD) prevImu = imuRaw;
         } else {
             imuRaw = prevImu;
             imuFault = true;
