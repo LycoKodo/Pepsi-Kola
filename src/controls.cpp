@@ -299,6 +299,57 @@ int calSet = 0, calMark = 0;
 int calZeroTicks = 0;     // setPose again on the next tick, in case the odometry task wrote over the first
 double calVert0 = 0, calHoriz0 = 0, calImu0 = 0;
 
+// PATH RECORDING (added 2026-11-27): after a zero (hold Y), the pose is printed as a [PATH] line whenever the robot
+// has been pushed PATH_STEP_IN or turned PATH_STEP_DEG since the last line, checked every PATH_CHECK_MS. Push the
+// robot by hand along the route you want and the log holds the whole path; a tap of Y still prints a [MARK] for a
+// spot where something happens. It stops when a test run starts, after PATH_MAX_MS, or under field control.
+// Nothing prints while the robot stands still, and at most one line per PATH_CHECK_MS, so it cannot flood
+constexpr float PATH_STEP_IN = 0.5f;
+constexpr float PATH_STEP_DEG = 3.0f;
+constexpr std::uint32_t PATH_CHECK_MS = 50;
+constexpr std::uint32_t PATH_MAX_MS = 5 * 60 * 1000;
+bool pathRecording = false;
+std::uint32_t pathStartAt = 0, pathCheckedAt = 0;
+float pathLastX = 0, pathLastY = 0, pathLastTheta = 0;
+int pathPoints = 0;
+
+void pathStop(const char* why) {
+    if (!pathRecording) return;
+    pathRecording = false;
+    std::printf("[PATH] set=%d end points=%d (%s)\n", calSet, pathPoints, why);
+}
+
+// start recording from the pose the robot has now, without zeroing it (after a teaching run)
+void pathStartHere() {
+    const lemlib::Pose p = chassis.getPose();
+    ++calSet;
+    calMark = 0;
+    pathRecording = true;
+    pathStartAt = pathCheckedAt = pros::millis();
+    pathLastX = p.x;
+    pathLastY = p.y;
+    pathLastTheta = p.theta;
+    pathPoints = 0;
+    std::printf("[PATH] set=%d start (not zeroed) x=%.2f y=%.2f theta=%.1f\n", calSet, p.x, p.y, p.theta);
+}
+
+void pathTick() {
+    if (!pathRecording) return;
+    const std::uint32_t now = pros::millis();
+    if (now - pathStartAt > PATH_MAX_MS) return pathStop("time limit");
+    if (now - pathCheckedAt < PATH_CHECK_MS) return;
+    pathCheckedAt = now;
+    const lemlib::Pose p = chassis.getPose();
+    if (std::hypot(p.x - pathLastX, p.y - pathLastY) < PATH_STEP_IN && std::fabs(p.theta - pathLastTheta) < PATH_STEP_DEG)
+        return;
+    pathLastX = p.x;
+    pathLastY = p.y;
+    pathLastTheta = p.theta;
+    pathPoints++;
+    std::printf("[PATH] set=%d t=%lu x=%.2f y=%.2f theta=%.1f\n", calSet, static_cast<unsigned long>(now - pathStartAt),
+                p.x, p.y, p.theta);
+}
+
 void calPrintMark() {
     const lemlib::Pose p = chassis.getPose();
     const double vert = verticalEncoder.get_position() / 100.0 - calVert0;   // centidegrees -> degrees
@@ -321,13 +372,20 @@ void calZero() {
     calMark = 0;
     calZeroTicks = 1;
     std::printf("[MARK] set=%d zeroed\n", calSet);
-    master.set_text(2, 0, "ZERO              ");
+    master.set_text(2, 0, "ZERO  recording   ");
     master.rumble(".");
+    // a new path starts here, at (0, 0, 0)
+    pathRecording = true;
+    pathStartAt = pathCheckedAt = pros::millis();
+    pathLastX = pathLastY = pathLastTheta = 0;
+    pathPoints = 0;
+    std::printf("[PATH] set=%d start\n", calSet);
 }
 
 void calControls() {
     if (calZeroTicks > 0 && --calZeroTicks == 0) chassis.setPose(0, 0, 0);
-    if (pros::competition::is_connected()) return;
+    if (pros::competition::is_connected()) return pathStop("field control");
+    pathTick();
     if (Y.pressed()) {
         yDownAt = pros::millis();
         yHoldDone = false;
@@ -369,7 +427,15 @@ void driverControl() {
         // TEST RUN: hold A, press B -> run the auton picked on the brain.
         // Never with field control or a competition switch attached: there,
         // autonomous() is how autons run. Blocks this loop until the routine ends
-        if (A.now && B.pressed() && !pros::competition::is_connected()) {
+        // Hold A, press X is the TEACHING RUN: the same test run as hold A, press B, but it also stops by itself
+        // after one chosen turn (TEACH_STOP_AFTER_TURN, autons.cpp). In either, Y stops the routine at once
+        // wherever it is; after that the
+        // path is recorded without zeroing the pose, so pushing the robot on by hand and tapping Y gives the rest
+        // of the way in the routine's own coordinates
+        // hold A + X: stop after turn 2 (facing along the wall); hold A + Y: after turn 3 (the scoop)
+        const int teachStop = !A.now ? 0 : X.pressed() ? 2 : Y.pressed() ? 3 : 0;
+        const bool teachRun = teachStop > 0;
+        if (A.now && (B.pressed() || teachRun) && !pros::competition::is_connected()) {
             const int routine = lemlib::selector::auton;
             char line[20];
             if (routine == 999) {
@@ -384,12 +450,24 @@ void driverControl() {
                 master.rumble("---");
             } else {
                 macros::cancel();
+                pathStop("a test run started");
                 std::printf("[test] running routine %d\n", routine);
                 std::snprintf(line, sizeof(line), "RUN #%-13d", routine);
                 master.set_text(0, 0, line);
 
                 const std::uint32_t t0 = pros::millis();
+                setTestRun(true); // Y stops it from here on (autons.cpp)
+                setTeachRun(teachStop); // a teaching run also stops by itself after that turn
                 runAuton(routine);
+                setTestRun(false);
+                setTeachRun(0);
+                yHoldDone = true; // a Y that started or stopped the run must not zero the pose or print a mark
+                if (testRunWasStopped()) {
+                    pathStartHere();
+                    // the Y that stopped the run is still down: it must neither zero the pose (a "hold")
+                    // nor print a mark when it is let go
+                    yHoldDone = true;
+                }
                 const std::uint32_t ms = pros::millis() - t0;
                 // skills routines (101..200) get the 60s skills period, the rest a match's 15s
                 const bool skills = routine >= 101 && routine <= 200;

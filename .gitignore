@@ -9,3 +9,4 @@ pidlog_out/
 tune*.log
 calib*.log
 umb_round*.log
+auton*.log

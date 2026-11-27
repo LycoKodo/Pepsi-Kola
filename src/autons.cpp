@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include "main.h"
@@ -11,7 +12,71 @@
 
 // --- james_67 numbers -------------------------------------------------------------------------------
 // Inches and degrees; the robot starts at 0, 0 facing 0 deg (= +y), clockwise positive
+// STOP BUTTON FOR TEST RUNS (2026-11-27). While a routine is run as a test (hold A, press B or X; controls.cpp
+// calls setTestRun), pressing Y stops it at once, wherever it is: the move in progress is cancelled, the drive
+// holds, and the routine returns at its next check. Driver control then lets the drive coast, so the robot can be
+// pushed by hand from there, and records the path. Never in a match: autonomous() does not set this.
+// (Before this, three versions of a "teaching run" stopped at a place picked in the code, each time the wrong one,
+// and a fourth paused after every movement.)
+static bool testRun = false;     // this run was started as a test
+static bool testStopped = false; // Y was pressed during it
+static bool testYBefore = true;  // Y's last state: a Y still held from before must be let go first
+void setTestRun(bool on) {
+    testRun = on;
+    if (on) {
+        testStopped = false;
+        testYBefore = true;
+    }
+}
+bool testRunWasStopped() { return testStopped; }
+// THE TEACHING RUN (hold A, press X): the same test run, but it also stops by itself after the turn on the spot
+// numbered teachStopAfterTurn, counting the turns the routine makes after it has scored. In 67james those are:
+//   1  after backing off the goal, to face the run-up point
+//   2  at the run-up point, to face along the wall  (the robot's version of mark 3 of the hand recording: the
+//      turn on the spot before the drive alongside)
+//   3  after the drive in, the turn that gets the pin out ("the shove to the left")
+// 2 was used to teach the drive in and that turn; 3, from the evening of 2026-11-27, to teach what comes after
+// them ("the shove to the left was good, but the rest needs work"). After the stop the drive coasts (driver
+// control does that) and the rest is shown by hand with taps of Y
+// Both are on the controller now (controls.cpp): hold A + X stops after turn 2 ("the old A+X position"), hold
+// A + Y after turn 3. 0 = an ordinary test run
+static int teachStopAfterTurn = 0;
+static bool teachRun = false;
+static int teachTurns = 0;
+void setTeachRun(int stopAfterTurn) {
+    teachStopAfterTurn = stopAfterTurn;
+    teachRun = stopAfterTurn > 0;
+    teachTurns = 0;
+}
+
 namespace {
+// true once Y has been pressed in a test run. Call it in every wait loop and after every step
+bool stopAsked() {
+    if (!testRun) return false;
+    if (testStopped) return true;
+    const bool y = master.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
+    const bool pressed = y && !testYBefore;
+    testYBefore = y;
+    if (!pressed) return false;
+    testStopped = true;
+    chassis.cancelMotion(); // the move in progress ends; HOLD stops the drive
+    leftMotors.brake();
+    rightMotors.brake();
+    xMotors.brake();
+    const lemlib::Pose at = chassis.getPose();
+    std::printf("[auton] STOPPED by Y at (%.2f, %.2f) heading %.1f. Push it by hand from here, a tap of Y at each key "
+                "step\n", at.x, at.y, at.theta);
+    master.rumble("..");
+    return true;
+}
+// wait for the LemLib move that is running, or for Y
+void waitMove() {
+    while (chassis.isInMotion()) {
+        if (stopAsked()) break;
+        pros::delay(10);
+    }
+    chassis.waitUntilDone();
+}
 // at the start: toggleB turns this far, motor degrees
 constexpr double START_TOGGLE_DEG = 360;
 // 67james wiggles first: forward, back, forward again at WIGGLE_POWER, WIGGLE_MS each, the last forward
@@ -34,10 +99,88 @@ constexpr int TO_J67_GOAL1_TIMEOUT_MS = 2000;
 constexpr float J67_SCORE_BACK_IN = 9; // was 10 (J67_BACK_IN), 11, then 8
 // then turn on the spot to this heading, and L1's grab at the first pin (closes once there)
 constexpr float J67_TURN1_THETA = 45; // was 45, 40, 37.5, 35, 40, then 35
-constexpr int J67_TURN1_TIMEOUT_MS = 800;
-constexpr float J67_PIN1_X = 17; // was 13.8: the odometry only got to about 10.5 there
-constexpr float J67_PIN1_Y = 0;
-constexpr float J67_PIN1_THETA = 13;
+constexpr int J67_TURN1_TIMEOUT_MS = 1300; // was 800: a turn that settles takes 0.8 to 1.0 s
+// The pose with the claw on the wall pin, read off a Y-button mark with the robot pushed there by hand from the
+// start position (2026-11-27: x 13.508, y -0.131, theta 30.903). Was 17, 0, 13 (and 13.8 before: "the odometry
+// only got to about 10.5 there")
+// SUPERSEDED the same day by the marks below (the first mark put it at 13.51, -0.13, 30.9; the second recording,
+// 1.7 in away, is the one in use: see the note at J67_PIN1_X)
+// The wall pin's poses, from Y-button marks 4, 6 and 7 of the second hand-pushed recording (2026-11-27, robot
+// pushed from the start position; mark numbers as in james67b). All three are in the same recording, so they are
+// right relative to each other; against the start position they are only as good as where the robot stood when
+// the program was started
+constexpr float J67_SIDE_X = 9.25;   // mark 4: alongside, facing along the wall, about to turn in
+constexpr float J67_SIDE_Y = -2.54;
+constexpr float J67_SIDE_THETA = 86.9;
+// TAUGHT BY HAND, second teaching run (2026-11-27): see james67b for the four marks these come from
+// WHERE THE DRIVE IN STOPS. From the fifth teaching run (2026-11-27, 17:20, stopped after the turn along the wall,
+// two marks): 1 = (11.76, -2.71) facing 90.3, the drive in; 2 = (13.50, 0.21) facing 29.8, after the turn. The
+// drive in had been ending at about (10.9, -1.4): "too left", by 1.3 in, and 0.9 in short. Mark 2 is 3.4 in from
+// mark 1 along a bearing of 30.8, within a degree of its own heading, so a turn on the spot at mark 1 followed by a
+// straight push of 3.4 in lands on it: the drive in goes to mark 1 itself. Y is 0.15 in lower: the last drives in
+// ended on average that much to the left of where they were sent.
+// Before: (10.40, -1.92); (10.89, -1.82) ("0.5 inch further"); (10.96, -1.50) (fourth teaching run)
+// (17:25) That missed the piece completely: "too far to the right, it doesn't scoop anything". A sixth teaching
+// run gave the same two marks to within 0.15 in: 1 = (11.62, -2.69) facing 91.8, 2 = (13.47, 0.18) facing 28.4.
+// The marks were right; turning ON THE SPOT at mark 1 was not. By hand the robot slides about 0.6 in to the LEFT
+// of the straight line into mark 2 during the first 20 deg of the turn (91.8 -> 71), which is when the front-left
+// edge sweeps the piece, and is back on the line by about 64 deg. So the turn is now made 0.6 in left of that line
+// and 3.0 in back from mark 2, where the hand's turn was; the push then steers back onto the line. (The runs that
+// were "too left" turned 1.4 to 1.6 in left of it; mark 1 itself is on it.) Y keeps the 0.15 in correction
+constexpr float J67_IN_X = 11.46;
+constexpr float J67_IN_Y = -2.28;
+// where the push into the tunnel ends: mark 2 (sixth teaching run) and J67_TUNNEL_PAST_IN past it along the heading
+constexpr float J67_MARK2_X = 13.47;
+constexpr float J67_MARK2_Y = 0.18;
+constexpr float J67_TUNNEL_PAST_IN = 0.4;
+constexpr float J67_OUT_THETA = 29.8;  // mark 2's heading (fifth teaching run 29.8, sixth 28.4; was 38.1, then 33.5)
+constexpr float J67_OUT_EXTRA_DEG = 15; // how much further left that turn swings before it comes back
+constexpr float J67_PROOF_THETA = 14.8; // mark 4's heading: where the push ends
+constexpr float J67_PUSH_IN = 4.3;     // the push from the turn to mark 4, through mark 3
+constexpr float J67_HALF_TRACK_IN = 11.61f / 2; // half the drive's track width (robot-config.cpp)
+constexpr float J67_KNOCK_THETA = 36.6; // mark 5's heading: the turn at mark 4 that knocks the other piece away
+constexpr float J67_MOUTH_X = 11.31; // mark 6: at the mouth of the tunnel
+constexpr float J67_MOUTH_Y = -0.90;
+// WHERE THE PUSH INTO THE TUNNEL ENDS: mark 2 of the fourth teaching run, (12.13, 0.41) facing 38.1, plus
+// J67_PUSH_EXTRA_IN further along that heading so that it cannot stop short (the wall stops it).
+// Earlier values, each from a different recording: 13.46, 0.94, 29.3 (third teaching run); 11.80, -0.24, 31.3
+// (hand-pushed from the start position); 13.51, -0.13, 30.9 (the first mark of all); 17, 0, 13; 13.8
+// The push into the tunnel after the turn: straight ahead this far. Mark 2 is 2.1 in ahead of a turn made on the
+// spot at J67_IN; the pose reads up to 0.75 in further back after that turn; and it must not stop short ("make
+// sure we are not undershooting"), so 0.35 in more. The wall stops it if that is too far: it then gives up after
+// J67_TUNNEL_PUSH_MAX_MS and the routine carries on
+// the movement after the pin: where it ends (one Y mark, see james67b)
+constexpr float J67_AFTER_X = 14.51;
+constexpr float J67_AFTER_Y = 3.36;
+constexpr float J67_AFTER_THETA = 9.3;
+constexpr float J67_TUNNEL_PUSH_IN = 3.8; // mark 1 to mark 2 of the fifth teaching run is 3.4 in, plus 0.4 so it does not stop short (was 3.2)
+constexpr int J67_TUNNEL_PUSH_MAX_MS = 1800;
+constexpr float J67_PUSH_EXTRA_IN = 0.5;
+constexpr float J67_PIN1_THETA = 38.1;
+constexpr float J67_PIN1_X = 12.13f + J67_PUSH_EXTRA_IN * 0.6170f; // sin 38.1
+constexpr float J67_PIN1_Y = 0.41f + J67_PUSH_EXTRA_IN * 0.7869f;  // cos 38.1
+// the way from the goal to mark 4 (not shown by hand: a guess to be checked on the robot)
+constexpr float J67_BACKOFF_X = 4.0;        // straight back off the goal to this x
+constexpr float J67_SIDE_RUNUP_IN = 10;     // then to a point this far short of mark 4, on its line (was 6)
+constexpr int J67_RUNUP_TIMEOUT_MS = 2000;
+constexpr float J67_RUNUP_MAX_SPEED = 80;   // of 127
+constexpr int J67_LINE_MAX_MS = 2500;       // each slow line drive gives up after this long
+// the slow line drive's speed, motor rpm (120 rpm is about 13 in/s): top speed, the rpm it may have per inch still
+// to go, its slowest, the time it takes to reach top speed, and how far short of the point it lets go
+constexpr float J67_LINE_MAX_RPM = 60;     // was a flat 120 (J67_FORWARD_RPM)
+constexpr float J67_LINE_RPM_PER_IN = 40;
+constexpr float J67_LINE_MIN_RPM = 45;     // was 24, then 32: both stalled short of the end with the intake pushing back
+constexpr float J67_LINE_RAMP_MS = 250;
+constexpr float J67_LINE_STOP_EARLY_IN = 0.15;
+constexpr int J67_STOP_MS = 150;            // standing after each slow line drive, before the next move
+// the line-up point is this far back from the pin along the pin's heading. 16.4 puts it at (5.1, -14.2), on the
+// goal's own line, so backing off the goal straight reaches it
+constexpr float J67_LINEUP_IN = 16.4;
+constexpr int J67_LINEUP_TIMEOUT_MS = 1500;
+// on the slow drive to the pin: steer at the pin until it is this close, then hold J67_PIN1_THETA
+constexpr float J67_PIN_AIM_UNTIL_IN = 5;
+// and give up this far past the distance it started from the pin (the wall stops it before that)
+constexpr float J67_PIN_PAST_IN = 1;
 // between the turn and the pin drive: straight forward this far at J67_FORWARD_RPM on the motors' own speed control
 // (move_velocity, percent of the blue motors' 600 rpm), both sides the same, until odometry says it got there.
 // Tried before: a 5 in LemLib drive (about 1.2 in in 0.8 s); 50% straight power then a step down to a slow speed
@@ -45,10 +188,30 @@ constexpr float J67_PIN1_THETA = 13;
 // sensor (too fast); straight power under about 28 of 127 stalled
 constexpr float J67_FORWARD_IN = 16; // was 5, 10, 8, 12, 16, then 18
 constexpr int J67_FORWARD_RPM = 600 * 20 / 100; // 20%, about 13 in/s
+// heading hold on that drive: each degree off J67_TURN1_THETA moves the two sides this many rpm apart (each way),
+// up to J67_FORWARD_HOLD_MAX_RPM. 5 deg off is 50 rpm on a 120 rpm drive
+constexpr float J67_FORWARD_HOLD_RPM_PER_DEG = 5; // was 6 (sat 4.4 deg off after a turn that had not settled), then 10 (wiggled)
+// the drive to the pin follows a line: degrees to turn toward the line per inch off it, and the most it may turn
+constexpr float J67_PIN_LINE_DEG_PER_IN = 3; // was 6
+constexpr float J67_PIN_LINE_MAX_DEG = 5;    // was 8
+// its trace: one sample per J67_TRACE_MS, at most J67_TRACE_MAX of them
+constexpr std::uint32_t J67_TRACE_MS = 40;
+constexpr int J67_TRACE_MAX = 60;
+constexpr float J67_FORWARD_HOLD_MAX_RPM = 40; // was 60
 // after the drive (L1's grab running): grab, then turn to J67_TURN3_THETA
 // the nudge after the drive, before the grab: only the right side drives forward (the left holds), at
 // J67_NUDGE_POWER for J67_NUDGE_MS, which swings the robot to the left. (Stopping once the heading had dropped
 // 5 deg was tried first: 40 of 127 turned it 1 deg in 0.5 s, 90 swung 5 deg in 0.22 s)
+// the swing onto the pin after the forward drive: left side held, right side forward, to this heading. 45 (the
+// forward drive's heading) minus about 10, the average of what the timed nudge did. TUNE THIS on the robot:
+// lower = the right side goes further round
+// 35 was the first guess. A photo of a miss (2026-11-27) shows the robot about 35 to 40 deg off square to the wall
+// with its LEFT arm on the wall and the pin just inside that arm, so squaring up means turning to about 5 to 13
+// (the pose drive that was tried earlier used 13)
+constexpr float J67_SWING_THETA = 10;
+constexpr int J67_SWING_TIMEOUT_MS = 1500; // about 35 deg with one side
+constexpr float J67_SWING_MAX_SPEED = 64; // of 127, the nudge's old power
+// (the timed nudge these replace; kept for the record)
 constexpr int J67_NUDGE_POWER = 64; // of 127: 50%
 constexpr int J67_NUDGE_MS = 1000;
 constexpr float J67_TURN3_THETA = 40; // was 45
@@ -215,6 +378,7 @@ void waitPose(float x, float y, float theta, float exitWithin = POSE_EXIT_WITHIN
     const char* why = "LemLib ended it (its own exit or the timeout)";
     int smallMs = 0, largeMs = 0;
     while (chassis.isInMotion()) {
+        if (stopAsked()) break; // Y in a test run
         const lemlib::Pose pose = chassis.getPose();
         const float dist = pose.distance(target);
         const bool headingOk =
@@ -244,7 +408,7 @@ void waitPose(float x, float y, float theta, float exitWithin = POSE_EXIT_WITHIN
 // lift never lands, the macro ends without opening the claw, and this waits for that.)
 // waitOuttake: wait for the 0.3 s outtake too, as before
 void finishScore(bool waitOuttake = false) {
-    while (macros::isBusy() && (waitOuttake || !subsystems::clawOpen())) pros::delay(10);
+    while (macros::isBusy() && (waitOuttake || !subsystems::clawOpen()) && !stopAsked()) pros::delay(10);
 }
 
 // Start R1's motion in the macro task (finishScore() waits for it). Motors 14/16 stop here: the motion owns them
@@ -278,7 +442,7 @@ void waitPoseThenScore(float x, float y, float theta, const std::function<void()
         }
         if (eachTick) eachTick();
     });
-    if (!started) startScore();
+    if (!started && !stopAsked()) startScore(); // not after a Y stop in a test run
 }
 
 // straight back `inches`, opposite to the way the robot faces now. Waits. `once` (if given) runs once, when the
@@ -290,13 +454,14 @@ void driveBack(float inches, int timeoutMs, const std::function<void()>& once = 
     chassis.moveToPoint(target.x, target.y, timeoutMs, {.forwards = false});
     bool done = once == nullptr;
     while (chassis.isInMotion() && chassis.getPose().distance(target) > BACK_EXIT_WITHIN_IN) {
+        if (stopAsked()) break; // Y in a test run
         if (!done && chassis.getPose().distance(now) >= onceAfterIn) {
             once();
             done = true;
         }
         pros::delay(10);
     }
-    if (!done) once();
+    if (!done && !stopAsked()) once();
     chassis.cancelMotion(); // (nothing to cancel if it already ended) HOLD stops it here
     chassis.waitUntilDone();
 }
@@ -420,6 +585,164 @@ void thirdPinCycle(double liftDeg, float pinX, float pinY, float goalX, float go
     liftDrive(liftDeg, goalX, goalY, GOAL3_THETA, RETURN_TO_GOAL3_TIMEOUT_MS, closedAt, maxSpeed);
     finishScore();
 }
+
+// a check after a step: true = Y was pressed in a test run, end the routine here (the name is kept from when this
+// paused after every movement)
+bool teachPause(const char*) { return stopAsked(); }
+
+// ---- slow, exact moves for the wall pin (67james) ------------------------------------------------------------------
+// A turn on the spot with LemLib's own turn, not the team's wrapper: the wrapper gives a turn under SMALL_TURN_DEG a
+// minimum speed, and LemLib then ends that turn the moment it crosses the target, still spinning. Without it the
+// turn settles before it ends. Waits, and prints what it did
+void settleTurn(const char* what, float heading, int timeoutMs) {
+    const float before = chassis.getPose().theta;
+    const std::uint32_t start = pros::millis();
+    if (stopAsked()) return;
+    chassis.lemlib::Chassis::turnToHeading(heading, timeoutMs);
+    waitMove();
+    std::printf("[auton] %s: turn to %.1f, heading %.1f -> %.1f after %u ms\n", what, heading, before,
+                chassis.getPose().theta, static_cast<unsigned>(pros::millis() - start));
+    if (teachRun && !testStopped && ++teachTurns == teachStopAfterTurn) {
+        testStopped = true; // every check after this ends the routine
+        const lemlib::Pose at = chassis.getPose();
+        std::printf("[auton] TEACH: stopped after turn %d (%s) at (%.2f, %.2f) heading %.1f. Push it by hand from "
+                    "here, a tap of Y at each key step\n", teachTurns, what, at.x, at.y, at.theta);
+        master.rumble("..");
+    }
+}
+
+// Drive slowly forward along the straight line that runs through (x, y) in the direction `heading`, and stop when
+// the robot is level with (x, y) (or, with stopOnPin, as soon as the claw sensor sees a pin). Both sides run at
+// J67_FORWARD_RPM on the motors' own speed control; the heading wanted is `heading`, turned toward the line by
+// J67_PIN_LINE_DEG_PER_IN for every inch the robot is to one side of it. HOLD stops it. Prints where it ended and,
+// after that, a trace of the drive (one [pin] line per J67_TRACE_MS)
+void lineDrive(const char* what, float x, float y, float heading, int maxMs, bool stopOnPin) {
+    const float rad = lemlib::degToRad(heading);
+    const lemlib::Pose to(x, y);
+    struct Sample { std::uint16_t ms; float ahead, side, heading; };
+    static Sample trace[J67_TRACE_MAX];
+    int traceCount = 0;
+    std::uint32_t traceAt = 0;
+    float worstOff = 0;
+    const char* why = "time limit";
+    const std::uint32_t start = pros::millis();
+    while (pros::millis() - start < static_cast<std::uint32_t>(maxMs)) {
+        if (stopAsked()) {
+            why = "stopped by Y";
+            break;
+        }
+        if (stopOnPin) {
+            const std::int32_t mm = clawSensor.get_distance();
+            if (mm > 0 && mm <= subsystems::CLAW_CATCH_MM) {
+                why = "sensor saw the pin";
+                break;
+            }
+        }
+        const lemlib::Pose now = chassis.getPose();
+        // inches still to go along the line, and inches to the RIGHT of it (negative: left)
+        const float ahead = (to.x - now.x) * std::sin(rad) + (to.y - now.y) * std::cos(rad);
+        const float side = (now.x - to.x) * std::cos(rad) - (now.y - to.y) * std::sin(rad);
+        if (ahead <= J67_LINE_STOP_EARLY_IN) { // HOLD takes about this far to stop it from the slow speed
+            why = "reached the point";
+            break;
+        }
+        const float want = heading - std::clamp(side * J67_PIN_LINE_DEG_PER_IN, -J67_PIN_LINE_MAX_DEG,
+                                                J67_PIN_LINE_MAX_DEG);
+        // off = heading minus the heading wanted, so a robot turned left of it (negative) gets more left side
+        const float off = lemlib::angleError(now.theta, want, false);
+        if (std::fabs(off) > std::fabs(worstOff)) worstOff = off;
+        if (traceCount < J67_TRACE_MAX && pros::millis() - traceAt >= J67_TRACE_MS) {
+            traceAt = pros::millis();
+            trace[traceCount++] = {static_cast<std::uint16_t>(traceAt - start), ahead, side, now.theta};
+        }
+        // Speed: ramp up over J67_LINE_RAMP_MS, and slow down with the distance left, never under J67_LINE_MIN_RPM.
+        // At a flat 120 rpm (2026-11-27) the left side started late, which swung the heading 22 deg left in the
+        // first 0.3 s, and the robot ran 0.8 to 1.9 in past every point before HOLD stopped it. That, with the
+        // steering fighting it, was the S-curve that knocked all three pieces over
+        const float ramp = std::min(1.0f, static_cast<float>(pros::millis() - start) / J67_LINE_RAMP_MS);
+        const float rpm = std::max(J67_LINE_MIN_RPM, std::min(J67_LINE_MAX_RPM * ramp, ahead * J67_LINE_RPM_PER_IN));
+        // steering is scaled with the speed, so it cannot spin the robot round while it is barely moving
+        const float steer = std::clamp(off * J67_FORWARD_HOLD_RPM_PER_DEG, -J67_FORWARD_HOLD_MAX_RPM,
+                                       J67_FORWARD_HOLD_MAX_RPM) * (rpm / J67_LINE_MAX_RPM);
+        leftMotors.move_velocity(rpm - steer);
+        rightMotors.move_velocity(rpm + steer);
+        pros::delay(10);
+    }
+    leftMotors.brake(); // HOLD
+    rightMotors.brake();
+    pros::delay(J67_STOP_MS); // let it stop before the next move reads the pose
+    const lemlib::Pose end = chassis.getPose();
+    std::printf("[auton] %s to (%.2f, %.2f) along %.1f: %s after %u ms; ended (%.2f, %.2f) heading %.1f, %.2f in from "
+                "the point, worst steering error %.1f deg, sensor %d mm\n",
+                what, x, y, heading, why, static_cast<unsigned>(pros::millis() - start), end.x, end.y, end.theta,
+                end.distance(to), worstOff, static_cast<int>(clawSensor.get_distance()));
+    for (int k = 0; k < traceCount; k++)
+        std::printf("[pin] %s t=%u ahead=%.2f side=%+.2f heading=%.1f\n", what, static_cast<unsigned>(trace[k].ms),
+                    trace[k].ahead, trace[k].side, trace[k].heading);
+}
+
+// Drive slowly forward `inches`, easing the heading round from `fromDeg` at the start to `toDeg` at the end (a
+// gentle arc). Speed as lineDrive: ramped up, slowed with the distance left. The two sides are driven apart by
+// what the turn itself needs (from the arc and J67_HALF_TRACK_IN) plus a correction for the heading error. HOLD
+// stops it. Prints where it ended, then a trace (one [pin] line per J67_TRACE_MS: ms, inches left, heading wanted,
+// heading)
+void easeDrive(const char* what, float inches, float fromDeg, float toDeg, int maxMs) {
+    const lemlib::Pose from = chassis.getPose();
+    const float radPerIn = lemlib::degToRad(toDeg - fromDeg) / inches;
+    struct Sample { std::uint16_t ms; float left, want, heading; };
+    static Sample trace[J67_TRACE_MAX];
+    int traceCount = 0;
+    std::uint32_t traceAt = 0;
+    float worstOff = 0;
+    const char* why = "time limit";
+    const std::uint32_t start = pros::millis();
+    while (pros::millis() - start < static_cast<std::uint32_t>(maxMs)) {
+        if (stopAsked()) {
+            why = "stopped by Y";
+            break;
+        }
+        const lemlib::Pose now = chassis.getPose();
+        // progress along the heading it started on, SIGNED: going backward counts as negative. (It was the plain
+        // distance from the start, so when the robot was shoved 2.5 in BACKWARD at the start of a push, which the
+        // traces of 2026-11-27 show every time the intake comes on against the pin, that read as 2.5 in of
+        // progress.)
+        const float gone = (now.x - from.x) * std::sin(lemlib::degToRad(fromDeg)) +
+                           (now.y - from.y) * std::cos(lemlib::degToRad(fromDeg));
+        const float left = inches - gone;
+        if (left <= J67_LINE_STOP_EARLY_IN) {
+            why = "went the distance";
+            break;
+        }
+        const float want = fromDeg + (toDeg - fromDeg) * std::clamp(gone / inches, 0.0f, 1.0f);
+        const float off = lemlib::angleError(now.theta, want, false); // heading minus the heading wanted
+        if (std::fabs(off) > std::fabs(worstOff)) worstOff = off;
+        if (traceCount < J67_TRACE_MAX && pros::millis() - traceAt >= J67_TRACE_MS) {
+            traceAt = pros::millis();
+            trace[traceCount++] = {static_cast<std::uint16_t>(traceAt - start), left, want, now.theta};
+        }
+        const float ramp = std::min(1.0f, static_cast<float>(pros::millis() - start) / J67_LINE_RAMP_MS);
+        const float rpm = std::max(J67_LINE_MIN_RPM, std::min(J67_LINE_MAX_RPM * ramp, left * J67_LINE_RPM_PER_IN));
+        // + steer turns left (the heading falls). The arc's own share: a heading falling radPerIn per inch needs
+        // the sides this far apart at this speed
+        const float arc = -radPerIn * J67_HALF_TRACK_IN * rpm;
+        const float fix = std::clamp(off * J67_FORWARD_HOLD_RPM_PER_DEG, -J67_FORWARD_HOLD_MAX_RPM,
+                                     J67_FORWARD_HOLD_MAX_RPM) * (rpm / J67_LINE_MAX_RPM);
+        leftMotors.move_velocity(rpm - arc - fix);
+        rightMotors.move_velocity(rpm + arc + fix);
+        pros::delay(10);
+    }
+    leftMotors.brake(); // HOLD
+    rightMotors.brake();
+    pros::delay(J67_STOP_MS);
+    const lemlib::Pose end = chassis.getPose();
+    std::printf("[auton] %s, %.1f in easing %.1f -> %.1f: %s after %u ms; went %.2f in, ended (%.2f, %.2f) heading %.1f, "
+                "worst heading error %.1f deg, sensor %d mm\n",
+                what, inches, fromDeg, toDeg, why, static_cast<unsigned>(pros::millis() - start), end.distance(from),
+                end.x, end.y, end.theta, worstOff, static_cast<int>(clawSensor.get_distance()));
+    for (int n = 0; n < traceCount; n++)
+        std::printf("[pin] %s t=%u left=%.2f want=%.1f heading=%.1f\n", what, static_cast<unsigned>(trace[n].ms),
+                    trace[n].left, trace[n].want, trace[n].heading);
+}
 } // namespace
 
 // Qual routine 2
@@ -510,6 +833,9 @@ void james_67() {
 
 // Qual routine 3, "67james" on the selector (the default)
 void james67b() {
+    // twice: the odometry task can write over a setPose that lands in the middle of its update (umbmark.cpp)
+    chassis.setPose(0, 0, 0);
+    pros::delay(20);
     chassis.setPose(0, 0, 0);
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD); // driver control sets it back to COAST when it starts
 
@@ -518,72 +844,134 @@ void james67b() {
     const int powers[] = {WIGGLE_POWER, -WIGGLE_POWER, WIGGLE_POWER};
     const int times[] = {WIGGLE_MS, WIGGLE_MS, WIGGLE_LAST_MS};
     for (int i = 0; i < 3; ++i) {
+        if (stopAsked()) return;
         leftMotors.move(powers[i]);
         rightMotors.move(powers[i]);
         pros::delay(times[i]);
     }
     leftMotors.brake(); // HOLD
     rightMotors.brake();
+    if (teachPause("the wiggle")) return;
 
     // back off, then to the first goal lifting to 300 on the way, and score there
     driveBack(J67_BACK_IN, J67_BACK_TIMEOUT_MS);
+    if (teachPause("the first back-off")) return;
     liftDrive(J67_GOAL1_LIFT_DEG, J67_GOAL1_X, J67_GOAL1_Y, J67_GOAL1_THETA, TO_J67_GOAL1_TIMEOUT_MS, pros::millis());
     finishScore(true); // the full 0.3 s outtake before backing off, as james_67's first goal
-    driveBack(J67_SCORE_BACK_IN, J67_BACK_TIMEOUT_MS); // straight back off the goal
-
-    // turn to J67_TURN1_THETA (45), then drive forward with L1's grab
-    chassis.turnToHeading(J67_TURN1_THETA, J67_TURN1_TIMEOUT_MS);
-    chassis.waitUntilDone();
-    while (macros::isRunning(macros::Macro::PlaceRelease)) pros::delay(10); // its outtake would stop the intake
-    // the grab: claw open, motors 14/16 OUTTAKING (X's way) through the drive and the nudge; the claw closes after the
-    // nudge, and from then the motors intake CLAW_INTAKE_AFTER_MS, as L1 after a catch. (Tried: intaking all the
-    // way, as L1; L2's grab, claw closed all the way; closing as soon as the sensor saw the pin)
-    subsystems::setClaw(true);
-    xMotors.move_velocity(-subsystems::rpm(100));
+    if (teachPause("the drive to the goal and the score")) return;
+    // THE WALL PIN, the way it was shown by hand on 2026-11-27 (Y-button marks, robot pushed from the start
+    // position). The pin sits in a narrow gap ("the tunnel") with another piece just left of it. The robot comes
+    // in from the side, facing along the wall, and turns left into the gap: the turn swings the robot's front-left
+    // edge across and knocks the other piece away, and leaves the robot pointing up the tunnel. The marks:
+    //   4  (9.25, -2.54) facing 86.9   alongside, about to turn        = J67_SIDE_*
+    //   5  (9.73, -0.94) facing 36.6   turned: the edge has swept the other piece away
+    //   6  (11.31, -0.90) facing 31.7  facing the pin                  = J67_MOUTH_*
+    //   7  (11.80, -0.24) facing 31.3  pushed in with the intake spinning: the pin intakes  = J67_PIN1_*
+    // Between 5 and 6 the robot was slid 1.4 in sideways by hand, which it cannot drive. So from mark 4 it turns
+    // to face mark 6, drives the 2.6 in to it, turns to the tunnel's heading and drives in: the same poses at 4, 6
+    // and 7, with the sweep made by the two turns. Mark 5 is not used.
+    // Getting to mark 4 from the goal was not shown (the start of the recording stood in for it), so this is a
+    // guess: straight back off the goal to x = J67_BACKOFF_X, across to a point J67_SIDE_RUNUP_IN short of mark 4,
+    // turn to face along the wall, and run up to mark 4 on a straight line.
+    // Tried before, all missed: back 9 in, turn to 45, 16 in forward with no steering (veered 4 to 10 deg left,
+    // once swung 72 deg round its right side on the wall), a timed right-side nudge, a swing to 35 / 10, and a
+    // straight drive up the line through (13.51, -0.13) at 30.9 (reached the point but 12 deg left of the
+    // heading, and took the piece on the left)
     {
-        const lemlib::Pose from = chassis.getPose();
-        // (only for the log: how far the heading wanders off what the turn aimed for)
-        const float holdHeading = J67_TURN1_THETA;
-        float worstOff = 0;
+        const lemlib::Pose at = chassis.getPose();
         const std::uint32_t start = pros::millis();
-        while (pros::millis() - start < J67_FORWARD_MAX_MS && chassis.getPose().distance(from) < J67_FORWARD_IN) {
-            // stop as soon as the claw sensor sees the pin, so the robot doesn't drive into it and knock it over (it
-            // used to push on at the slow power: 16.8 of 18 in after the full 3.5 s, 2026-11-26). The claw closes
-            // after the drive
-            const std::int32_t mm = clawSensor.get_distance();
-            if (mm > 0 && mm <= subsystems::CLAW_CATCH_MM) break;
-            // both sides at J67_FORWARD_RPM, no heading correction
-            const float off = lemlib::angleError(chassis.getPose().theta, holdHeading, false);
-            if (std::fabs(off) > std::fabs(worstOff)) worstOff = off;
-            leftMotors.move_velocity(J67_FORWARD_RPM);
-            rightMotors.move_velocity(J67_FORWARD_RPM);
-            pros::delay(10);
-        }
-        leftMotors.brake(); // HOLD
-        rightMotors.brake();
-        std::printf("[auton] forward %.1f in: %.1f after %u ms (sensor %d mm); heading %.1f at the start, %.1f at the "
-                    "end, worst %.1f off %.0f\n",
-                    J67_FORWARD_IN, chassis.getPose().distance(from), static_cast<unsigned>(pros::millis() - start),
-                    static_cast<int>(clawSensor.get_distance()), from.theta, chassis.getPose().theta, worstOff,
-                    holdHeading);
+        chassis.moveToPoint(J67_BACKOFF_X, at.y, J67_LINEUP_TIMEOUT_MS, {.forwards = false});
+        waitMove(); // LemLib's own exit (0.5 in), not the 2 in early exit driveBack uses
+        if (stopAsked()) return;
+        const lemlib::Pose end = chassis.getPose();
+        std::printf("[auton] back off the goal to x %.1f: ended (%.2f, %.2f) heading %.1f after %u ms\n",
+                    J67_BACKOFF_X, end.x, end.y, end.theta, static_cast<unsigned>(pros::millis() - start));
     }
-    // grabPin(J67_PIN1_X, J67_PIN1_Y, J67_PIN1_THETA); // the pose drive to the first pin, off for now
+    const float sideRad = lemlib::degToRad(J67_SIDE_THETA);
+    const float runupX = J67_SIDE_X - J67_SIDE_RUNUP_IN * std::sin(sideRad);
+    const float runupY = J67_SIDE_Y - J67_SIDE_RUNUP_IN * std::cos(sideRad);
+    {
+        const lemlib::Pose at = chassis.getPose();
+        settleTurn("to the run-up", lemlib::radToDeg(std::atan2(runupX - at.x, runupY - at.y)), J67_TURN1_TIMEOUT_MS);
+        if (stopAsked()) return;
+        const std::uint32_t start = pros::millis();
+        chassis.moveToPoint(runupX, runupY, J67_RUNUP_TIMEOUT_MS, {.forwards = true, .maxSpeed = J67_RUNUP_MAX_SPEED});
+        waitMove();
+        if (stopAsked()) return;
+        const lemlib::Pose end = chassis.getPose();
+        std::printf("[auton] run-up point (%.2f, %.2f): ended (%.2f, %.2f) heading %.1f, %.2f in off, after %u ms\n",
+                    runupX, runupY, end.x, end.y, end.theta, end.distance(lemlib::Pose(runupX, runupY)),
+                    static_cast<unsigned>(pros::millis() - start));
+    }
+    settleTurn("along the wall", J67_SIDE_THETA, J67_TURN1_TIMEOUT_MS);
+    if (stopAsked()) return;
+    // FROM HERE: TAUGHT BY HAND (2026-11-27, second teaching run). The routine was stopped right here, after the
+    // turn above, at (-1.37, -4.42) facing 87.0, and the robot was pushed through the rest with a tap of Y at each
+    // step:
+    //   1  (11.23, -2.20) facing 89.3   drives in
+    //   2  (10.91, 0.60) facing 33.5    turns, and gets the pin out
+    //   3  (11.89, 1.30) facing 23.0    gets the pin (the intake is spinning before this)
+    //   4  (12.15, 1.98) facing 14.8    "proofing": a slight turn more, to make sure of the pin
+    // From 1 to 4 the hand moved the robot 4.3 in almost straight (toward 12 deg) while turning it left through 75
+    // deg. A robot cannot slide sideways like that, so it does the same thing as: stop the drive in at a point
+    // 0.8 in short of mark 1 (J67_IN_*), turn on the spot to mark 2's heading, then one slow push forward of
+    // J67_PUSH_IN that eases the heading round from mark 2's to mark 4's. That ends on mark 4 exactly and passes
+    // within about 0.3 in of mark 3. Mark 2's position is the one thing it does not reproduce: the robot turns
+    // 2.2 in short of it and 1.8 in to its right, and makes that up during the push.
+    // What this replaces (untaught guesses of 2026-11-27): a drive to an "alongside" point, a turn toward a
+    // "mouth" point, a slow drive to it, a turn "up the tunnel" and a slow drive in, which S-curved and knocked
+    // all three pieces over.
+    {
+        const std::uint32_t start = pros::millis();
+        chassis.moveToPoint(J67_IN_X, J67_IN_Y, J67_RUNUP_TIMEOUT_MS, {.forwards = true, .maxSpeed = J67_RUNUP_MAX_SPEED});
+        waitMove();
+        if (stopAsked()) return;
+        const lemlib::Pose end = chassis.getPose();
+        std::printf("[auton] drives in (%.2f, %.2f): ended (%.2f, %.2f) heading %.1f, %.2f in off, after %u ms\n",
+                    J67_IN_X, J67_IN_Y, end.x, end.y, end.theta, end.distance(lemlib::Pose(J67_IN_X, J67_IN_Y)),
+                    static_cast<unsigned>(pros::millis() - start));
+    }
+    // The claw CLOSES here, after the drive in, and stays closed through the turn and into the tunnel (asked for
+    // on 2026-11-27 after the first run of this section, which went in with it open, L1's way). The scoring
+    // motion left it open; that motion must be over first, or the two would fight over the claw
+    while (macros::isRunning(macros::Macro::PlaceRelease) && !stopAsked()) pros::delay(10);
+    if (stopAsked()) return;
+    subsystems::setClaw(false);
+    // The turn that gets the pin out goes J67_OUT_EXTRA_DEG further left than mark 2's heading, then comes back to
+    // it before the push ("turn more, like 15 degrees more, before turning back and going forward to get the
+    // pin", 2026-11-27). In a teaching run the stop comes after the first of the two
+    settleTurn("gets the pin out", J67_OUT_THETA - J67_OUT_EXTRA_DEG, J67_TURN1_TIMEOUT_MS);
+    if (stopAsked()) return;
+    settleTurn("back to the tunnel", J67_OUT_THETA, J67_TURN1_TIMEOUT_MS);
+    if (stopAsked()) return;
+    // the intake spins from before mark 3, as shown
+    xMotors.move_velocity(subsystems::rpm(100));
+    // (2026-11-27, later: the points are now the fourth teaching run's, see J67_IN_* and J67_PIN1_*; the moves
+    // are the same.)
+    // INTO THE TUNNEL, INTAKING: taught on the third teaching run (2026-11-27). The routine stopped right here,
+    // after the turn, at (10.08, -2.22) facing 34.2, and the robot was pushed in to where the pin intakes: one
+    // mark, (13.46, 0.94) facing 29.3 = J67_PIN1_*. The hand went 3.3 in straight ahead and then slid about 1.6 in
+    // to the right ("it's not necessarily a straight line"), which the robot cannot do. So: the drive in now goes
+    // 0.5 in further, as asked (J67_IN_*), which takes up part of that; from the turn the robot drives slowly
+    // along the straight line from where it is to the mark, steering onto it; and it finishes with a small turn
+    // to the mark's heading (the earlier recording had the same small left turn at the end: "proofing").
+    // What this replaces: one 4.3 in push easing the heading from 33.5 to 14.8 (second teaching run), which ran
+    // out of time 3.5 in in, 16 deg past its heading: jammed.
+    // (2026-11-27, 17:15: the push is now a plain straight push, J67_TUNNEL_PUSH_IN forward holding the heading
+    // the turn left, measured from where the robot stands, with no steering at a point. The version above steered
+    // along a line to an absolute point: its line was 13 deg off the robot's heading, so it swung to 55 deg and
+    // back, and it relied on the pose right after a turn, which reads up to 0.75 in off.)
+    // the push follows the straight line into mark 2 at J67_OUT_THETA, steering gently back onto it (the turn
+    // was made 0.6 in left of it, see J67_IN_X), and ends J67_TUNNEL_PAST_IN past mark 2
+    lineDrive("into the tunnel", J67_MARK2_X + J67_TUNNEL_PAST_IN * std::sin(lemlib::degToRad(J67_OUT_THETA)),
+              J67_MARK2_Y + J67_TUNNEL_PAST_IN * std::cos(lemlib::degToRad(J67_OUT_THETA)), J67_OUT_THETA,
+              J67_TUNNEL_PUSH_MAX_MS, false);
+    if (stopAsked()) return;
 
     // grab, then turn to J67_TURN3_THETA (40), still intaking, then stop the intake. (A right-side-only nudge before
     // the grab was tried and taken out.)
     // (Tried and taken out: the early catch during the drive, closing straight after the drive, turning to 35 after
-    // the grab, L1's grab at the 0 / 25 deg turn)
-    // the right-side nudge
-    {
-        const float startHeading = chassis.getPose().theta;
-        const std::uint32_t start = pros::millis();
-        leftMotors.brake(); // HOLD: the left side stays put
-        rightMotors.move(J67_NUDGE_POWER);
-        pros::delay(J67_NUDGE_MS);
-        rightMotors.brake();
-        std::printf("[auton] nudge: heading %.1f -> %.1f after %u ms\n", startHeading, chassis.getPose().theta,
-                    static_cast<unsigned>(pros::millis() - start));
-    }
+    // the grab, L1's grab at the 0 / 25 deg turn, a timed right-side nudge and a right-side swing before the grab)
     // the grab: close, and intake from here
     subsystems::setClaw(false);
     xMotors.move_velocity(subsystems::rpm(100));
@@ -598,12 +986,30 @@ void james67b() {
         const std::uint32_t start = pros::millis();
         leftMotors.brake(); // HOLD
         rightMotors.move(-J67_TURN3_POWER);
-        while (pros::millis() - start < J67_TURN3_TIMEOUT_MS &&
+        while (pros::millis() - start < J67_TURN3_TIMEOUT_MS && !stopAsked() &&
                lemlib::angleError(J67_TURN3_THETA, chassis.getPose().theta, false) > 0)
             pros::delay(10);
         rightMotors.brake();
         std::printf("[auton] right side back to %.0f: heading %.1f -> %.1f after %u ms\n", J67_TURN3_THETA,
                     startHeading, chassis.getPose().theta, static_cast<unsigned>(pros::millis() - start));
+    }
+    if (stopAsked()) return;
+    // AFTER THE PIN: one more movement, shown by hand after a full run (2026-11-27, one Y mark, the robot pushed
+    // on from where the routine ended): (14.51, 3.36) facing 9.3 = J67_AFTER_*, "it turns and drives a little".
+    // From where the routine ends (about (12.4, 0.7) facing 40) that mark is 3.4 in almost straight ahead, with
+    // the robot turned 31 deg left once there. By hand the two happened together; the robot drives the 3.4 in
+    // first, holding the heading that points at the mark, and then turns on the spot to 9.3. Turning first and
+    // then driving 3.4 in would end 1.7 in to the left of the mark. The intake runs all the way through
+    {
+        const lemlib::Pose at = chassis.getPose();
+        const lemlib::Pose after(J67_AFTER_X, J67_AFTER_Y);
+        const float toAfter = lemlib::radToDeg(std::atan2(after.x - at.x, after.y - at.y));
+        settleTurn("to the last point", toAfter, J67_TURN1_TIMEOUT_MS); // a few degrees at most
+        if (stopAsked()) return;
+        easeDrive("drives a little", chassis.getPose().distance(after), toAfter, toAfter, J67_TUNNEL_PUSH_MAX_MS);
+        if (stopAsked()) return;
+        settleTurn("turns", J67_AFTER_THETA, J67_TURN1_TIMEOUT_MS);
+        if (stopAsked()) return;
     }
     if (pros::millis() - closedAt < subsystems::CLAW_INTAKE_AFTER_MS)
         pros::delay(subsystems::CLAW_INTAKE_AFTER_MS - (pros::millis() - closedAt));

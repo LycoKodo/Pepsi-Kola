@@ -80,6 +80,19 @@ void startGpsFusion();
 bool routineExists(int routine);
 
 /**
+ * Test runs (hold A, press B or X; controls.cpp): while setTestRun(true), pressing Y stops the routine at once,
+ * wherever it is (the routines' wait loops check for it). testRunWasStopped() says whether that happened, so the
+ * driver loop can start recording the path as the robot is pushed on by hand. Never set in a match.
+ */
+void setTestRun(bool on);
+bool testRunWasStopped();
+/**
+ * The teaching run: a test run that also stops by itself after the turn numbered `stopAfterTurn` (autons.cpp lists
+ * them; 0 = an ordinary test run). Hold A + X gives 2, hold A + Y gives 3.
+ */
+void setTeachRun(int stopAfterTurn);
+
+/**
  * Picking the routine on the controller (src/ctrlselect.cpp). The pick is the same one the brain's selector
  * shows: either can change it.
  * Driver control: hold A, press LEFT / RIGHT to step through the routines (hold A, press B still runs it).
