@@ -9,6 +9,9 @@
 /** @brief Qual routine 2 (selector: Qual tab, "james_67") */
 void james_67();
 
+/** @brief Qual routine 3 (selector: Qual tab, "67james"; a C++ name cannot start with a digit) */
+void james67b();
+
 /**
  * @brief Run routine number `routine` (the selector's numbering). Blocking.
  * autonomous() calls it in a match; driverControl() calls it for a test run

@@ -14,6 +14,47 @@
 namespace {
 // at the start: toggleB turns this far, motor degrees
 constexpr double START_TOGGLE_DEG = 360;
+// 67james wiggles first: forward, back, forward again at WIGGLE_POWER, WIGGLE_MS each, the last forward
+// WIGGLE_LAST_MS so it comes back in (each part first has to stop the last one). Straight motor power, not a
+// LemLib drive: a 5 in moveToPoint only got about 1.2 in in 0.8 s and the drive back then counted as already there
+// (2026-11-26). Driving each part by distance (5 in, back 3, forward to 5) was tried and taken out
+constexpr int WIGGLE_POWER = 100; // of 127
+constexpr int WIGGLE_MS = 200;
+constexpr int WIGGLE_LAST_MS = 400; // was 200, then 300
+// 67james after the wiggle: straight back this far, then to its first goal lifting to J67_GOAL1_LIFT_DEG on the
+// way, and score there
+constexpr float J67_BACK_IN = 10;
+constexpr int J67_BACK_TIMEOUT_MS = 1000;
+constexpr float J67_GOAL1_X = 14.5; // 2 in forward of 12.5 (facing 90: forward is +x)
+constexpr float J67_GOAL1_Y = -14.2;
+constexpr float J67_GOAL1_THETA = 90;
+constexpr double J67_GOAL1_LIFT_DEG = 300;
+constexpr int TO_J67_GOAL1_TIMEOUT_MS = 2000;
+// after the score: straight back this far (the back-up after the wiggle stays J67_BACK_IN)
+constexpr float J67_SCORE_BACK_IN = 9; // was 10 (J67_BACK_IN), 11, then 8
+// then turn on the spot to this heading, and L1's grab at the first pin (closes once there)
+constexpr float J67_TURN1_THETA = 45; // was 45, 40, 37.5, 35, 40, then 35
+constexpr int J67_TURN1_TIMEOUT_MS = 800;
+constexpr float J67_PIN1_X = 17; // was 13.8: the odometry only got to about 10.5 there
+constexpr float J67_PIN1_Y = 0;
+constexpr float J67_PIN1_THETA = 13;
+// between the turn and the pin drive: straight forward this far at J67_FORWARD_RPM on the motors' own speed control
+// (move_velocity, percent of the blue motors' 600 rpm), both sides the same, until odometry says it got there.
+// Tried before: a 5 in LemLib drive (about 1.2 in in 0.8 s); 50% straight power then a step down to a slow speed
+// (twitched at the switch); a ramp up, easing from 50% down to 20% and holding the heading with the inertial
+// sensor (too fast); straight power under about 28 of 127 stalled
+constexpr float J67_FORWARD_IN = 16; // was 5, 10, 8, 12, 16, then 18
+constexpr int J67_FORWARD_RPM = 600 * 20 / 100; // 20%, about 13 in/s
+// after the drive (L1's grab running): grab, then turn to J67_TURN3_THETA
+// the nudge after the drive, before the grab: only the right side drives forward (the left holds), at
+// J67_NUDGE_POWER for J67_NUDGE_MS, which swings the robot to the left. (Stopping once the heading had dropped
+// 5 deg was tried first: 40 of 127 turned it 1 deg in 0.5 s, 90 swung 5 deg in 0.22 s)
+constexpr int J67_NUDGE_POWER = 64; // of 127: 50%
+constexpr int J67_NUDGE_MS = 1000;
+constexpr float J67_TURN3_THETA = 40; // was 45
+constexpr int J67_TURN3_TIMEOUT_MS = 1500; // was 800 for the turn on the spot
+constexpr int J67_TURN3_POWER = 64; // of 127: 50%, the right side only (backward)
+constexpr int J67_FORWARD_MAX_MS = 4500; // 9 in at 3.2 in/s is about 2.8 s; was 3500; // 2500 ran out at 28 power (17.4 of 18 in); // was 2000 before the longer slow part; 600 (for 5 in), 1000 (for 10), 1200 (for 12), 1500 (16 at 80)
 
 // first goal: drive here, lifting on the way, and score
 constexpr float GOAL_X = -13.27;
@@ -47,12 +88,13 @@ constexpr float GOAL2_X = -7.3; // 2 in right (+x) of -9.3 (was -13.3, then 4 in
 constexpr float GOAL2_Y = 22.5; // 1 in to the robot's right (facing 90 deg: left is +y) of 23.5 (tried 23.5, 21.5)
 constexpr float GOAL2_THETA = 90;
 constexpr int TO_GOAL2_TIMEOUT_MS = 2000; // was 3000
+constexpr double GOAL2_LIFT_DEG = subsystems::CASCADE_ALLIANCE[0]; // first pin's score: level 1 alliance, 500 (400 tried; 440 was level 1)
 
 // second pin: grab, the same way as the first
-// 8 in back (facing 47.5 deg) of -9.71, 47.13 (tried: -10, -12, -14 at 45.9; -12.53, 47.25; -11.06, 48.6; -9.71, 47.13;
-// -13.40, 43.75; -17.09, 40.37)
-constexpr float PIN2_X = -15.62;
-constexpr float PIN2_Y = 41.72;
+// 6 in back (facing 47.5 deg) of -9.71, 47.13 (tried: -10, -12, -14 at 45.9; -12.53, 47.25; -11.06, 48.6; -9.71, 47.13;
+// -13.40, 43.75; -17.09, 40.37; -15.62, 41.72)
+constexpr float PIN2_X = -14.15;
+constexpr float PIN2_Y = 43.07;
 constexpr float PIN2_THETA = 47.5;
 
 // third goal: lift to level 2 alliance height while driving here, and score
@@ -60,6 +102,7 @@ constexpr float GOAL3_X = -10; // 5 in left of -15 (robot faces 180 here: its ri
 constexpr float GOAL3_Y = 26; // (facing 180: forward is -y). Tried 24, 22, 20, 28.9, 23.9, 20.9, 17.9
 constexpr float GOAL3_THETA = 180;
 constexpr int TO_GOAL3_TIMEOUT_MS = 2000; // was 3000
+constexpr double GOAL3_LIFT_DEG = subsystems::CASCADE_ALLIANCE[1]; // second pin's score: level 2 alliance, 700 (640 was level 2)
 
 // after the third goal: B's reset (lift to the bottom and re-zeroed, roller homed) while driving straight to the
 // third pin. (Backing up to -7, 46 facing 180 first was tried and taken out.) Before that drive, straight back
@@ -91,16 +134,28 @@ constexpr float PIN5_X = PIN4_X;
 constexpr float PIN5_Y = PIN4_Y - 1; // 1 in to the robot's right of the fourth pin (2 in right tried, 2 in left)
 // then straight back this far, and to the fifth goal lifting to GOAL5_LIFT_DEG on the way, and score there
 constexpr float PIN5_BACK_IN = 10;
-constexpr float GOAL5_X = -29;
-constexpr float GOAL5_Y = 43; // 2 in to the robot's left of 45 (facing 270: left is -y)
+constexpr float GOAL5_X = -31; // 2 in forward of -29 (facing 270: forward is -x)
+constexpr float GOAL5_Y = 42; // 3 in to the robot's left of 45 (facing 270: left is -y). Tried 45, 43
 constexpr float GOAL5_THETA = 270;
-constexpr double GOAL5_LIFT_DEG = 300;
+constexpr double GOAL5_LIFT_DEG = 400; // was 300
 constexpr int TO_GOAL5_TIMEOUT_MS = 2500; // about 43 in with a 180 deg turn
+// after the fifth pin's score: back to the third-pin spot for a sixth pin. The robot faces 270 at the goal and the
+// pin is behind it (+x), so: straight back PIN6_BACK_IN (B's reset once clear of the goal, as after the third goal),
+// turn round on the spot to face 90, then the usual L1 grab (early catch) with its pose drive to the pin
+constexpr float PIN6_X = PIN5_X; // the fifth pin's point, same heading (90)
+constexpr float PIN6_Y = PIN5_Y;
+constexpr float PIN6_BACK_IN = 10;
+constexpr int PIN6_TURN_TIMEOUT_MS = 1000; // about 180 deg on the spot, to face 90
+constexpr int TO_PIN6_TIMEOUT_MS = 3000; // about 40 in
 // then straight back this far (-x: it faces 90 there), and back to the third goal's point (GOAL3_*, facing 180),
 // lifting to level 3 alliance height (900 deg) on the way, and score there
 constexpr float BACK4_IN = 11;
 constexpr int BACK4_TIMEOUT_MS = 1000;
-constexpr int RETURN_TO_GOAL3_TIMEOUT_MS = 2500; // about 40 in with a 90 deg turn
+constexpr int RETURN_TO_GOAL3_TIMEOUT_MS = 3500; // about 30 in (was 2500: ran out, 2026-11-25)
+// before that drive, turn on the spot to face the goal's point, so the drive is a straight line. One curved
+// moveToPose from facing 90 to the goal facing 180 arced wide to the right (LemLib slows tight curves down) and ran
+// out of time 18 and 24 in short (2026-11-25, pins 3 and 4)
+constexpr int RETURN_TURN_TIMEOUT_MS = 800;
 // then the whole third-pin cycle again (back up + B, turn, grab at the third pin, back up, to the third goal's
 // point), this time lifting to level 4 alliance height (1020 deg). Driver control's anti-tip (controls.cpp) caps
 // the drive at 80% with the lift at 1020, so this drive gets the same cap
@@ -125,6 +180,9 @@ constexpr int PIN_CATCH_WAIT_MS = 200; // was 500
 // pins 3, 4 and 5: from this long after the claw opens, close it as soon as the sensor sees
 // something (within CLAW_CATCH_MM), even mid-drive, and end the drive there. The other pins wait for the point
 constexpr std::uint32_t PIN3_CATCH_AFTER_MS = 250;
+// pins 1 and 2: the same early catch (claw closes the moment the sensor sees the pin), but the drive carries on to
+// the point
+constexpr std::uint32_t PIN12_CATCH_AFTER_MS = 250;
 
 // When a pose drive counts as arrived (waitPose). Same ranges as the drive's own exit settings in
 // robot-config.cpp, but EITHER one ends the drive, as in moveToPoint: LemLib's moveToPose wants BOTH, so a robot
@@ -193,6 +251,7 @@ void finishScore(bool waitOuttake = false) {
 // from now on (it outtakes with them once the claw opens), so nothing else may drive them until it is over
 void startScore() {
     xMotors.brake();
+    macros::setPlaceDownPercent(100); // full speed down in the auton (driver control's R1 uses 80)
     macros::request(macros::Macro::PlaceRelease, true);
 }
 
@@ -203,6 +262,13 @@ void waitPoseThenScore(float x, float y, float theta, const std::function<void()
     const lemlib::Pose goal(x, y);
     bool started = false;
     waitPose(x, y, theta, POSE_EXIT_WITHIN_IN, [&] {
+        // the scoring motion opened the claw: the pin is on, end the drive. Against a goal the robot can stop short
+        // of its point (3.8 in at the fifth goal) and used to push there until the timeout, a second each time
+        // (2026-11-25)
+        if (started && subsystems::clawOpen()) {
+            chassis.cancelMotion();
+            return;
+        }
         if (started) return;
         if (chassis.getPose().distance(goal) <= SCORE_EARLY_IN) {
             startScore();
@@ -241,10 +307,10 @@ void driveBack(float inches, int timeoutMs, const std::function<void()>& once = 
 // exitWithin > 0: end the drive as soon as the robot is that close to the point (HOLD then stops it)
 // @return millis() when the claw closed, for stopping them
 // theta NAN: no final heading, the drives are moveToPoint instead of moveToPose
-// catchAfterMs > 0: from that long after the claw opens, close as soon as the sensor sees something, and end the
-// drive there (third-pin rounds)
+// catchAfterMs > 0: from that long after the claw opens, close as soon as the sensor sees something; with
+// stopOnCatch, end the drive there too (pins 3-5), otherwise carry on to the point (pins 1 and 2)
 std::uint32_t grabPin(float x, float y, float theta, float exitWithin = POSE_EXIT_WITHIN_IN,
-                      std::uint32_t catchAfterMs = 0) {
+                      std::uint32_t catchAfterMs = 0, bool stopOnCatch = true, int timeoutMs = TO_PIN_TIMEOUT_MS) {
     // finishScore() returns before its outtake is over, and the outtake ends by stopping motors 14/16: let it finish
     // first, or it would stop the intake started below (normally already over by the end of the drive back).
     // Other macros (B's reset) don't touch motors 14/16 and the claw, so the grab doesn't wait for them
@@ -253,30 +319,34 @@ std::uint32_t grabPin(float x, float y, float theta, float exitWithin = POSE_EXI
     const std::uint32_t openedAt = pros::millis();
     xMotors.move_velocity(subsystems::rpm(100));
     bool caught = false;
+    std::uint32_t closedAt = 0;
     auto sees = [] {
         const std::int32_t mm = clawSensor.get_distance();
         return mm > 0 && mm <= subsystems::CLAW_CATCH_MM;
     };
-    // the early catch: ends the running drive when it sees the pin
+    // the early catch: closes the claw the moment it sees the pin (and ends the drive, with stopOnCatch)
     auto watch = [&] {
         if (catchAfterMs == 0 || caught || pros::millis() - openedAt < catchAfterMs || !sees()) return;
         caught = true;
-        chassis.cancelMotion();
+        subsystems::setClaw(false);
+        closedAt = pros::millis();
+        if (stopOnCatch) chassis.cancelMotion();
     };
+    auto stopped = [&] { return caught && stopOnCatch; };
 
     const bool anyHeading = std::isnan(theta);
     auto drive = [&](int timeoutMs, float maxSpeed) {
         if (anyHeading) chassis.moveToPoint(x, y, timeoutMs, {.forwards = true, .maxSpeed = maxSpeed});
         else chassis.moveToPose(x, y, theta, timeoutMs, {.forwards = true, .maxSpeed = maxSpeed});
     };
-    drive(TO_PIN_TIMEOUT_MS, 127);
+    drive(timeoutMs, 127);
     // LemLib can't change a move's speed part way, so the first move is cancelled and a slow one started
     const lemlib::Pose pin(x, y);
     while (chassis.isInMotion() && chassis.getPose().distance(pin) > PIN_SLOW_WITHIN_IN) {
         watch();
         pros::delay(10);
     }
-    if (chassis.isInMotion() && !caught) {
+    if (chassis.isInMotion() && !stopped()) {
         // a cancelled move sets the drive to 0 for ~10 ms before the next starts: coast through that
         // instead of HOLD braking hard at speed
         chassis.setBrakeMode(pros::E_MOTOR_BRAKE_COAST);
@@ -285,7 +355,7 @@ std::uint32_t grabPin(float x, float y, float theta, float exitWithin = POSE_EXI
         drive(PIN_SLOW_TIMEOUT_MS, PIN_SLOW_SPEED);
         chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
     }
-    if (!caught) waitPose(x, y, theta, exitWithin, watch);
+    if (!stopped()) waitPose(x, y, theta, exitWithin, watch);
     chassis.waitUntilDone();
 
     int waited = 0;
@@ -293,11 +363,14 @@ std::uint32_t grabPin(float x, float y, float theta, float exitWithin = POSE_EXI
         if (sees() && pros::millis() - openedAt >= catchAfterMs) break;
         pros::delay(10);
     }
-    subsystems::setClaw(false);
+    if (!caught) {
+        subsystems::setClaw(false);
+        closedAt = pros::millis();
+    }
     std::printf("[auton] pin (%.1f, %.1f): claw closed (%s, sensor %d mm, %.1f in from the point)\n", x, y,
                 caught ? "caught on the way" : waited < PIN_CATCH_WAIT_MS ? "caught" : "timed out",
                 static_cast<int>(clawSensor.get_distance()), chassis.getPose().distance(pin));
-    return pros::millis();
+    return closedAt;
 }
 
 // after a grab: lift to `liftDeg` while driving to the goal (x, y, theta), scoring on the way in (finishScore()
@@ -342,6 +415,8 @@ void thirdPinCycle(double liftDeg, float pinX, float pinY, float goalX, float go
     // back to the third goal's point, lifting on the way, and score there (scoring starts SCORE_EARLY_IN out, as
     // at the other goals). B's reset is long over by now; wait for it if not, so it doesn't fight the lift
     while (macros::isRunning(macros::Macro::ResetAll)) pros::delay(10);
+    chassis.turnToPoint(goalX, goalY, RETURN_TURN_TIMEOUT_MS);
+    chassis.waitUntilDone();
     liftDrive(liftDeg, goalX, goalY, GOAL3_THETA, RETURN_TO_GOAL3_TIMEOUT_MS, closedAt, maxSpeed);
     finishScore();
 }
@@ -370,18 +445,23 @@ void james_67() {
     driveBack(BACK_IN, BACK_TIMEOUT_MS, [] { macros::request(macros::Macro::ResetAll, true); }, RESET_AFTER_BACK_IN);
 
     // first pin
-    const std::uint32_t closedAt = grabPin(PIN_X, PIN_Y, PIN_THETA);
+    const std::uint32_t closedAt = grabPin(PIN_X, PIN_Y, PIN_THETA, POSE_EXIT_WITHIN_IN, PIN12_CATCH_AFTER_MS, false);
 
-    // second goal: level 1 alliance height (440 deg)
-    liftDrive(subsystems::CASCADE_ALLIANCE[0], GOAL2_X, GOAL2_Y, GOAL2_THETA, TO_GOAL2_TIMEOUT_MS, closedAt);
+    // second goal: GOAL2_LIFT_DEG (500 deg; was level 1 alliance height, 440)
+    liftDrive(GOAL2_LIFT_DEG, GOAL2_X, GOAL2_Y, GOAL2_THETA, TO_GOAL2_TIMEOUT_MS, closedAt);
     finishScore();
     driveBack(BACK_IN, BACK_TIMEOUT_MS);
 
     // second pin
-    const std::uint32_t closed2At = grabPin(PIN2_X, PIN2_Y, PIN2_THETA);
+    const std::uint32_t closed2At = grabPin(PIN2_X, PIN2_Y, PIN2_THETA, POSE_EXIT_WITHIN_IN, PIN12_CATCH_AFTER_MS, false);
 
-    // third goal: level 2 alliance height (640 deg)
-    liftDrive(subsystems::CASCADE_ALLIANCE[1], GOAL3_X, GOAL3_Y, GOAL3_THETA, TO_GOAL3_TIMEOUT_MS, closed2At);
+    // turn on the spot to face the goal first, so the drive there is a straight line: the one curved drive from
+    // facing 47.5 to facing 180 was too tight a turn and ended in the wrong place (2026-11-25)
+    chassis.turnToPoint(GOAL3_X, GOAL3_Y, RETURN_TURN_TIMEOUT_MS);
+    chassis.waitUntilDone();
+
+    // third goal: GOAL3_LIFT_DEG (700 deg; was level 2 alliance height, 640)
+    liftDrive(GOAL3_LIFT_DEG, GOAL3_X, GOAL3_Y, GOAL3_THETA, TO_GOAL3_TIMEOUT_MS, closed2At);
     finishScore();
 
     // third pin, scored at the third goal's point at level 3 alliance height (900 deg)
@@ -398,8 +478,136 @@ void james_67() {
     // closed from the grab until the scoring motion opens it
     driveBack(PIN5_BACK_IN, BACK_TIMEOUT_MS);
     xMotors.brake();
+    // turn on the spot to face the goal first, so the drive there is a straight line (as for pins 3 and 4)
+    chassis.turnToPoint(GOAL5_X, GOAL5_Y, RETURN_TURN_TIMEOUT_MS);
+    chassis.waitUntilDone();
     liftDrive(GOAL5_LIFT_DEG, GOAL5_X, GOAL5_Y, GOAL5_THETA, TO_GOAL5_TIMEOUT_MS, closed5At);
     finishScore();
+
+    // sixth pin, at the third-pin spot: back off the goal (B once clear), face the pin, grab it
+    while (macros::isBusy()) pros::delay(10); // the score's outtake is over first: B would cancel it
+    driveBack(PIN6_BACK_IN, BACK_TIMEOUT_MS, [] { macros::request(macros::Macro::ResetAll, true); },
+              RESET_AFTER_BACK_IN);
+    // turn round on the spot to face 90, then the grab's pose drive to the pin. (Tried first, all slower or worse:
+    // a point 12 in short of the pin, in line with it, reached by turn + straight drive + turn to 90; by one pose
+    // drive from facing 270, which drove into the wall turning round; by a turn + pose drive, 2026-11-25)
+    chassis.turnToHeading(PIN3_THETA, PIN6_TURN_TIMEOUT_MS);
+    chassis.waitUntilDone();
+    const std::uint32_t closed6At = grabPin(PIN6_X, PIN6_Y, PIN3_THETA, POSE_EXIT_WITHIN_IN, PIN3_CATCH_AFTER_MS, true,
+                                            TO_PIN6_TIMEOUT_MS);
+
+    // and score it the way pin 5 was: back off still intaking, face the fifth goal, straight there lifting to the
+    // first pin's score height (GOAL2_LIFT_DEG), score
+    driveBack(PIN5_BACK_IN, BACK_TIMEOUT_MS);
+    xMotors.brake();
+    chassis.turnToPoint(GOAL5_X, GOAL5_Y, RETURN_TURN_TIMEOUT_MS);
+    chassis.waitUntilDone();
+    liftDrive(GOAL2_LIFT_DEG, GOAL5_X, GOAL5_Y, GOAL5_THETA, TO_GOAL5_TIMEOUT_MS, closed6At);
+    finishScore();
+
+    // rest of the routine goes here
+}
+
+// Qual routine 3, "67james" on the selector (the default)
+void james67b() {
+    chassis.setPose(0, 0, 0);
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD); // driver control sets it back to COAST when it starts
+
+    // the wiggle: forward, back, forward again (the last one longer). (toggleA's 720 deg spin after it was tried
+    // and taken out)
+    const int powers[] = {WIGGLE_POWER, -WIGGLE_POWER, WIGGLE_POWER};
+    const int times[] = {WIGGLE_MS, WIGGLE_MS, WIGGLE_LAST_MS};
+    for (int i = 0; i < 3; ++i) {
+        leftMotors.move(powers[i]);
+        rightMotors.move(powers[i]);
+        pros::delay(times[i]);
+    }
+    leftMotors.brake(); // HOLD
+    rightMotors.brake();
+
+    // back off, then to the first goal lifting to 300 on the way, and score there
+    driveBack(J67_BACK_IN, J67_BACK_TIMEOUT_MS);
+    liftDrive(J67_GOAL1_LIFT_DEG, J67_GOAL1_X, J67_GOAL1_Y, J67_GOAL1_THETA, TO_J67_GOAL1_TIMEOUT_MS, pros::millis());
+    finishScore(true); // the full 0.3 s outtake before backing off, as james_67's first goal
+    driveBack(J67_SCORE_BACK_IN, J67_BACK_TIMEOUT_MS); // straight back off the goal
+
+    // turn to J67_TURN1_THETA (45), then drive forward with L1's grab
+    chassis.turnToHeading(J67_TURN1_THETA, J67_TURN1_TIMEOUT_MS);
+    chassis.waitUntilDone();
+    while (macros::isRunning(macros::Macro::PlaceRelease)) pros::delay(10); // its outtake would stop the intake
+    // the grab: claw open, motors 14/16 OUTTAKING (X's way) through the drive and the nudge; the claw closes after the
+    // nudge, and from then the motors intake CLAW_INTAKE_AFTER_MS, as L1 after a catch. (Tried: intaking all the
+    // way, as L1; L2's grab, claw closed all the way; closing as soon as the sensor saw the pin)
+    subsystems::setClaw(true);
+    xMotors.move_velocity(-subsystems::rpm(100));
+    {
+        const lemlib::Pose from = chassis.getPose();
+        // (only for the log: how far the heading wanders off what the turn aimed for)
+        const float holdHeading = J67_TURN1_THETA;
+        float worstOff = 0;
+        const std::uint32_t start = pros::millis();
+        while (pros::millis() - start < J67_FORWARD_MAX_MS && chassis.getPose().distance(from) < J67_FORWARD_IN) {
+            // stop as soon as the claw sensor sees the pin, so the robot doesn't drive into it and knock it over (it
+            // used to push on at the slow power: 16.8 of 18 in after the full 3.5 s, 2026-11-26). The claw closes
+            // after the drive
+            const std::int32_t mm = clawSensor.get_distance();
+            if (mm > 0 && mm <= subsystems::CLAW_CATCH_MM) break;
+            // both sides at J67_FORWARD_RPM, no heading correction
+            const float off = lemlib::angleError(chassis.getPose().theta, holdHeading, false);
+            if (std::fabs(off) > std::fabs(worstOff)) worstOff = off;
+            leftMotors.move_velocity(J67_FORWARD_RPM);
+            rightMotors.move_velocity(J67_FORWARD_RPM);
+            pros::delay(10);
+        }
+        leftMotors.brake(); // HOLD
+        rightMotors.brake();
+        std::printf("[auton] forward %.1f in: %.1f after %u ms (sensor %d mm); heading %.1f at the start, %.1f at the "
+                    "end, worst %.1f off %.0f\n",
+                    J67_FORWARD_IN, chassis.getPose().distance(from), static_cast<unsigned>(pros::millis() - start),
+                    static_cast<int>(clawSensor.get_distance()), from.theta, chassis.getPose().theta, worstOff,
+                    holdHeading);
+    }
+    // grabPin(J67_PIN1_X, J67_PIN1_Y, J67_PIN1_THETA); // the pose drive to the first pin, off for now
+
+    // grab, then turn to J67_TURN3_THETA (40), still intaking, then stop the intake. (A right-side-only nudge before
+    // the grab was tried and taken out.)
+    // (Tried and taken out: the early catch during the drive, closing straight after the drive, turning to 35 after
+    // the grab, L1's grab at the 0 / 25 deg turn)
+    // the right-side nudge
+    {
+        const float startHeading = chassis.getPose().theta;
+        const std::uint32_t start = pros::millis();
+        leftMotors.brake(); // HOLD: the left side stays put
+        rightMotors.move(J67_NUDGE_POWER);
+        pros::delay(J67_NUDGE_MS);
+        rightMotors.brake();
+        std::printf("[auton] nudge: heading %.1f -> %.1f after %u ms\n", startHeading, chassis.getPose().theta,
+                    static_cast<unsigned>(pros::millis() - start));
+    }
+    // the grab: close, and intake from here
+    subsystems::setClaw(false);
+    xMotors.move_velocity(subsystems::rpm(100));
+    const std::uint32_t closedAt = pros::millis();
+    std::printf("[auton] L1 grab after the nudge: claw closed (sensor %d mm)\n",
+                static_cast<int>(clawSensor.get_distance()));
+    // back to J67_TURN3_THETA with the right side only (the left holds). The nudge left the robot turned left of
+    // it (about 20 deg), so the right side drives BACKWARD, which swings the robot clockwise, until the heading
+    // reaches the target or J67_TURN3_TIMEOUT_MS is up. (A turn on the spot with both sides was tried first)
+    {
+        const float startHeading = chassis.getPose().theta;
+        const std::uint32_t start = pros::millis();
+        leftMotors.brake(); // HOLD
+        rightMotors.move(-J67_TURN3_POWER);
+        while (pros::millis() - start < J67_TURN3_TIMEOUT_MS &&
+               lemlib::angleError(J67_TURN3_THETA, chassis.getPose().theta, false) > 0)
+            pros::delay(10);
+        rightMotors.brake();
+        std::printf("[auton] right side back to %.0f: heading %.1f -> %.1f after %u ms\n", J67_TURN3_THETA,
+                    startHeading, chassis.getPose().theta, static_cast<unsigned>(pros::millis() - start));
+    }
+    if (pros::millis() - closedAt < subsystems::CLAW_INTAKE_AFTER_MS)
+        pros::delay(subsystems::CLAW_INTAKE_AFTER_MS - (pros::millis() - closedAt));
+    xMotors.brake();
 
     // rest of the routine goes here
 }

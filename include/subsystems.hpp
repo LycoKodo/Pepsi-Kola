@@ -24,7 +24,8 @@ constexpr int CASCADE_PRESETS = 3;
 constexpr double CASCADE_NEUTRAL[CASCADE_PRESETS] = {720, 1020, 1310}; // +120 (was 600, 900, 1190)
 // alliance goal: R2 presses 1-5 on the new robot (was 490, 800, 1080 for presses 1-3)
 constexpr int CASCADE_ALLIANCE_COUNT = 5;
-constexpr double CASCADE_ALLIANCE[CASCADE_ALLIANCE_COUNT] = {440, 640, 900, 1020, 1200}; // +120 (was 320, 520, 780, 900, 1080)
+// levels 1 and 2 set to james_67's scoring heights on 2026-11-25 (were 440, 640)
+constexpr double CASCADE_ALLIANCE[CASCADE_ALLIANCE_COUNT] = {500, 700, 900, 1020, 1200}; // +120 (was 320, 520, 780, 900, 1080)
 constexpr double CASCADE_L4 = 1390; // the old R2 top step; R2 doesn't go here any more
 constexpr double CASCADE_MAX = 1390;        // highest R1 / the autons send the cascade (R2's L4; UP has no limit)
 constexpr double CASCADE_MIN = 0;           // the bottom, for macros and autons (manual DOWN has no limit)

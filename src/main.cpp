@@ -130,8 +130,9 @@ void initialize() {
     // (see the button handlers in src/lemlib/selector.cpp for how a button maps to a number).
     // Every tab needs at least one button (LVGL crashes on an empty map), so Qual and AI
     // have a "NONE" placeholder that runAuton() treats as "nothing selected"
-    static const char* qualBtnmMap[] = {"NONE", "james_67", nullptr};
-    static const char* qualBtnmDesc[] = {"No routine", "james_67: spins toggleB until it sees our alliance colour", nullptr};
+    static const char* qualBtnmMap[] = {"NONE", "james_67", "67james", nullptr};
+    static const char* qualBtnmDesc[] = {"No routine", "james_67: spins toggleB until it sees our alliance colour",
+                                        "67james: new routine, being written", nullptr};
 
     static const char* AIBtnmMap[] = {"NONE", nullptr};
     static const char* AIBtnmDesc[] = {"No routines yet", nullptr};
@@ -150,7 +151,7 @@ void initialize() {
         "3 tiles ahead, 3 LEFT, 1 behind, 1 right. Hold A, press B. A stick stops it",
         nullptr};
 
-    constexpr int DEFAULT_AUTON = 2; // james_67 (Qual tab, second button); 999 = none
+    constexpr int DEFAULT_AUTON = 3; // 67james (Qual tab, third button; james_67 is 2); 999 = none
     lemlib::selector::init(DEFAULT_AUTON, qualBtnmMap, AIBtnmMap, skillsBtnmMap, qualBtnmDesc, AIBtnmDesc, skillsBtnmDesc); // declaring default auton
     pidtuner::init(lemlib::selector::tabview); // PID tuning tab, added after the selector's tabs
 }
@@ -184,7 +185,7 @@ void startGpsFusion() {
 bool routineExists(int routine) {
     // keep in step with the cases in runAuton(). The UMBmark squares (101, 102) are test runs that never touch
     // toggleB, so they do not hold the colour toggle
-    return routine == 2;
+    return routine == 2 || routine == 3;
 }
 
 void runAuton(int routine) {
@@ -193,6 +194,7 @@ void runAuton(int routine) {
     // The placeholder buttons ("NONE": 1, -1) land in default
     switch (routine) {
         case 2: james_67(); break;              // Qual tab, second button
+        case 3: james67b(); break;              // Qual tab, third button ("67james")
         case 101: umbmarkSquare(true); break;  // Skills "UMB CW": odometry test, clockwise square
         case 102: umbmarkSquare(false); break; // Skills "UMB CCW": the same, counter-clockwise
         // nothing selected (999) or a placeholder: do nothing

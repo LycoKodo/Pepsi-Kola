@@ -61,6 +61,12 @@ bool isRunning(Macro macro);
 
 /** @brief Next R2 preset goes back to 1 (the Blocks "Height = 1") */
 void resetHeight();
+
+/**
+ * @brief How fast R1's PlaceRelease drives the lift down, percent, from its next run on. Driver control's R1 sets
+ * 80, the autons 100 (src/controls.cpp, src/autons.cpp)
+ */
+void setPlaceDownPercent(int percent);
 /** @brief Swap R2's heights between neutral and alliance goal (A held 1 s). @return true = neutral now */
 bool toggleNeutralHeights();
 /** @brief Next LEFT press goes back to cascade level 1 (RIGHT) */

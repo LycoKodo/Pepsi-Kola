@@ -23,6 +23,8 @@ std::atomic<Macro> current{Macro::None}; // the macro running now, for isRunning
 // "Height"), press 4 takes the cascade up to CASCADE_L4.
 // It stays on 4 after that (no wrap back to preset 1): B starts it over
 std::atomic<int> height{1};
+// R1's lift-down speed, percent (setPlaceDownPercent): 80 when the driver presses R1, 100 in the autons
+std::atomic<int> placeDownPct{100};
 // Which heights R2's presets 1-3 use: true = CASCADE_NEUTRAL, false = CASCADE_ALLIANCE (boot)
 std::atomic<bool> neutralHeights{false};
 // Which LEFT press is next: 1 = cascade to level 1, 2 = level 2 (and every press after it).
@@ -240,14 +242,15 @@ void raiseRight() {
 // reading is too noisy). Only PLACE_MAX_MS running out stops it WITHOUT opening the claw. (It used
 // to stop at CASCADE_MIN without opening, which kept the claw shut on low cups)
 void placeRelease() {
-    constexpr int PLACE_DOWN_PCT = 100; // was 50
     constexpr int PLACE_SETTLE_MS = 200;
     constexpr double PLACE_STILL_DEG = 2;
     constexpr int PLACE_STALL_MS = 40; // was 80, then 150
     constexpr int PLACE_MAX_MS = 3000;
     constexpr int PLACE_OUTTAKE_MS = 300; // after letting go, outtake this long
 
-    cascade.move_velocity(-rpm(PLACE_DOWN_PCT));
+    // R2's next press starts again from the first height, as after B (2026-11-25)
+    height = 1;
+    cascade.move_velocity(-rpm(placeDownPct.load())); // was 50, then 100 (now 100 in autons, 80 driving)
     const double startPos = cascade.get_position();
     double windowPos = startPos; // where it was at the start of the current still window
     int windowMs = 0;
@@ -351,6 +354,8 @@ bool resetY() {
 bool isRunning(Macro macro) { return current.load() == macro || pending.load() == macro; }
 
 void resetHeight() { height = 1; }
+
+void setPlaceDownPercent(int percent) { placeDownPct = percent; }
 
 bool toggleNeutralHeights() {
     const bool now = !neutralHeights.load(); // only the driver loop writes it

@@ -241,9 +241,15 @@ void cascadeControls(bool dpadFree) {
     }
 }
 
+// R1's lift-down speed when driving, percent (the autons use 100)
+constexpr int R1_PLACE_DOWN_PCT = 80;
+
 void macroControls(bool dpadFree) {
     // R1: lift down onto the pin/cup, then open the claw (the Unload macro is off the buttons now)
-    if (R1.pressed()) macros::request(macros::Macro::PlaceRelease);
+    if (R1.pressed()) {
+        macros::setPlaceDownPercent(R1_PLACE_DOWN_PCT);
+        macros::request(macros::Macro::PlaceRelease);
+    }
     // R2 cuts in on a running R2 (so quick presses step straight up), but not on other macros
     if (R2.pressed()) {
         macros::request(macros::Macro::CycleHeight, macros::isRunning(macros::Macro::CycleHeight));
